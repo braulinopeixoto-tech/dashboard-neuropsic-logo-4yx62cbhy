@@ -19,16 +19,19 @@ import {
   LogOut,
   BrainCircuit,
   Activity,
+  Bell,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
+import { NotificationBell } from './NotificationBell'
 
 const menuItems = [
   { title: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { title: 'Minhas Sessões', icon: Activity, path: '/sessoes' },
   { title: 'Prescrever', icon: PlusCircle, path: '/prescrever-protocolo' },
   { title: 'Pacientes', icon: Users, path: '/pacientes' },
+  { title: 'Alertas', icon: Bell, path: '/alertas' },
   { title: 'Configurações', icon: Settings, path: '/configuracoes' },
 ]
 
@@ -100,6 +103,7 @@ export default function Layout() {
         <header className="flex h-16 items-center border-b border-slate-200 px-4 md:px-6 gap-4 bg-white shrink-0 sticky top-0 z-10">
           <SidebarTrigger className="text-slate-500 hover:bg-slate-100" />
           <div className="flex-1" />
+          {user?.tipo === 'neuropsicólogo' && <NotificationBell />}
           <div className="flex items-center gap-3 md:hidden">
             <Avatar className="h-8 w-8">
               <AvatarImage
