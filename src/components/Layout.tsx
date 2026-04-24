@@ -18,7 +18,7 @@ import { useAuth } from '@/hooks/use-auth'
 
 const menuItems = [
   { title: 'Dashboard', icon: LayoutDashboard, path: '/' },
-  { title: 'Prescrever', icon: PlusCircle, path: '/prescrever' },
+  { title: 'Prescrever', icon: PlusCircle, path: '/prescrever-protocolo' },
   { title: 'Pacientes', icon: Users, path: '/pacientes' },
   { title: 'Configurações', icon: Settings, path: '/configuracoes' },
 ]
