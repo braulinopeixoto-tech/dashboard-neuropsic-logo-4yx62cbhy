@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-24T20:09:09.836Z",
+  "generatedAt": "2026-04-24T20:14:52.595Z",
   "collections": [
     {
       "name": "users",
@@ -330,7 +330,12 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["risco_desistência", "falta_consecutiva", "pausa_excedida"]
+          "selectValues": [
+            "risco_desistência",
+            "falta_consecutiva",
+            "pausa_excedida",
+            "observacao_clinica"
+          ]
         },
         {
           "name": "mensagem",

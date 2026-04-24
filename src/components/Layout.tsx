@@ -11,13 +11,22 @@ import {
   SidebarTrigger,
   SidebarFooter,
 } from '@/components/ui/sidebar'
-import { LayoutDashboard, PlusCircle, Users, Settings, LogOut, BrainCircuit } from 'lucide-react'
+import {
+  LayoutDashboard,
+  PlusCircle,
+  Users,
+  Settings,
+  LogOut,
+  BrainCircuit,
+  Activity,
+} from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
 
 const menuItems = [
   { title: 'Dashboard', icon: LayoutDashboard, path: '/' },
+  { title: 'Minhas Sessões', icon: Activity, path: '/sessoes' },
   { title: 'Prescrever', icon: PlusCircle, path: '/prescrever-protocolo' },
   { title: 'Pacientes', icon: Users, path: '/pacientes' },
   { title: 'Configurações', icon: Settings, path: '/configuracoes' },
