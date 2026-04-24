@@ -1,31 +1,21 @@
-// @deps zod@3.23.8
 routerAdd(
   'POST',
   '/backend/v1/send-whatsapp',
   (e) => {
-    const { z } = require('zod')
-
-    const schema = z.object({
-      telefone: z.string().min(1, 'Telefone é obrigatório'),
-      tipo: z.enum(['confirmacao', 'lembrete', 'falta']),
-      dados: z
-        .object({
-          nome_paciente: z.string().optional(),
-          data_sessao: z.string().optional(),
-          hora: z.string().optional(),
-          link: z.string().optional(),
-        })
-        .optional(),
-    })
-
     const body = e.requestInfo().body || {}
-    const result = schema.safeParse(body)
 
-    if (!result.success) {
+    if (typeof body.telefone !== 'string' || body.telefone.trim() === '') {
+      return e.json(400, { error: 'Telefone é obrigatório.' })
+    }
+
+    const validTipos = ['confirmacao', 'lembrete', 'falta']
+    if (!validTipos.includes(body.tipo)) {
       return e.json(400, { error: 'Dados inválidos para envio de WhatsApp.' })
     }
 
-    const { telefone, tipo, dados } = result.data
+    const telefone = body.telefone
+    const tipo = body.tipo
+    const dados = body.dados || {}
     const safeDados = dados || {}
 
     let mensagem = ''
