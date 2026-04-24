@@ -91,7 +91,7 @@ export function PatientCard({ patient }: { patient: Patient }) {
           className="w-full text-primary hover:text-primary hover:bg-primary/5 border-slate-200"
           asChild
         >
-          <Link to={`/pacientes?id=${patient.id}`}>Ver detalhes do paciente</Link>
+          <Link to={`/pacientes/${patient.id}`}>Ver detalhes do paciente</Link>
         </Button>
       </CardFooter>
     </Card>

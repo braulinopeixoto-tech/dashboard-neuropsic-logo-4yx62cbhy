@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-24T20:14:52.595Z",
+  "generatedAt": "2026-04-24T20:22:41.329Z",
   "collections": [
     {
       "name": "users",
@@ -347,6 +347,66 @@
           "name": "lido",
           "type": "bool",
           "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "intervencoes",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != '' && @request.auth.tipo = 'neuropsicólogo'",
+        "update": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && usuario_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "paciente_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pacientes"
+        },
+        {
+          "name": "tipo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data_intervencao",
+          "type": "date",
+          "required": true,
           "system": false
         },
         {

@@ -6,6 +6,7 @@ import { AuthProvider } from '@/hooks/use-auth'
 import Index from './pages/Index'
 import Prescrever from './pages/Prescrever'
 import Pacientes from './pages/Pacientes'
+import PacientePerfil from './pages/PacientePerfil'
 import Sessoes from './pages/Sessoes'
 import Configuracoes from './pages/Configuracoes'
 import Login from './pages/Login'
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="/prescrever-protocolo" element={<Prescrever />} />
             <Route path="/sessoes" element={<Sessoes />} />
             <Route path="/pacientes" element={<Pacientes />} />
+            <Route path="/pacientes/:id" element={<PacientePerfil />} />
             <Route path="/configuracoes" element={<Configuracoes />} />
           </Route>
           <Route path="*" element={<NotFound />} />

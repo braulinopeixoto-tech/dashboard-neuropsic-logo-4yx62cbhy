@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
 import { Search, Activity, ChevronRight } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -14,6 +15,7 @@ const statusStyles: Record<string, string> = {
 export default function Pacientes() {
   const [search, setSearch] = useState('')
   const { protocolos, sessoes, alertas } = useDashboardData()
+  const navigate = useNavigate()
 
   const patientsList = useMemo(() => {
     return protocolos
@@ -93,6 +95,7 @@ export default function Pacientes() {
                 <tr
                   key={patient.id}
                   className="hover:bg-slate-50/80 transition-colors group cursor-pointer"
+                  onClick={() => navigate(`/pacientes/${patient.id}`)}
                 >
                   <td className="px-6 py-4 font-medium text-slate-900">{patient.name}</td>
                   <td className="px-6 py-4">
