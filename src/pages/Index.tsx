@@ -8,16 +8,19 @@ import {
 } from '@/components/ui/select'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Users, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react'
+import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Users, AlertTriangle, CheckCircle2, XCircle, Loader2, ArrowRight } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { StatCard } from '@/components/dashboard/StatCard'
 import { PatientCard } from '@/components/dashboard/PatientCard'
 import { Link } from 'react-router-dom'
 import { useDashboardData } from '@/hooks/use-dashboard-data'
+import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
 
 export default function Index() {
   const { toast } = useToast()
+  const { user, loading } = useAuth()
   const [unit, setUnit] = useState<string>('all')
   const { protocolos, sessoes, alertas, allAlertas } = useDashboardData()
 
@@ -130,8 +133,41 @@ export default function Index() {
     return { totalActive, completionRate: compRate, missedSessions, avoidedDropouts }
   }, [protocolos, sessoes, allAlertas])
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh] animate-fade-in duration-200">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 animate-fade-in duration-200">
+        <Card className="w-full max-w-lg text-center shadow-md border-slate-200">
+          <CardHeader className="space-y-4 pb-6 pt-8">
+            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-2">
+              <Users className="w-8 h-8 text-primary" />
+            </div>
+            <CardTitle className="text-[24px]">Bem-vindo ao Command Center</CardTitle>
+            <CardDescription className="text-base text-slate-600 max-w-[280px] mx-auto">
+              Para gerenciar seus pacientes, protocolos e sessões, por favor realize o login.
+            </CardDescription>
+          </CardHeader>
+          <CardFooter className="flex justify-center pb-8">
+            <Button asChild size="lg" className="w-full max-w-[280px] gap-2 h-12">
+              <Link to="/login">
+                Acessar Sistema <ArrowRight className="w-5 h-5" />
+              </Link>
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-8 max-w-[1400px] mx-auto animate-fade-in">
+    <div className="space-y-8 max-w-[1400px] mx-auto animate-fade-in duration-200">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-[24px] font-bold tracking-tight text-slate-900">Visão Geral</h1>
