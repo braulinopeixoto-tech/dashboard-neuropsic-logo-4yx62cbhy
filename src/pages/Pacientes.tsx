@@ -1,10 +1,10 @@
+import { useState, useMemo } from 'react'
 import { Input } from '@/components/ui/input'
 import { Search, Activity, ChevronRight } from 'lucide-react'
-import { patientsData } from '@/data/mock'
-import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
+import { useDashboardData } from '@/hooks/use-dashboard-data'
 
-const statusStyles = {
+const statusStyles: Record<string, string> = {
   'Em dia': 'bg-emerald-50 text-emerald-700 border-emerald-200',
   Atrasado: 'bg-amber-50 text-amber-700 border-amber-200',
   'Falta registrada': 'bg-rose-50 text-rose-700 border-rose-200',
@@ -13,8 +13,48 @@ const statusStyles = {
 
 export default function Pacientes() {
   const [search, setSearch] = useState('')
+  const { protocolos, sessoes, alertas } = useDashboardData()
 
-  const filtered = patientsData.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
+  const patientsList = useMemo(() => {
+    return protocolos
+      .map((prot: any) => {
+        const pt = prot.expand?.paciente_id
+        if (!pt) return null
+
+        const ptSessoes = sessoes.filter((s: any) => s.protocolo_id === prot.id)
+        ptSessoes.sort(
+          (a: any, b: any) =>
+            new Date(a.data_agendada || a.created).getTime() -
+            new Date(b.data_agendada || b.created).getTime(),
+        )
+
+        const ptAlertas = alertas.filter((a: any) => a.paciente_id === pt.id)
+        const hasRisco = ptAlertas.some((a: any) => a.tipo === 'risco_desistência')
+        let status = 'Em dia'
+
+        const agendadas = ptSessoes.filter((s: any) => s.status === 'agendada')
+        const lastSess = ptSessoes[ptSessoes.length - 1]
+
+        if (hasRisco) status = 'Risco de Desistência'
+        else if (lastSess && lastSess.status === 'faltou') status = 'Falta registrada'
+        else if (agendadas.length > 0 && new Date(agendadas[0].data_agendada) < new Date())
+          status = 'Atrasado'
+
+        return {
+          id: pt.id,
+          name: pt.nome,
+          protocol: prot.tipo,
+          progress: prot.sessoes_concluidas || 0,
+          totalSessions: prot.total_sessoes || 1,
+          status,
+        }
+      })
+      .filter(Boolean)
+  }, [protocolos, sessoes, alertas])
+
+  const filtered = patientsList.filter((p: any) =>
+    p.name.toLowerCase().includes(search.toLowerCase()),
+  )
 
   return (
     <div className="space-y-6 max-w-[1200px] mx-auto animate-fade-in-up">
@@ -28,7 +68,7 @@ export default function Pacientes() {
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
           <Input
-            placeholder="Buscar por nome do paciente..."
+            placeholder="Buscar por nome..."
             className="pl-9 bg-white shadow-sm"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -49,7 +89,7 @@ export default function Pacientes() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filtered.map((patient) => (
+              {filtered.map((patient: any) => (
                 <tr
                   key={patient.id}
                   className="hover:bg-slate-50/80 transition-colors group cursor-pointer"
@@ -66,7 +106,7 @@ export default function Pacientes() {
                   <td className="px-6 py-4">
                     <Badge
                       variant="outline"
-                      className={`font-medium whitespace-nowrap ${statusStyles[patient.status]}`}
+                      className={`font-medium whitespace-nowrap ${statusStyles[patient.status] || ''}`}
                     >
                       {patient.status}
                     </Badge>
@@ -87,10 +127,7 @@ export default function Pacientes() {
                   <td colSpan={5} className="px-6 py-16 text-center text-slate-500 bg-slate-50/50">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Search className="w-8 h-8 text-slate-300" />
-                      <p>
-                        Nenhum paciente encontrado com "
-                        <span className="font-medium text-slate-700">{search}</span>".
-                      </p>
+                      <p>Nenhum paciente encontrado.</p>
                     </div>
                   </td>
                 </tr>

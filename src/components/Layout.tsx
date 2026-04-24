@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation } from 'react-router-dom'
+import { Outlet, Link, useLocation, Navigate } from 'react-router-dom'
 import {
   SidebarProvider,
   Sidebar,
@@ -14,6 +14,7 @@ import {
 import { LayoutDashboard, PlusCircle, Users, Settings, LogOut, BrainCircuit } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/hooks/use-auth'
 
 const menuItems = [
   { title: 'Dashboard', icon: LayoutDashboard, path: '/' },
@@ -24,6 +25,9 @@ const menuItems = [
 
 export default function Layout() {
   const location = useLocation()
+  const { user, signOut } = useAuth()
+
+  if (!user) return <Navigate to="/login" state={{ from: location }} replace />
 
   return (
     <SidebarProvider>
@@ -59,17 +63,24 @@ export default function Layout() {
         <SidebarFooter className="p-4 border-t border-slate-100">
           <div className="flex items-center gap-3">
             <Avatar className="h-9 w-9 border border-slate-200">
-              <AvatarImage src="https://img.usecurling.com/ppl/thumbnail?gender=male&seed=1" />
-              <AvatarFallback>DN</AvatarFallback>
+              <AvatarImage
+                src={`https://img.usecurling.com/ppl/thumbnail?gender=male&seed=${user.id}`}
+              />
+              <AvatarFallback>{user.name?.substring(0, 2).toUpperCase() || 'US'}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-slate-900 truncate">Dr. Neuro</p>
-              <p className="text-xs text-muted-foreground truncate">Clínica Matriz</p>
+              <p className="text-sm font-medium text-slate-900 truncate">
+                {user.name || user.email}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                {user.unidade || 'Sem unidade'}
+              </p>
             </div>
             <Button
               variant="ghost"
               size="icon"
               className="text-muted-foreground hover:text-rose-600"
+              onClick={signOut}
             >
               <LogOut className="h-4 w-4" />
             </Button>
@@ -82,8 +93,10 @@ export default function Layout() {
           <div className="flex-1" />
           <div className="flex items-center gap-3 md:hidden">
             <Avatar className="h-8 w-8">
-              <AvatarImage src="https://img.usecurling.com/ppl/thumbnail?gender=male&seed=1" />
-              <AvatarFallback>DN</AvatarFallback>
+              <AvatarImage
+                src={`https://img.usecurling.com/ppl/thumbnail?gender=male&seed=${user.id}`}
+              />
+              <AvatarFallback>{user.name?.substring(0, 2).toUpperCase() || 'US'}</AvatarFallback>
             </Avatar>
           </div>
         </header>

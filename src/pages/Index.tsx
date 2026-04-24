@@ -12,24 +12,123 @@ import { Users, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { StatCard } from '@/components/dashboard/StatCard'
 import { PatientCard } from '@/components/dashboard/PatientCard'
-import { statsData, alertsData, patientsData } from '@/data/mock'
 import { Link } from 'react-router-dom'
+import { useDashboardData } from '@/hooks/use-dashboard-data'
+import pb from '@/lib/pocketbase/client'
 
 export default function Index() {
   const { toast } = useToast()
   const [unit, setUnit] = useState<string>('all')
+  const { protocolos, sessoes, alertas, allAlertas } = useDashboardData()
 
-  const handleIntervention = (patientName: string) => {
-    toast({
-      title: 'Intervenção Registrada',
-      description: `Notificação de risco enviada para a equipe do paciente ${patientName}.`,
-    })
+  const handleIntervention = async (alertId: string, patientName: string) => {
+    try {
+      await pb.collection('alertas').update(alertId, { lido: true })
+      toast({
+        title: 'Intervenção Registrada',
+        description: `Notificação resolvida para o paciente ${patientName}.`,
+      })
+    } catch (e) {
+      toast({
+        title: 'Erro',
+        description: 'Falha ao registrar intervenção.',
+        variant: 'destructive',
+      })
+    }
   }
 
   const filteredPatients = useMemo(() => {
-    if (unit === 'all') return patientsData
-    return patientsData.filter((_, i) => i % 2 === (unit === 'cidade-a' ? 0 : 1))
-  }, [unit])
+    return protocolos
+      .map((prot: any) => {
+        const pt = prot.expand?.paciente_id
+        if (!pt) return null
+        if (unit !== 'all' && pt.unidade !== unit) return null
+
+        const ptSessoes = sessoes.filter((s: any) => s.protocolo_id === prot.id)
+        ptSessoes.sort(
+          (a: any, b: any) =>
+            new Date(a.data_agendada || a.created).getTime() -
+            new Date(b.data_agendada || b.created).getTime(),
+        )
+
+        const ptAlertas = alertas.filter((a: any) => a.paciente_id === pt.id)
+        const hasRisco = ptAlertas.some((a: any) => a.tipo === 'risco_desistência')
+        let status = 'Em dia'
+
+        const agendadas = ptSessoes.filter((s: any) => s.status === 'agendada')
+        const realizadas = ptSessoes.filter((s: any) => s.status === 'realizada')
+        const lastSess = ptSessoes[ptSessoes.length - 1]
+
+        if (hasRisco) status = 'Risco de Desistência'
+        else if (lastSess && lastSess.status === 'faltou') status = 'Falta registrada'
+        else if (agendadas.length > 0 && new Date(agendadas[0].data_agendada) < new Date())
+          status = 'Atrasado'
+
+        const lastRealizadaDate =
+          realizadas.length > 0
+            ? new Date(
+                realizadas[realizadas.length - 1].data_realizada ||
+                  realizadas[realizadas.length - 1].created,
+              )
+            : null
+        const nextAgendadaDate =
+          agendadas.length > 0 ? new Date(agendadas[0].data_agendada || agendadas[0].created) : null
+
+        return {
+          id: pt.id,
+          name: pt.nome,
+          protocol: prot.tipo,
+          progress: prot.sessoes_concluidas || 0,
+          totalSessions: prot.total_sessoes || 1,
+          status,
+          lastSession: lastRealizadaDate
+            ? lastRealizadaDate.toLocaleDateString('pt-BR')
+            : 'Nenhuma',
+          nextSession: nextAgendadaDate
+            ? nextAgendadaDate.toLocaleDateString('pt-BR')
+            : 'Não agendada',
+        }
+      })
+      .filter(Boolean)
+  }, [protocolos, sessoes, alertas, unit])
+
+  const alertsData = useMemo(() => {
+    return alertas.map((a: any) => ({
+      id: a.id,
+      patient: a.expand?.paciente_id?.nome || 'Desconhecido',
+      message: a.mensagem,
+      type: a.tipo === 'risco_desistência' ? 'danger' : 'warning',
+    }))
+  }, [alertas])
+
+  const statsData = useMemo(() => {
+    const activeProts = protocolos.filter(
+      (p: any) => p.status === 'ativo' || p.status === 'pausado',
+    )
+    const totalActive = activeProts.length
+    const compRate = activeProts.length
+      ? Math.round(
+          (activeProts.reduce(
+            (acc: number, p: any) => acc + (p.sessoes_concluidas || 0) / (p.total_sessoes || 1),
+            0,
+          ) /
+            activeProts.length) *
+            100,
+        )
+      : 0
+
+    const thisMonth = new Date()
+    thisMonth.setDate(1)
+    thisMonth.setHours(0, 0, 0, 0)
+    const missedSessions = sessoes.filter(
+      (s: any) => s.status === 'faltou' && new Date(s.created) >= thisMonth,
+    ).length
+    const avoidedDropouts = allAlertas.filter(
+      (a: any) => a.tipo === 'risco_desistência' && a.lido,
+    ).length
+
+    return { totalActive, completionRate: compRate, missedSessions, avoidedDropouts }
+  }, [protocolos, sessoes, allAlertas])
 
   return (
     <div className="space-y-8 max-w-[1400px] mx-auto animate-fade-in">
@@ -47,10 +146,10 @@ export default function Index() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas as Unidades</SelectItem>
-              <SelectItem value="cidade-a">Unidade Cidade A</SelectItem>
-              <SelectItem value="cidade-b">Unidade Cidade B</SelectItem>
-              <SelectItem value="cidade-c">Unidade Cidade C</SelectItem>
-              <SelectItem value="cidade-d">Unidade Cidade D</SelectItem>
+              <SelectItem value="Cidade A">Unidade Cidade A</SelectItem>
+              <SelectItem value="Cidade B">Unidade Cidade B</SelectItem>
+              <SelectItem value="Cidade C">Unidade Cidade C</SelectItem>
+              <SelectItem value="Cidade D">Unidade Cidade D</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -61,7 +160,7 @@ export default function Index() {
           title="Pacientes Ativos"
           value={statsData.totalActive}
           icon={Users}
-          description="+4 este mês"
+          description="Em tratamento"
           className="animate-fade-in-up"
           style={{ animationDelay: '0.1s' }}
         />
@@ -69,7 +168,7 @@ export default function Index() {
           title="Taxa de Conclusão"
           value={`${statsData.completionRate}%`}
           icon={CheckCircle2}
-          description="Média geral das unidades"
+          description="Média geral"
           className="animate-fade-in-up"
           style={{ animationDelay: '0.2s' }}
         />
@@ -97,7 +196,7 @@ export default function Index() {
             <AlertTriangle className="w-6 h-6 text-alert" /> Alertas Clínicos
           </h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {alertsData.map((alert) => (
+            {alertsData.map((alert: any) => (
               <Alert
                 key={alert.id}
                 className={`border-l-4 bg-white shadow-sm transition-all hover:shadow-md ${alert.type === 'danger' ? 'border-l-error' : 'border-l-alert'}`}
@@ -118,7 +217,7 @@ export default function Index() {
                         ? 'border-alert text-amber-700 hover:bg-amber-50 hover:text-amber-800'
                         : ''
                     }
-                    onClick={() => handleIntervention(alert.patient)}
+                    onClick={() => handleIntervention(alert.id, alert.patient)}
                   >
                     Intervir
                   </Button>
@@ -147,7 +246,7 @@ export default function Index() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredPatients.map((patient, index) => (
+            {filteredPatients.map((patient: any, index: number) => (
               <div
                 key={patient.id}
                 className="animate-fade-in-up"

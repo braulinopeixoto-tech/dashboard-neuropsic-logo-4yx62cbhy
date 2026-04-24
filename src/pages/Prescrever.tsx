@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   Card,
   CardHeader,
@@ -18,19 +19,78 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { useNavigate } from 'react-router-dom'
-import { PlusCircle, FileText } from 'lucide-react'
+import { PlusCircle, FileText, Loader2 } from 'lucide-react'
+import pb from '@/lib/pocketbase/client'
+import { useAuth } from '@/hooks/use-auth'
 
 export default function Prescrever() {
   const { toast } = useToast()
   const navigate = useNavigate()
+  const { user } = useAuth()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false)
+  const [patientName, setPatientName] = useState('')
+  const [protocol, setProtocol] = useState('')
+  const [sessions, setSessions] = useState('')
+  const [notes, setNotes] = useState('')
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    toast({
-      title: 'Protocolo prescrito com sucesso',
-      description: 'O paciente foi adicionado e as sessões foram agendadas na unidade clínica.',
-    })
-    setTimeout(() => navigate('/'), 1500)
+    if (!patientName || !protocol || !sessions) {
+      toast({
+        title: 'Erro',
+        description: 'Preencha todos os campos obrigatórios.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setLoading(true)
+    try {
+      const pt = await pb.collection('pacientes').create({
+        usuario_id: user.id,
+        nome: patientName,
+        unidade: user.unidade || 'Cidade A',
+        ativo: true,
+      })
+
+      const prot = await pb.collection('protocolos').create({
+        usuario_id: user.id,
+        paciente_id: pt.id,
+        tipo: protocol,
+        total_sessoes: parseInt(sessions),
+        sessoes_concluidas: 0,
+        status: 'ativo',
+      })
+
+      for (let i = 1; i <= parseInt(sessions); i++) {
+        const d = new Date()
+        d.setDate(d.getDate() + i * 2)
+        await pb.collection('sessoes').create({
+          usuario_id: user.id,
+          paciente_id: pt.id,
+          protocolo_id: prot.id,
+          numero_sessao: i,
+          status: 'agendada',
+          data_agendada: d.toISOString(),
+          observacoes: i === 1 ? notes : '',
+        })
+      }
+
+      toast({
+        title: 'Protocolo prescrito com sucesso',
+        description: 'O paciente foi adicionado e as sessões agendadas.',
+      })
+      navigate('/')
+    } catch (error) {
+      toast({
+        title: 'Erro na prescrição',
+        description: 'Não foi possível concluir.',
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -60,31 +120,31 @@ export default function Prescrever() {
               <Input
                 id="patientName"
                 placeholder="Ex: Carlos Albuquerque"
+                value={patientName}
+                onChange={(e) => setPatientName(e.target.value)}
                 required
                 className="bg-slate-50 focus-visible:bg-white"
               />
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="protocol" className="text-slate-700 font-medium">
                   Protocolo Clínico
                 </Label>
-                <Select required>
+                <Select required value={protocol} onValueChange={setProtocol}>
                   <SelectTrigger id="protocol" className="bg-slate-50 focus:bg-white">
                     <SelectValue placeholder="Selecione o tratamento" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="reac">REAC (Otimização Neuropsicofísica)</SelectItem>
-                    <SelectItem value="tdcs">tDCS (Estimulação por Corrente Contínua)</SelectItem>
-                    <SelectItem value="tacs">tACS (Estimulação por Corrente Alternada)</SelectItem>
+                    <SelectItem value="REAC">REAC (Otimização Neuropsicofísica)</SelectItem>
+                    <SelectItem value="tDCS">tDCS (Estimulação por Corrente Contínua)</SelectItem>
+                    <SelectItem value="tACS">tACS (Estimulação por Corrente Alternada)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="sessions" className="text-slate-700 font-medium">
-                  Número de Sessões Recomendadas
+                  Número de Sessões
                 </Label>
                 <Input
                   id="sessions"
@@ -92,29 +152,41 @@ export default function Prescrever() {
                   min="1"
                   max="100"
                   placeholder="Ex: 18"
+                  value={sessions}
+                  onChange={(e) => setSessions(e.target.value)}
                   required
                   className="bg-slate-50 focus-visible:bg-white"
                 />
               </div>
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="notes" className="text-slate-700 font-medium">
                 Observações Clínicas (Opcional)
               </Label>
               <textarea
                 id="notes"
-                className="flex min-h-[120px] w-full rounded-md border border-input bg-slate-50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:bg-white transition-colors"
-                placeholder="Insira detalhes relevantes sobre o histórico, comorbidades ou orientações específicas para a equipe de aplicação..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="flex min-h-[120px] w-full rounded-md border border-input bg-slate-50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 focus-visible:bg-white transition-colors"
+                placeholder="Insira detalhes relevantes..."
               />
             </div>
           </CardContent>
           <CardFooter className="flex justify-end gap-3 border-t border-slate-100 pt-6 pb-6 bg-slate-50/50">
-            <Button type="button" variant="outline" onClick={() => navigate('/')}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate('/')}
+              disabled={loading}
+            >
               Cancelar
             </Button>
-            <Button type="submit" className="gap-2">
-              <PlusCircle className="w-4 h-4" />
+            <Button type="submit" className="gap-2" disabled={loading}>
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <PlusCircle className="w-4 h-4" />
+              )}
               Prescrever Tratamento
             </Button>
           </CardFooter>
