@@ -42,12 +42,13 @@ export async function registrarExecucao(
   observacoes: string,
   pacienteId: string,
   usuarioId: string,
+  status: 'realizada' | 'faltou' = 'realizada',
 ) {
   const now = new Date().toISOString()
 
   await pb.collection('sessoes').update(sessaoId, {
-    status: 'realizada',
-    data_realizada: now,
+    status: status,
+    data_realizada: status === 'realizada' ? now : '',
     observacoes,
   })
 

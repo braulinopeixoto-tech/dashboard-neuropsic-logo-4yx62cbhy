@@ -193,6 +193,39 @@ export default function Prescrever() {
         })
       }
 
+      if (sendWhatsApp) {
+        const patient = patients.find((p) => p.id === selectedPatientId)
+        if (patient && patient.telefone) {
+          try {
+            await pb.send('/backend/v1/send-whatsapp', {
+              method: 'POST',
+              body: JSON.stringify({
+                telefone: patient.telefone,
+                tipo: 'confirmacao',
+                dados: {
+                  nome_paciente: patient.nome,
+                  data_sessao: suggestedDates[0].toLocaleDateString('pt-BR'),
+                  hora: suggestedDates[0].toLocaleTimeString('pt-BR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  }),
+                },
+              }),
+            })
+            toast({
+              title: 'WhatsApp Enviado',
+              description: 'Mensagem de confirmação enviada com sucesso.',
+            })
+          } catch (whatsappErr) {
+            toast({
+              title: 'Erro no WhatsApp',
+              description: 'Não foi possível enviar mensagem de confirmação. Tente novamente.',
+              variant: 'destructive',
+            })
+          }
+        }
+      }
+
       navigate('/')
     } catch (err) {
       toast({
@@ -461,7 +494,7 @@ export default function Prescrever() {
                   htmlFor="whatsapp"
                   className="text-sm font-medium text-slate-800 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                 >
-                  Confirmar e enviar para WhatsApp (simulado)
+                  Enviar confirmação por WhatsApp
                 </label>
               </div>
             </div>

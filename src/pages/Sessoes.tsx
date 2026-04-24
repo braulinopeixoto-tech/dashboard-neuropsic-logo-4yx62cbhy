@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import pb from '@/lib/pocketbase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -13,7 +14,8 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { Checkbox } from '@/components/ui/checkbox'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -38,7 +40,7 @@ export default function Sessoes() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [activeSessao, setActiveSessao] = useState<any>(null)
   const [observacoes, setObservacoes] = useState('')
-  const [concluida, setConcluida] = useState(false)
+  const [statusSessao, setStatusSessao] = useState<'realizada' | 'faltou' | ''>('')
   const [elapsed, setElapsed] = useState(0)
 
   const loadData = async () => {
@@ -79,20 +81,58 @@ export default function Sessoes() {
   const handleStart = (sessao: any) => {
     setActiveSessao(sessao)
     setObservacoes('')
-    setConcluida(false)
+    setStatusSessao('')
     setIsModalOpen(true)
   }
 
   const handleRegister = async () => {
-    if (!concluida || !activeSessao) return
+    if (!statusSessao || !activeSessao) return
     try {
       await registrarExecucao(
         activeSessao.id,
         observacoes,
         activeSessao.paciente_id,
         activeSessao.usuario_id,
+        statusSessao as 'realizada' | 'faltou',
       )
-      toast({ title: 'Sessão registrada!', description: 'Neuropsicólogo foi notificado.' })
+
+      if (statusSessao === 'faltou') {
+        const paciente = activeSessao.expand?.paciente_id
+        if (paciente?.telefone) {
+          try {
+            await pb.send('/backend/v1/send-whatsapp', {
+              method: 'POST',
+              body: JSON.stringify({
+                telefone: paciente.telefone,
+                tipo: 'falta',
+                dados: {
+                  nome_paciente: paciente.nome,
+                  data_sessao: new Date(activeSessao.data_agendada).toLocaleDateString('pt-BR'),
+                  link: 'https://wa.me/message/REMARCAR',
+                },
+              }),
+            })
+            toast({
+              title: 'Sessão registrada!',
+              description: 'Mensagem de falta enviada via WhatsApp.',
+            })
+          } catch (whatsappErr) {
+            toast({
+              title: 'Sessão registrada!',
+              description: 'Sessão atualizada, mas erro ao enviar WhatsApp.',
+              variant: 'destructive',
+            })
+          }
+        } else {
+          toast({
+            title: 'Sessão registrada!',
+            description: 'Paciente não possui telefone para envio de WhatsApp.',
+          })
+        }
+      } else {
+        toast({ title: 'Sessão registrada!', description: 'Sessão marcada como realizada.' })
+      }
+
       setIsModalOpen(false)
       setActiveSessao(null)
     } catch (e) {
@@ -187,25 +227,33 @@ export default function Sessoes() {
                 onChange={(e) => setObservacoes(e.target.value)}
               />
             </div>
-            <div className="flex items-center space-x-2 bg-slate-50 p-3 rounded-lg border">
-              <Checkbox
-                id="concluida"
-                checked={concluida}
-                onCheckedChange={(c) => setConcluida(c === true)}
-              />
-              <label
-                htmlFor="concluida"
-                className="text-sm font-medium leading-none cursor-pointer"
+            <div className="bg-slate-50 p-4 rounded-lg border space-y-3">
+              <label className="text-sm font-medium text-slate-700">Status da Sessão</label>
+              <RadioGroup
+                value={statusSessao}
+                onValueChange={(val: any) => setStatusSessao(val)}
+                className="flex flex-col space-y-2"
               >
-                Sessão concluída com sucesso
-              </label>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="realizada" id="realizada" />
+                  <Label htmlFor="realizada" className="cursor-pointer">
+                    Realizada com sucesso
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="faltou" id="faltou" />
+                  <Label htmlFor="faltou" className="cursor-pointer text-amber-700">
+                    Paciente Faltou
+                  </Label>
+                </div>
+              </RadioGroup>
             </div>
           </div>
           <DialogFooter className="mt-6">
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleRegister} disabled={!concluida}>
+            <Button onClick={handleRegister} disabled={!statusSessao}>
               Registrar execução
             </Button>
           </DialogFooter>
@@ -260,6 +308,8 @@ function SessaoCard({
           <Badge className="bg-blue-500 hover:bg-blue-600 text-white">Em execução</Badge>
         ) : sessao.status === 'realizada' ? (
           <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white">Concluída</Badge>
+        ) : sessao.status === 'faltou' ? (
+          <Badge className="bg-rose-500 hover:bg-rose-600 text-white">Faltou</Badge>
         ) : sessao.status === 'agendada' ? (
           <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">
             Aguardando
@@ -323,6 +373,13 @@ function SessaoCard({
             hour: '2-digit',
             minute: '2-digit',
           })}
+        </div>
+      )}
+
+      {sessao.status === 'faltou' && (
+        <div className="text-sm text-rose-500 flex items-center gap-2 mt-2">
+          <AlertTriangle className="w-4 h-4 text-rose-500" />
+          Sessão marcada como falta
         </div>
       )}
     </div>
