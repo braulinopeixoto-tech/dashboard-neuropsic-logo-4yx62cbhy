@@ -27,6 +27,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Clock, PlayCircle, CalendarOff, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { RemarcarModal } from '@/components/sessoes/RemarcarModal'
 
 export default function Sessoes() {
   const { user } = useAuth()
@@ -42,6 +43,9 @@ export default function Sessoes() {
   const [observacoes, setObservacoes] = useState('')
   const [statusSessao, setStatusSessao] = useState<'realizada' | 'faltou' | ''>('')
   const [elapsed, setElapsed] = useState(0)
+
+  const [isRemarcarOpen, setIsRemarcarOpen] = useState(false)
+  const [sessaoParaRemarcar, setSessaoParaRemarcar] = useState<any>(null)
 
   const loadData = async () => {
     if (!user?.id) return
@@ -96,44 +100,16 @@ export default function Sessoes() {
         statusSessao as 'realizada' | 'faltou',
       )
 
+      setIsModalOpen(false)
+
       if (statusSessao === 'faltou') {
-        const paciente = activeSessao.expand?.paciente_id
-        if (paciente?.telefone) {
-          try {
-            await pb.send('/backend/v1/send-whatsapp', {
-              method: 'POST',
-              body: JSON.stringify({
-                telefone: paciente.telefone,
-                tipo: 'falta',
-                dados: {
-                  nome_paciente: paciente.nome,
-                  data_sessao: new Date(activeSessao.data_agendada).toLocaleDateString('pt-BR'),
-                  link: 'https://wa.me/message/REMARCAR',
-                },
-              }),
-            })
-            toast({
-              title: 'Sessão registrada!',
-              description: 'Mensagem de falta enviada via WhatsApp.',
-            })
-          } catch (whatsappErr) {
-            toast({
-              title: 'Sessão registrada!',
-              description: 'Sessão atualizada, mas erro ao enviar WhatsApp.',
-              variant: 'destructive',
-            })
-          }
-        } else {
-          toast({
-            title: 'Sessão registrada!',
-            description: 'Paciente não possui telefone para envio de WhatsApp.',
-          })
-        }
+        toast({ title: 'Falta registrada', description: 'Iniciando remarcação inteligente...' })
+        setSessaoParaRemarcar(activeSessao)
+        setIsRemarcarOpen(true)
       } else {
         toast({ title: 'Sessão registrada!', description: 'Sessão marcada como realizada.' })
       }
 
-      setIsModalOpen(false)
       setActiveSessao(null)
     } catch (e) {
       toast({ title: 'Erro', description: 'Falha ao registrar a sessão.', variant: 'destructive' })
@@ -198,10 +174,22 @@ export default function Sessoes() {
               sessao={sessao}
               isActive={activeSessao?.id === sessao.id}
               onStart={handleStart}
+              onRemarcar={() => {
+                setSessaoParaRemarcar(sessao)
+                setIsRemarcarOpen(true)
+              }}
+              userRole={user?.tipo}
             />
           ))}
         </div>
       )}
+
+      <RemarcarModal
+        sessao={sessaoParaRemarcar}
+        open={isRemarcarOpen}
+        onOpenChange={setIsRemarcarOpen}
+        onSuccess={loadData}
+      />
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
@@ -267,10 +255,14 @@ function SessaoCard({
   sessao,
   isActive,
   onStart,
+  onRemarcar,
+  userRole,
 }: {
   sessao: any
   isActive: boolean
   onStart: (s: any) => void
+  onRemarcar: () => void
+  userRole?: string
 }) {
   const [now, setNow] = useState(new Date())
   useEffect(() => {
@@ -377,9 +369,22 @@ function SessaoCard({
       )}
 
       {sessao.status === 'faltou' && (
-        <div className="text-sm text-rose-500 flex items-center gap-2 mt-2">
-          <AlertTriangle className="w-4 h-4 text-rose-500" />
-          Sessão marcada como falta
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-2">
+          <div className="text-sm text-rose-500 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
+            Sessão marcada como falta
+          </div>
+          {(userRole === 'assistente_líder' || userRole === 'neuromoduladora' || !userRole) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onRemarcar}
+              className="text-blue-600 border-blue-200 hover:bg-blue-50 self-start sm:self-auto"
+            >
+              <CalendarOff className="w-4 h-4 mr-2" />
+              Remarcar
+            </Button>
+          )}
         </div>
       )}
     </div>
