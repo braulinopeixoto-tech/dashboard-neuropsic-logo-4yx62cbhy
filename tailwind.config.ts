@@ -81,6 +81,18 @@ export default {
           4: 'hsl(var(--chart-4))',
           5: 'hsl(var(--chart-5))',
         },
+        success: {
+          DEFAULT: 'hsl(var(--success))',
+        },
+        alert: {
+          DEFAULT: 'hsl(var(--alert))',
+        },
+        error: {
+          DEFAULT: 'hsl(var(--error))',
+        },
+        risk: {
+          DEFAULT: 'hsl(var(--risk))',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',

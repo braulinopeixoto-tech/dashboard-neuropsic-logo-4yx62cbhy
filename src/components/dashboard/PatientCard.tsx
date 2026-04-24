@@ -2,23 +2,23 @@ import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
-import { Calendar, Clock, Activity } from 'lucide-react'
+import { Calendar, Clock, Microscope } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Patient } from '@/data/mock'
 import { cn } from '@/lib/utils'
 
 const statusStyles = {
-  'Em dia': 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border-emerald-200',
-  Atrasado: 'bg-amber-100 text-amber-800 hover:bg-amber-200 border-amber-200',
-  'Falta registrada': 'bg-rose-100 text-rose-800 hover:bg-rose-200 border-rose-200',
-  'Risco de Desistência': 'bg-violet-100 text-violet-800 hover:bg-violet-200 border-violet-200',
+  'Em dia': 'bg-success/10 text-success hover:bg-success/20 border-success/20',
+  Atrasado: 'bg-alert/10 text-alert hover:bg-alert/20 border-alert/20',
+  'Falta registrada': 'bg-error/10 text-error hover:bg-error/20 border-error/20',
+  'Risco de Desistência': 'bg-risk/10 text-risk hover:bg-risk/20 border-risk/20',
 }
 
 const progressStyles = {
-  'Em dia': 'bg-emerald-500',
-  Atrasado: 'bg-amber-500',
-  'Falta registrada': 'bg-rose-500',
-  'Risco de Desistência': 'bg-violet-500',
+  'Em dia': 'bg-success',
+  Atrasado: 'bg-alert',
+  'Falta registrada': 'bg-error',
+  'Risco de Desistência': 'bg-risk',
 }
 
 export function PatientCard({ patient }: { patient: Patient }) {
@@ -28,17 +28,23 @@ export function PatientCard({ patient }: { patient: Patient }) {
     <Card className="flex flex-col h-full transition-all duration-300 hover:shadow-elevation hover:-translate-y-1 bg-white border-slate-200">
       <CardHeader className="pb-3 flex flex-row items-start justify-between gap-4">
         <div>
-          <h3 className="font-semibold text-lg line-clamp-1 text-slate-900" title={patient.name}>
+          <h3
+            className="text-[16px] font-semibold line-clamp-1 text-slate-900"
+            title={patient.name}
+          >
             {patient.name}
           </h3>
-          <div className="flex items-center gap-1.5 text-muted-foreground text-sm mt-1 font-medium">
-            <Activity className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-1.5 text-muted-foreground text-[14px] font-normal mt-1">
+            <Microscope className="w-3.5 h-3.5" />
             <span>{patient.protocol}</span>
           </div>
         </div>
         <Badge
           variant="outline"
-          className={cn('whitespace-nowrap font-medium', statusStyles[patient.status])}
+          className={cn(
+            'whitespace-nowrap transition-colors duration-200',
+            statusStyles[patient.status],
+          )}
         >
           {patient.status}
         </Badge>
@@ -46,8 +52,8 @@ export function PatientCard({ patient }: { patient: Patient }) {
       <CardContent className="flex-1 pb-4">
         <div className="space-y-4">
           <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground font-medium">Progresso</span>
+            <div className="flex justify-between text-[14px] font-normal">
+              <span className="text-muted-foreground">Progresso</span>
               <span className="font-semibold text-slate-700">
                 {patient.progress}/{patient.totalSessions} sessões
               </span>
@@ -59,20 +65,20 @@ export function PatientCard({ patient }: { patient: Patient }) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="grid grid-cols-2 gap-4 text-[14px]">
             <div className="space-y-1 p-2.5 rounded-lg bg-slate-50 border border-slate-100">
-              <div className="flex items-center gap-1.5 text-muted-foreground text-xs font-medium">
+              <div className="flex items-center gap-1.5 text-muted-foreground text-[14px] font-normal">
                 <Clock className="w-3.5 h-3.5" /> Última Sessão
               </div>
-              <p className="font-medium text-slate-700 line-clamp-1" title={patient.lastSession}>
+              <p className="font-semibold text-slate-700 line-clamp-1" title={patient.lastSession}>
                 {patient.lastSession}
               </p>
             </div>
             <div className="space-y-1 p-2.5 rounded-lg bg-slate-50 border border-slate-100">
-              <div className="flex items-center gap-1.5 text-muted-foreground text-xs font-medium">
+              <div className="flex items-center gap-1.5 text-muted-foreground text-[14px] font-normal">
                 <Calendar className="w-3.5 h-3.5" /> Próxima
               </div>
-              <p className="font-medium text-slate-700 line-clamp-1" title={patient.nextSession}>
+              <p className="font-semibold text-slate-700 line-clamp-1" title={patient.nextSession}>
                 {patient.nextSession}
               </p>
             </div>
