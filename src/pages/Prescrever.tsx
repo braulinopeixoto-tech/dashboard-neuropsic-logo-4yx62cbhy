@@ -67,6 +67,7 @@ export default function Prescrever() {
   const [suggestedDates, setSuggestedDates] = useState<Date[]>([])
   const [sendWhatsApp, setSendWhatsApp] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSyncing, setIsSyncing] = useState(false)
 
   useEffect(() => {
     const fetchPatients = async () => {
@@ -168,10 +169,30 @@ export default function Prescrever() {
 
       await Promise.all(sessionPromises)
 
-      toast({
-        title: 'Protocolo prescrito com sucesso!',
-        description: 'O tratamento foi agendado.',
-      })
+      setIsSubmitting(false)
+      setIsSyncing(true)
+
+      try {
+        await pb.send('/backend/v1/sync-google-calendar', {
+          method: 'POST',
+          body: JSON.stringify({
+            protocolo_id: novoProtocolo.id,
+            datas: suggestedDates.map((d) => d.toISOString()),
+          }),
+        })
+
+        toast({
+          title: 'Protocolo prescrito com sucesso!',
+          description: 'O tratamento foi agendado e sincronizado no calendário.',
+        })
+      } catch (syncErr) {
+        toast({
+          title: 'Protocolo prescrito com sucesso!',
+          description: 'Calendário não sincronizado. Você pode sincronizar depois.',
+          variant: 'default',
+        })
+      }
+
       navigate('/')
     } catch (err) {
       toast({
@@ -179,8 +200,9 @@ export default function Prescrever() {
         description: 'Ocorreu um erro ao salvar o protocolo. Tente novamente.',
         variant: 'destructive',
       })
-    } finally {
       setIsSubmitting(false)
+    } finally {
+      setIsSyncing(false)
     }
   }
 
@@ -467,15 +489,25 @@ export default function Prescrever() {
           ) : (
             <Button
               onClick={handleSubmit}
-              disabled={suggestedDates.length !== 18 || isSubmitting}
-              className="bg-primary hover:bg-primary/90 text-white font-medium"
+              disabled={suggestedDates.length !== 18 || isSubmitting || isSyncing}
+              className="bg-primary hover:bg-primary/90 text-white font-medium min-w-[140px]"
             >
               {isSubmitting ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : isSyncing ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Sincronizando com calendário...
+                </>
               ) : (
-                <CheckCircle2 className="w-4 h-4 mr-2" />
+                <>
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  Prescrever
+                </>
               )}
-              Prescrever
             </Button>
           )}
         </CardFooter>
