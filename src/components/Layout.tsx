@@ -20,6 +20,7 @@ import {
   BrainCircuit,
   Activity,
   Bell,
+  BarChart3,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -32,6 +33,7 @@ const menuItems = [
   { title: 'Prescrever', icon: PlusCircle, path: '/prescrever-protocolo' },
   { title: 'Pacientes', icon: Users, path: '/pacientes' },
   { title: 'Alertas', icon: Bell, path: '/alertas' },
+  { title: 'Relatórios', icon: BarChart3, path: '/relatorios' },
   { title: 'Configurações', icon: Settings, path: '/configuracoes' },
 ]
 
