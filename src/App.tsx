@@ -18,6 +18,7 @@ import Auditoria from './pages/Auditoria'
 import Login from './pages/Login'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
+import CommandCenter from './pages/CommandCenter'
 
 const App = () => (
   <AuthProvider>
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />
+            <Route path="/cockpit" element={<CommandCenter />} />
             <Route path="/prescrever-protocolo" element={<Prescrever />} />
             <Route path="/minhas-sessoes" element={<MinhasSessoes />} />
             <Route path="/pacientes" element={<Pacientes />} />

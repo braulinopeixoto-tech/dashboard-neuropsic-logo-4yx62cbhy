@@ -22,6 +22,7 @@ import {
   Bell,
   BarChart3,
   ShieldCheck,
+  ShieldAlert,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -30,6 +31,7 @@ import { NotificationBell } from './NotificationBell'
 
 const menuItems = [
   { title: 'Dashboard', icon: LayoutDashboard, path: '/' },
+  { title: 'Cockpit Clínico', icon: ShieldAlert, path: '/cockpit' },
   { title: 'Minhas Sessões', icon: Activity, path: '/minhas-sessoes' },
   { title: 'Prescrever', icon: PlusCircle, path: '/prescrever-protocolo' },
   { title: 'Pacientes', icon: Users, path: '/pacientes' },
