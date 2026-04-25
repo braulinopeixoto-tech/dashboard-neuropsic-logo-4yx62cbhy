@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-25T16:08:55.759Z",
+  "generatedAt": "2026-04-25T16:14:38.691Z",
   "collections": [
     {
       "name": "users",
@@ -326,18 +326,6 @@
           "collectionRef": "pacientes"
         },
         {
-          "name": "tipo",
-          "type": "select",
-          "required": true,
-          "system": false,
-          "selectValues": [
-            "risco_desistência",
-            "falta_consecutiva",
-            "pausa_excedida",
-            "observacao_clinica"
-          ]
-        },
-        {
           "name": "mensagem",
           "type": "text",
           "required": true,
@@ -368,6 +356,19 @@
           "type": "bool",
           "required": false,
           "system": false
+        },
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "risco_desistência",
+            "falta_consecutiva",
+            "pausa_excedida",
+            "observacao_clinica",
+            "falta"
+          ]
         }
       ],
       "indexes": []

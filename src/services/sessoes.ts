@@ -101,17 +101,22 @@ export async function remarcarSessaoCascade(sessao: any, novaData: Date, usuario
       .catch(() => null))
   if (paciente?.telefone) {
     try {
+      let fone = paciente.telefone
+      if (fone && !fone.startsWith('+')) {
+        fone = '+55' + fone.replace(/\D/g, '')
+      }
       await pb.send('/backend/v1/send-whatsapp', {
         method: 'POST',
         body: JSON.stringify({
-          telefone: paciente.telefone,
+          telefone: fone,
           tipo: 'confirmacao',
           dados: {
             nome_paciente: paciente.nome,
-            data_sessao:
-              novaData.toLocaleDateString('pt-BR') +
-              ' às ' +
-              novaData.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            data_sessao: novaData.toLocaleDateString('pt-BR'),
+            hora_sessao: novaData.toLocaleTimeString('pt-BR', {
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
           },
         }),
       })
@@ -180,6 +185,41 @@ export async function registrarExecucao(
       tipo: 'observacao_clinica',
       mensagem: `Observação: ${observacoes.substring(0, 150)}`,
       lido: false,
+    })
+  }
+}
+
+export async function registrarFalta(sessaoId: string, pacienteId: string, usuarioId: string) {
+  const sessao = await pb.collection('sessoes').update(sessaoId, {
+    status: 'faltou',
+  })
+
+  const paciente = await pb
+    .collection('pacientes')
+    .getOne(pacienteId)
+    .catch(() => null)
+  if (paciente?.telefone) {
+    let fone = paciente.telefone
+    if (fone && !fone.startsWith('+')) {
+      fone = '+55' + fone.replace(/\D/g, '')
+    }
+    const dataSessao = sessao.data_agendada ? new Date(sessao.data_agendada) : new Date()
+
+    await pb.send('/backend/v1/send-whatsapp', {
+      method: 'POST',
+      body: JSON.stringify({
+        telefone: fone,
+        tipo: 'falta',
+        dados: {
+          nome_paciente: paciente.nome,
+          data_sessao: dataSessao.toLocaleDateString('pt-BR'),
+          hora_sessao: dataSessao.toLocaleTimeString('pt-BR', {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+          link: 'https://wa.me/message',
+        },
+      }),
     })
   }
 }

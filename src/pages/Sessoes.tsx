@@ -128,6 +128,7 @@ function SessaoCard({ sessao, user, onRegistered }: any) {
   const [now, setNow] = useState(new Date())
   const { toast } = useToast()
   const [modalOpen, setModalOpen] = useState(false)
+  const [isRegisteringFalta, setIsRegisteringFalta] = useState(false)
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000)
@@ -217,21 +218,50 @@ function SessaoCard({ sessao, user, onRegistered }: any) {
               </div>
             </div>
           </div>
-          <div className="flex items-center sm:justify-end">
-            {!isRealizada ? (
-              <Button
-                onClick={() => setModalOpen(true)}
-                disabled={!intervalStatus.ok}
-                className={cn(
-                  'w-full sm:w-auto transition-colors duration-200 shadow-sm text-[14px] font-semibold',
-                  intervalStatus.ok
-                    ? 'bg-primary hover:bg-primary/90 text-white'
-                    : 'bg-slate-100 text-slate-400 opacity-100',
-                )}
-              >
-                Iniciar sessão
-              </Button>
-            ) : (
+          <div className="flex flex-col sm:flex-row items-center sm:justify-end gap-2">
+            {!isRealizada && sessao.status !== 'faltou' ? (
+              <>
+                <Button
+                  onClick={async () => {
+                    setIsRegisteringFalta(true)
+                    try {
+                      const { registrarFalta } = await import('@/services/sessoes')
+                      await registrarFalta(sessao.id, sessao.paciente_id, user.id)
+                      toast({
+                        title: 'Falta registrada',
+                        description: 'A falta foi registrada e o WhatsApp enviado.',
+                      })
+                      onRegistered()
+                    } catch (e) {
+                      toast({
+                        title: 'Erro',
+                        description: 'Erro ao enviar mensagem. Tente novamente mais tarde.',
+                        variant: 'destructive',
+                      })
+                    } finally {
+                      setIsRegisteringFalta(false)
+                    }
+                  }}
+                  disabled={isRegisteringFalta}
+                  variant="outline"
+                  className="w-full sm:w-auto transition-colors duration-200 shadow-sm text-[14px] font-semibold text-alert border-alert hover:bg-alert/10 hover:text-alert"
+                >
+                  {isRegisteringFalta ? 'Registrando...' : 'Registrar falta'}
+                </Button>
+                <Button
+                  onClick={() => setModalOpen(true)}
+                  disabled={!intervalStatus.ok}
+                  className={cn(
+                    'w-full sm:w-auto transition-colors duration-200 shadow-sm text-[14px] font-semibold',
+                    intervalStatus.ok
+                      ? 'bg-primary hover:bg-primary/90 text-white'
+                      : 'bg-slate-100 text-slate-400 opacity-100',
+                  )}
+                >
+                  Iniciar sessão
+                </Button>
+              </>
+            ) : isRealizada ? (
               <div
                 className="px-3 py-1.5 text-[14px] font-semibold rounded-md shadow-sm pointer-events-none transition-colors duration-200 border"
                 style={{
@@ -242,7 +272,11 @@ function SessaoCard({ sessao, user, onRegistered }: any) {
               >
                 Concluída
               </div>
-            )}
+            ) : sessao.status === 'faltou' ? (
+              <div className="px-3 py-1.5 text-[14px] font-semibold rounded-md shadow-sm pointer-events-none transition-colors duration-200 border bg-alert/10 text-alert border-alert/20">
+                Faltou
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

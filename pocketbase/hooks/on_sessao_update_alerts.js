@@ -28,8 +28,15 @@ onRecordAfterUpdateSuccess((e) => {
     }
   }
 
-  // 1. Falta consecutiva
+  // 1. Falta / Falta consecutiva
   if (sessao.getString('status') === 'faltou' && original.getString('status') !== 'faltou') {
+    createAlert(
+      usuarioId,
+      pacienteId,
+      'falta',
+      `Paciente faltou na sessão ${sessao.getInt('numero_sessao')}.`,
+    )
+
     const lastTwo = $app.findRecordsByFilter(
       'sessoes',
       `protocolo_id='${protocoloId}'`,

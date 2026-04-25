@@ -197,15 +197,20 @@ export default function Prescrever() {
         const patient = patients.find((p) => p.id === selectedPatientId)
         if (patient && patient.telefone) {
           try {
+            let fone = patient.telefone || ''
+            if (fone && !fone.startsWith('+')) {
+              fone = '+55' + fone.replace(/\D/g, '')
+            }
+
             await pb.send('/backend/v1/send-whatsapp', {
               method: 'POST',
               body: JSON.stringify({
-                telefone: patient.telefone,
+                telefone: fone,
                 tipo: 'confirmacao',
                 dados: {
                   nome_paciente: patient.nome,
                   data_sessao: suggestedDates[0].toLocaleDateString('pt-BR'),
-                  hora: suggestedDates[0].toLocaleTimeString('pt-BR', {
+                  hora_sessao: suggestedDates[0].toLocaleTimeString('pt-BR', {
                     hour: '2-digit',
                     minute: '2-digit',
                   }),
@@ -219,7 +224,7 @@ export default function Prescrever() {
           } catch (whatsappErr) {
             toast({
               title: 'Erro no WhatsApp',
-              description: 'Não foi possível enviar mensagem de confirmação. Tente novamente.',
+              description: 'Erro ao enviar mensagem. Tente novamente mais tarde.',
               variant: 'destructive',
             })
           }
@@ -533,7 +538,7 @@ export default function Prescrever() {
               ) : isSyncing ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Sincronizando com calendário...
+                  Sincronizando...
                 </>
               ) : (
                 <>
