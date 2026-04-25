@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-25T20:41:30.291Z",
+  "generatedAt": "2026-04-25T20:46:33.982Z",
   "collections": [
     {
       "name": "users",
@@ -1502,6 +1502,100 @@
       "indexes": [
         "CREATE INDEX idx_audit_log_entity ON audit_log (entity_type, entity_id)",
         "CREATE INDEX idx_audit_log_usuario ON audit_log (usuario_id)"
+      ]
+    },
+    {
+      "name": "risk_score",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "view": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "create": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "update": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && usuario_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "paciente_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pacientes"
+        },
+        {
+          "name": "protocolo_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "protocolos"
+        },
+        {
+          "name": "timestamp",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "abandonment_risk",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "adherence_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "performance_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "alert_level",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["baixo", "moderado", "alto", "crítico"]
+        },
+        {
+          "name": "alert_message",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "recommendation",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_risk_score_pac_prot ON risk_score (paciente_id, protocolo_id)"
       ]
     }
   ]

@@ -1,10 +1,13 @@
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
-import { Microscope, CalendarIcon } from 'lucide-react'
+import { Microscope, CalendarIcon, ShieldAlert, Activity, HeartPulse } from 'lucide-react'
 import { format } from 'date-fns'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { AuditHistoryModal } from '@/components/audit/AuditHistoryModal'
+import { getRiskScoreByProtocol } from '@/services/risk_scores'
+import { useRealtime } from '@/hooks/use-realtime'
+import { cn } from '@/lib/utils'
 
 const statusStyles: Record<string, string> = {
   ativo: 'bg-success/10 text-success border-success/20',
@@ -25,8 +28,29 @@ const getStatusLabel = (status: string, previstaFim?: string) => {
   return { label: status, className: statusStyles[status] || '' }
 }
 
+const getAlertBg = (level: string) => {
+  if (level === 'crítico') return 'bg-red-50 border-red-200 text-red-900'
+  if (level === 'alto') return 'bg-orange-50 border-orange-200 text-orange-900'
+  if (level === 'moderado') return 'bg-yellow-50 border-yellow-200 text-yellow-900'
+  return 'bg-emerald-50 border-emerald-200 text-emerald-900'
+}
+
 export function TabProtocolo({ protocolo }: { protocolo: any }) {
   const [auditOpen, setAuditOpen] = useState(false)
+  const [riskScore, setRiskScore] = useState<any>(null)
+
+  useEffect(() => {
+    if (protocolo?.id) {
+      getRiskScoreByProtocol(protocolo.id).then(setRiskScore)
+    }
+  }, [protocolo?.id])
+
+  useRealtime('risk_score', () => {
+    if (protocolo?.id) {
+      getRiskScoreByProtocol(protocolo.id).then(setRiskScore)
+    }
+  })
+
   if (!protocolo) {
     return (
       <div className="p-5 text-center text-[14px] text-slate-500 bg-white rounded-xl border border-border animate-fade-in font-normal">
@@ -115,6 +139,43 @@ export function TabProtocolo({ protocolo }: { protocolo: any }) {
           </span>
         </div>
       </div>
+
+      {riskScore && (
+        <div className="mt-6 pt-6 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fade-in-up">
+          <div
+            className={cn(
+              'p-4 rounded-xl border flex flex-col gap-2 transition-colors',
+              getAlertBg(riskScore.alert_level),
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-[15px] flex items-center gap-2">
+                <ShieldAlert className="w-4 h-4" /> Risco de Abandono
+              </span>
+              <span className="font-bold text-lg">{riskScore.abandonment_risk}%</span>
+            </div>
+            <p className="text-[13px] opacity-90 leading-tight">{riskScore.alert_message}</p>
+            <div className="text-[12px] mt-2 font-medium bg-white/60 p-2 rounded text-slate-800 flex gap-2 items-start">
+              <span>💡</span> <span>{riskScore.recommendation}</span>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <div className="p-4 rounded-xl border bg-slate-50 flex items-center justify-between shadow-subtle hover:shadow-sm transition-all duration-200">
+              <span className="text-[14px] text-slate-600 flex items-center gap-2 font-medium">
+                <Activity className="w-4 h-4 text-blue-500" /> Aderência ao Tratamento
+              </span>
+              <span className="font-bold text-slate-900">{riskScore.adherence_score}%</span>
+            </div>
+            <div className="p-4 rounded-xl border bg-slate-50 flex items-center justify-between shadow-subtle hover:shadow-sm transition-all duration-200">
+              <span className="text-[14px] text-slate-600 flex items-center gap-2 font-medium">
+                <HeartPulse className="w-4 h-4 text-rose-500" /> Performance Clínica
+              </span>
+              <span className="font-bold text-slate-900">{riskScore.performance_score}/100</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
