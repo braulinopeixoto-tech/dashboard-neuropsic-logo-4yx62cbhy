@@ -25,6 +25,7 @@ import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
+import { RemarcarModal } from '@/components/sessoes/RemarcarModal'
 
 function ExecutionModal({ open, onOpenChange, sessao, user, onSuccess }: any) {
   const [elapsed, setElapsed] = useState(0)
@@ -128,6 +129,7 @@ function SessaoCard({ sessao, user, onRegistered }: any) {
   const [now, setNow] = useState(new Date())
   const { toast } = useToast()
   const [modalOpen, setModalOpen] = useState(false)
+  const [remarcarOpen, setRemarcarOpen] = useState(false)
   const [isRegisteringFalta, setIsRegisteringFalta] = useState(false)
 
   useEffect(() => {
@@ -219,8 +221,15 @@ function SessaoCard({ sessao, user, onRegistered }: any) {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row items-center sm:justify-end gap-2">
-            {!isRealizada && sessao.status !== 'faltou' ? (
+            {!isRealizada && sessao.status !== 'faltou' && sessao.status !== 'remarcada' ? (
               <>
+                <Button
+                  onClick={() => setRemarcarOpen(true)}
+                  variant="outline"
+                  className="w-full sm:w-auto transition-colors duration-200 shadow-sm text-[14px] font-semibold text-slate-700 border-slate-300"
+                >
+                  Remarcar
+                </Button>
                 <Button
                   onClick={async () => {
                     setIsRegisteringFalta(true)
@@ -229,13 +238,15 @@ function SessaoCard({ sessao, user, onRegistered }: any) {
                       await registrarFalta(sessao.id, sessao.paciente_id, user.id)
                       toast({
                         title: 'Falta registrada',
-                        description: 'A falta foi registrada e o WhatsApp enviado.',
+                        description:
+                          'A falta foi registrada e o WhatsApp enviado. Por favor, remarque a sessão.',
                       })
                       onRegistered()
+                      setRemarcarOpen(true)
                     } catch (e) {
                       toast({
                         title: 'Erro',
-                        description: 'Erro ao enviar mensagem. Tente novamente mais tarde.',
+                        description: 'Erro ao registrar falta. Tente novamente mais tarde.',
                         variant: 'destructive',
                       })
                     } finally {
@@ -272,9 +283,20 @@ function SessaoCard({ sessao, user, onRegistered }: any) {
               >
                 Concluída
               </div>
-            ) : sessao.status === 'faltou' ? (
-              <div className="px-3 py-1.5 text-[14px] font-semibold rounded-md shadow-sm pointer-events-none transition-colors duration-200 border bg-alert/10 text-alert border-alert/20">
-                Faltou
+            ) : sessao.status === 'faltou' || sessao.status === 'remarcada' ? (
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="px-3 py-1.5 text-[14px] font-semibold rounded-md shadow-sm pointer-events-none transition-colors duration-200 border bg-alert/10 text-alert border-alert/20">
+                  {sessao.status === 'faltou' ? 'Faltou' : 'Remarcada'}
+                </div>
+                {sessao.status === 'faltou' && (
+                  <Button
+                    onClick={() => setRemarcarOpen(true)}
+                    variant="outline"
+                    className="w-full sm:w-auto transition-colors duration-200 shadow-sm text-[14px] font-semibold text-slate-700 border-slate-300"
+                  >
+                    Remarcar
+                  </Button>
+                )}
               </div>
             ) : null}
           </div>
@@ -292,6 +314,12 @@ function SessaoCard({ sessao, user, onRegistered }: any) {
           })
           onRegistered()
         }}
+      />
+      <RemarcarModal
+        open={remarcarOpen}
+        onOpenChange={setRemarcarOpen}
+        sessao={sessao}
+        onSuccess={onRegistered}
       />
     </div>
   )

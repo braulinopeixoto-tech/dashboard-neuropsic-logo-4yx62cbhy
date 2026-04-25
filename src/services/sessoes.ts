@@ -38,22 +38,57 @@ export async function getSessoesHoje(userId: string) {
 }
 
 export async function getSuggestedSlots(sessao: any) {
-  return new Promise<Date[]>((resolve) => {
-    setTimeout(() => {
-      const slots: Date[] = []
-      let baseDate = new Date()
-      // Começar sugerindo para o dia seguinte
-      baseDate.setDate(baseDate.getDate() + 1)
-      baseDate.setHours(9, 0, 0, 0)
+  const minInterval = sessao.expand?.protocolo_id?.intervalo_minimo_minutos || 0
+  const slots: Date[] = []
+  let baseDate = new Date()
 
-      for (let i = 0; i < 5; i++) {
-        const slot = new Date(baseDate)
-        slot.setHours(9 + i * 2)
+  let minDate = new Date()
+  if (sessao.lastSessao?.data_realizada) {
+    const lastDate = new Date(sessao.lastSessao.data_realizada)
+    minDate = new Date(lastDate.getTime() + minInterval * 60000)
+  }
+
+  if (minDate > baseDate) {
+    baseDate = new Date(minDate)
+    baseDate.setHours(9, 0, 0, 0)
+    if (baseDate < minDate) {
+      baseDate.setDate(baseDate.getDate() + 1)
+    }
+  } else {
+    baseDate.setDate(baseDate.getDate() + 1)
+    baseDate.setHours(9, 0, 0, 0)
+  }
+
+  const todayStr = new Date().toISOString().replace('T', ' ')
+  const existing = await pb.collection('sessoes').getFullList({
+    filter: `data_agendada >= "${todayStr}" && (status="agendada" || status="remarcada")`,
+  })
+
+  for (let day = 0; day < 14; day++) {
+    const currentDay = new Date(baseDate)
+    currentDay.setDate(currentDay.getDate() + day)
+    currentDay.setHours(9, 0, 0, 0)
+
+    // Skip weekends
+    if (currentDay.getDay() === 0 || currentDay.getDay() === 6) continue
+
+    for (let hour = 9; hour <= 17; hour++) {
+      const slot = new Date(currentDay)
+      slot.setHours(hour, 0, 0, 0)
+
+      if (slot < minDate) continue
+
+      // Capacity: max 2 sessions per hour in the clinic
+      const overlapping = existing.filter(
+        (s) => s.data_agendada && new Date(s.data_agendada).getTime() === slot.getTime(),
+      )
+      if (overlapping.length < 2) {
         slots.push(slot)
       }
-      resolve(slots)
-    }, 1000)
-  })
+    }
+  }
+
+  return slots
 }
 
 export async function remarcarSessaoCascade(sessao: any, novaData: Date, usuarioId: string) {
@@ -62,7 +97,7 @@ export async function remarcarSessaoCascade(sessao: any, novaData: Date, usuario
 
   await pb.collection('sessoes').update(sessao.id, {
     data_agendada: novaData.toISOString(),
-    status: 'agendada',
+    status: 'remarcada',
     observacoes: sessao.observacoes ? sessao.observacoes + '\n[Remarcada]' : '[Remarcada]',
   })
 
@@ -72,7 +107,7 @@ export async function remarcarSessaoCascade(sessao: any, novaData: Date, usuario
   })
 
   for (const sub of subsequent) {
-    if (sub.data_agendada) {
+    if (sub.data_agendada && sub.status === 'agendada') {
       const oldSubDate = new Date(sub.data_agendada)
       const newSubDate = new Date(oldSubDate.getTime() + diffMs)
       await pb.collection('sessoes').update(sub.id, {
@@ -149,7 +184,7 @@ export async function checkReacPause(sessao: any, novaData: Date, usuarioId: str
       usuario_id: usuarioId,
       paciente_id: sessao.paciente_id,
       tipo: 'pausa_excedida',
-      mensagem: `A pausa excedeu 15 dias. É recomendado reiniciar o ciclo. Sessão ${sessao.numero_sessao}.`,
+      mensagem: `Pausa superior a 15 dias detectada. O ciclo REAC deve ser reiniciado por segurança. Sessão ${sessao.numero_sessao}.`,
       lido: false,
     })
     return true

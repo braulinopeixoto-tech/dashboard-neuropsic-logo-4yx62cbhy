@@ -116,7 +116,7 @@ export function RemarcarModal({ sessao, open, onOpenChange, onSuccess }: Remarca
           ) : slots.length === 0 ? (
             <div className="p-10 text-center text-slate-500 bg-slate-50 border border-dashed rounded-xl">
               <CalendarIcon className="w-10 h-10 mx-auto mb-3 text-slate-300" />
-              Nenhum slot disponível
+              Nenhum slot disponível para os critérios do protocolo
             </div>
           ) : (
             <div className="grid sm:grid-cols-[1fr_200px] gap-6">
@@ -167,7 +167,10 @@ export function RemarcarModal({ sessao, open, onOpenChange, onSuccess }: Remarca
               <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-rose-600" />
               <div>
                 <p className="font-bold mb-1">Ação Bloqueada</p>
-                <p>A pausa excede 15 dias. É recomendado reiniciar o ciclo.</p>
+                <p>
+                  Pausa superior a 15 dias detectada. O ciclo REAC deve ser reiniciado por
+                  segurança.
+                </p>
               </div>
             </div>
           )}
