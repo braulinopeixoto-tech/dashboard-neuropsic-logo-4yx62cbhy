@@ -7,7 +7,7 @@ import Index from './pages/Index'
 import Prescrever from './pages/Prescrever'
 import Pacientes from './pages/Pacientes'
 import PacientePerfil from './pages/PacientePerfil'
-import Sessoes from './pages/Sessoes'
+import MinhasSessoes from './pages/Sessoes'
 import Alertas from './pages/Alertas'
 import Relatorios from './pages/Relatorios'
 import Configuracoes from './pages/Configuracoes'
@@ -26,7 +26,7 @@ const App = () => (
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />
             <Route path="/prescrever-protocolo" element={<Prescrever />} />
-            <Route path="/sessoes" element={<Sessoes />} />
+            <Route path="/minhas-sessoes" element={<MinhasSessoes />} />
             <Route path="/pacientes" element={<Pacientes />} />
             <Route path="/pacientes/:id" element={<PacientePerfil />} />
             <Route path="/alertas" element={<Alertas />} />

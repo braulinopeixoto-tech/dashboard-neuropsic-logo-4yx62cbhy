@@ -29,7 +29,7 @@ import { NotificationBell } from './NotificationBell'
 
 const menuItems = [
   { title: 'Dashboard', icon: LayoutDashboard, path: '/' },
-  { title: 'Minhas Sessões', icon: Activity, path: '/sessoes' },
+  { title: 'Minhas Sessões', icon: Activity, path: '/minhas-sessoes' },
   { title: 'Prescrever', icon: PlusCircle, path: '/prescrever-protocolo' },
   { title: 'Pacientes', icon: Users, path: '/pacientes' },
   { title: 'Alertas', icon: Bell, path: '/alertas' },

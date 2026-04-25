@@ -1,9 +1,15 @@
-import { useState, useEffect } from 'react'
-import pb from '@/lib/pocketbase/client'
+import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '@/hooks/use-auth'
-import { useToast } from '@/hooks/use-toast'
+import { getSessoesHoje, registrarExecucao } from '@/services/sessoes'
 import { useRealtime } from '@/hooks/use-realtime'
-import { getSessoesHoje, registrarExecucao, ensureMockDataForToday } from '@/services/sessoes'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -12,49 +18,254 @@ import {
   DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
-import { Clock, PlayCircle, CalendarOff, CheckCircle2, AlertTriangle } from 'lucide-react'
+import { Clock, Activity, AlertTriangle, CheckCircle2, PlayCircle, CalendarX2 } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
+import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import { RemarcarModal } from '@/components/sessoes/RemarcarModal'
 
-export default function Sessoes() {
-  const { user } = useAuth()
+function ExecutionModal({ open, onOpenChange, sessao, user, onSuccess }: any) {
+  const [elapsed, setElapsed] = useState(0)
+  const [obs, setObs] = useState('')
+  const [concluida, setConcluida] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    let t: any
+    if (open) t = setInterval(() => setElapsed((prev) => prev + 1), 1000)
+    else {
+      setElapsed(0)
+      setObs('')
+      setConcluida(false)
+    }
+    return () => clearInterval(t)
+  }, [open])
+
+  const formatTime = (s: number) =>
+    `${Math.floor(s / 60)
+      .toString()
+      .padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`
+
+  const handleSubmit = async () => {
+    if (!concluida) return
+    setIsSubmitting(true)
+    try {
+      await registrarExecucao(sessao.id, obs, sessao.paciente_id, user.id, 'realizada')
+      onSuccess()
+      onOpenChange(false)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle className="text-xl">Execução de Sessão</DialogTitle>
+          <DialogDescription>
+            Paciente: <strong className="text-slate-900">{sessao.expand?.paciente_id?.nome}</strong>
+            <br />
+            Protocolo: {sessao.expand?.protocolo_id?.tipo} (Sessão {sessao.numero_sessao})
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-6 space-y-6">
+          <div className="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-xl border border-slate-100">
+            <span className="text-sm font-medium text-slate-500 mb-2 uppercase tracking-wider">
+              Tempo Decorrido
+            </span>
+            <div className="text-5xl font-mono font-bold text-blue-600 tracking-tight">
+              {formatTime(elapsed)}
+            </div>
+          </div>
+          <div className="space-y-3">
+            <Label htmlFor="obs" className="text-slate-700">
+              Observações rápidas
+            </Label>
+            <Textarea
+              id="obs"
+              placeholder="Sinais, sintomas, comportamento do paciente..."
+              value={obs}
+              onChange={(e) => setObs(e.target.value)}
+              className="resize-none h-24"
+            />
+          </div>
+          <div className="flex items-center space-x-3 bg-blue-50 p-4 rounded-lg border border-blue-100">
+            <Checkbox
+              id="concluida"
+              checked={concluida}
+              onCheckedChange={(c) => setConcluida(c as boolean)}
+              className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+            />
+            <Label
+              htmlFor="concluida"
+              className="text-sm font-medium cursor-pointer text-slate-900"
+            >
+              Sessão concluída com sucesso
+            </Label>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!concluida || isSubmitting}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            {isSubmitting ? 'Registrando...' : 'Registrar execução'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function SessaoCard({ sessao, user, onRegistered }: any) {
+  const [now, setNow] = useState(new Date())
   const { toast } = useToast()
+  const [modalOpen, setModalOpen] = useState(false)
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(t)
+  }, [])
+
+  const paciente = sessao.expand?.paciente_id
+  const protocolo = sessao.expand?.protocolo_id
+  const minMin = protocolo?.intervalo_minimo_minutos || 0
+
+  const intervalStatus = useMemo(() => {
+    if (!sessao.lastSessao?.data_realizada) return { ok: true, text: 'Primeira sessão' }
+
+    const diffSecs = Math.floor(
+      (now.getTime() - new Date(sessao.lastSessao.data_realizada).getTime()) / 1000,
+    )
+    const minSecs = minMin * 60
+
+    if (diffSecs >= minSecs) return { ok: true, text: `${Math.floor(diffSecs / 60)} minutos (OK)` }
+
+    const faltam = minSecs - diffSecs
+    return {
+      ok: false,
+      text: `${Math.floor(diffSecs / 60)} minutos (⚠️ Faltam ${Math.floor(faltam / 60)}m ${faltam % 60}s)`,
+    }
+  }, [now, sessao, minMin])
+
+  const isRealizada = sessao.status === 'realizada'
+  const horaFormatada = sessao.data_agendada
+    ? new Date(sessao.data_agendada).toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : '--:--'
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden transition-all hover:shadow-md relative">
+      <div
+        className={cn(
+          'absolute top-0 left-0 right-0 h-1',
+          isRealizada ? 'bg-emerald-500' : intervalStatus.ok ? 'bg-blue-500' : 'bg-amber-500',
+        )}
+      />
+      <div className="p-4 sm:p-6 mt-1">
+        <div className="flex flex-col sm:flex-row justify-between gap-4">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-lg text-slate-900">
+                {paciente?.nome || 'Paciente Desconhecido'}
+              </span>
+              <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200">
+                Sessão {sessao.numero_sessao}
+              </Badge>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-2 gap-x-6 text-sm">
+              <div className="flex items-center gap-2 text-slate-600">
+                <Activity className="h-4 w-4 text-blue-500" />
+                <span>{protocolo?.tipo || 'Protocolo'}</span>
+              </div>
+              <div className="flex items-center gap-2 text-slate-600">
+                <Clock className="h-4 w-4 text-slate-400" />
+                <span>{horaFormatada}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {!isRealizada ? (
+                  <span
+                    className={cn(
+                      'font-medium flex items-center gap-1.5',
+                      intervalStatus.ok ? 'text-emerald-600' : 'text-amber-600',
+                    )}
+                  >
+                    {intervalStatus.ok ? (
+                      <CheckCircle2 className="h-4 w-4" />
+                    ) : (
+                      <AlertTriangle className="h-4 w-4" />
+                    )}
+                    {intervalStatus.text}
+                  </span>
+                ) : (
+                  <span className="font-medium text-emerald-600 flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4" /> Realizada
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center sm:justify-end">
+            {!isRealizada ? (
+              <Button
+                onClick={() => setModalOpen(true)}
+                disabled={!intervalStatus.ok}
+                className={cn(
+                  'w-full sm:w-auto transition-all shadow-sm',
+                  intervalStatus.ok
+                    ? 'bg-blue-600 hover:bg-blue-700'
+                    : 'bg-slate-100 text-slate-400 opacity-100',
+                )}
+              >
+                <PlayCircle className="h-4 w-4 mr-2" /> Iniciar sessão
+              </Button>
+            ) : (
+              <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 px-3 py-1.5 text-sm rounded-md shadow-sm pointer-events-none">
+                Concluída
+              </Badge>
+            )}
+          </div>
+        </div>
+      </div>
+      <ExecutionModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        sessao={sessao}
+        user={user}
+        onSuccess={() => {
+          toast({
+            title: 'Sessão registrada!',
+            description: 'Neuropsicólogo foi notificado com sucesso.',
+          })
+          onRegistered()
+        }}
+      />
+    </div>
+  )
+}
+
+export default function MinhasSessoes() {
+  const { user } = useAuth()
   const [sessoes, setSessoes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
-  const [filterUnit, setFilterUnit] = useState<string>('all')
+  const [unidadeFiltro, setUnidadeFiltro] = useState<string>('Todas')
 
-  // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [activeSessao, setActiveSessao] = useState<any>(null)
-  const [observacoes, setObservacoes] = useState('')
-  const [statusSessao, setStatusSessao] = useState<'realizada' | 'faltou' | ''>('')
-  const [elapsed, setElapsed] = useState(0)
-
-  const [isRemarcarOpen, setIsRemarcarOpen] = useState(false)
-  const [sessaoParaRemarcar, setSessaoParaRemarcar] = useState<any>(null)
-
-  const loadData = async () => {
-    if (!user?.id) return
+  const loadSessoes = async () => {
     try {
       setError(false)
-      await ensureMockDataForToday(user.id)
-      const data = await getSessoesHoje(user.id)
-      setSessoes(data)
-    } catch (e) {
+      setSessoes(await getSessoesHoje(user.id))
+    } catch {
       setError(true)
     } finally {
       setLoading(false)
@@ -62,329 +273,75 @@ export default function Sessoes() {
   }
 
   useEffect(() => {
-    loadData()
+    if (user?.id) loadSessoes()
   }, [user?.id])
-  useRealtime('sessoes', () => {
-    loadData()
-  })
+  useRealtime('sessoes', loadSessoes)
 
-  useEffect(() => {
-    let timer: NodeJS.Timeout
-    if (isModalOpen) timer = setInterval(() => setElapsed((e) => e + 1), 1000)
-    else setElapsed(0)
-    return () => clearInterval(timer)
-  }, [isModalOpen])
+  const unidades = useMemo(() => {
+    const uns = new Set<string>()
+    sessoes.forEach((s) => s.expand?.paciente_id?.unidade && uns.add(s.expand.paciente_id.unidade))
+    return ['Todas', 'Cidade A', 'Cidade B', 'Cidade C', 'Cidade D', ...Array.from(uns)].filter(
+      (v, i, a) => a.indexOf(v) === i,
+    )
+  }, [sessoes])
 
-  const units = Array.from(
-    new Set(sessoes.map((s) => s.expand?.paciente_id?.unidade).filter(Boolean)),
-  ) as string[]
-  const filtered = sessoes.filter(
-    (s) => filterUnit === 'all' || s.expand?.paciente_id?.unidade === filterUnit,
+  const sessoesFiltradas = useMemo(
+    () =>
+      sessoes
+        .filter(
+          (s) => unidadeFiltro === 'Todas' || s.expand?.paciente_id?.unidade === unidadeFiltro,
+        )
+        .sort((a, b) => new Date(a.data_agendada).getTime() - new Date(b.data_agendada).getTime()),
+    [sessoes, unidadeFiltro],
   )
 
-  const handleStart = (sessao: any) => {
-    setActiveSessao(sessao)
-    setObservacoes('')
-    setStatusSessao('')
-    setIsModalOpen(true)
-  }
-
-  const handleRegister = async () => {
-    if (!statusSessao || !activeSessao) return
-    try {
-      await registrarExecucao(
-        activeSessao.id,
-        observacoes,
-        activeSessao.paciente_id,
-        activeSessao.usuario_id,
-        statusSessao as 'realizada' | 'faltou',
-      )
-
-      setIsModalOpen(false)
-
-      if (statusSessao === 'faltou') {
-        toast({ title: 'Falta registrada', description: 'Iniciando remarcação inteligente...' })
-        setSessaoParaRemarcar(activeSessao)
-        setIsRemarcarOpen(true)
-      } else {
-        toast({ title: 'Sessão registrada!', description: 'Sessão marcada como realizada.' })
-      }
-
-      setActiveSessao(null)
-    } catch (e) {
-      toast({ title: 'Erro', description: 'Falha ao registrar a sessão.', variant: 'destructive' })
-    }
-  }
-
-  const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60)
-      .toString()
-      .padStart(2, '0')
-    const s = (secs % 60).toString().padStart(2, '0')
-    return `${m}:${s}`
-  }
-
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-fade-in-up">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Sessões de Hoje</h1>
-          <p className="text-slate-500">Gerencie a execução dos protocolos agendados.</p>
+    <div className="space-y-6 max-w-5xl mx-auto animate-fade-in-up">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Sessões de Hoje</h1>
+        <div className="w-full sm:w-64">
+          <Select value={unidadeFiltro} onValueChange={setUnidadeFiltro}>
+            <SelectTrigger>
+              <SelectValue placeholder="Filtrar por unidade" />
+            </SelectTrigger>
+            <SelectContent>
+              {unidades.map((u) => (
+                <SelectItem key={u} value={u}>
+                  {u}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <Select value={filterUnit} onValueChange={setFilterUnit}>
-          <SelectTrigger className="w-full sm:w-[220px] bg-white">
-            <SelectValue placeholder="Filtrar por unidade" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas as unidades</SelectItem>
-            {units.map((u) => (
-              <SelectItem key={u} value={u}>
-                {u}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
       {loading ? (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-48 w-full rounded-xl" />
+            <Skeleton key={i} className="h-32 w-full rounded-xl" />
           ))}
         </div>
       ) : error ? (
-        <div className="flex flex-col items-center py-16 text-slate-500 bg-white rounded-xl border">
-          <AlertTriangle className="w-12 h-12 mb-4 text-rose-400" />
-          <p>Erro ao carregar sessões. Tente novamente.</p>
-          <Button variant="outline" className="mt-4" onClick={loadData}>
+        <div className="flex flex-col items-center justify-center py-12 text-center bg-white rounded-xl border border-slate-200">
+          <AlertTriangle className="h-10 w-10 text-rose-500 mb-4" />
+          <p className="text-slate-600 mb-4">Erro ao carregar sessões. Tente novamente.</p>
+          <Button onClick={loadSessoes} variant="outline">
             Tentar Novamente
           </Button>
         </div>
-      ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center py-16 text-slate-500 bg-white rounded-xl border border-dashed border-slate-300">
-          <CalendarOff className="w-12 h-12 mb-4 text-slate-300" />
-          <p className="text-lg font-medium text-slate-600">Nenhuma sessão hoje</p>
-          <p className="text-sm">Você não tem sessões agendadas para esta unidade.</p>
+      ) : sessoesFiltradas.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center bg-white rounded-xl border border-slate-200 shadow-sm">
+          <CalendarX2 className="h-12 w-12 text-slate-300 mb-4" />
+          <h3 className="text-lg font-medium text-slate-900 mb-1">Nenhuma sessão hoje</h3>
+          <p className="text-slate-500 max-w-md">
+            Não há sessões agendadas para os filtros selecionados ou para o dia de hoje.
+          </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4">
-          {filtered.map((sessao) => (
-            <SessaoCard
-              key={sessao.id}
-              sessao={sessao}
-              isActive={activeSessao?.id === sessao.id}
-              onStart={handleStart}
-              onRemarcar={() => {
-                setSessaoParaRemarcar(sessao)
-                setIsRemarcarOpen(true)
-              }}
-              userRole={user?.tipo}
-            />
+        <div className="grid gap-4 grid-cols-1">
+          {sessoesFiltradas.map((s) => (
+            <SessaoCard key={s.id} sessao={s} user={user} onRegistered={loadSessoes} />
           ))}
-        </div>
-      )}
-
-      <RemarcarModal
-        sessao={sessaoParaRemarcar}
-        open={isRemarcarOpen}
-        onOpenChange={setIsRemarcarOpen}
-        onSuccess={loadData}
-      />
-
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Execução de Sessão</DialogTitle>
-            <DialogDescription>
-              {activeSessao?.expand?.paciente_id?.nome} - {activeSessao?.expand?.protocolo_id?.tipo}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-lg my-4 border">
-            <span className="text-sm text-slate-500 font-medium mb-1">Tempo decorrido</span>
-            <span className="text-5xl font-bold font-mono text-slate-800 tracking-wider">
-              {formatTime(elapsed)}
-            </span>
-          </div>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">Observações rápidas</label>
-              <Textarea
-                placeholder="Sinais, sintomas, comportamento..."
-                className="resize-none h-24"
-                value={observacoes}
-                onChange={(e) => setObservacoes(e.target.value)}
-              />
-            </div>
-            <div className="bg-slate-50 p-4 rounded-lg border space-y-3">
-              <label className="text-sm font-medium text-slate-700">Status da Sessão</label>
-              <RadioGroup
-                value={statusSessao}
-                onValueChange={(val: any) => setStatusSessao(val)}
-                className="flex flex-col space-y-2"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="realizada" id="realizada" />
-                  <Label htmlFor="realizada" className="cursor-pointer">
-                    Realizada com sucesso
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="faltou" id="faltou" />
-                  <Label htmlFor="faltou" className="cursor-pointer text-amber-700">
-                    Paciente Faltou
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
-          </div>
-          <DialogFooter className="mt-6">
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleRegister} disabled={!statusSessao}>
-              Registrar execução
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  )
-}
-
-function SessaoCard({
-  sessao,
-  isActive,
-  onStart,
-  onRemarcar,
-  userRole,
-}: {
-  sessao: any
-  isActive: boolean
-  onStart: (s: any) => void
-  onRemarcar: () => void
-  userRole?: string
-}) {
-  const [now, setNow] = useState(new Date())
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 10000)
-    return () => clearInterval(timer)
-  }, [])
-
-  const paciente = sessao.expand?.paciente_id
-  const protocolo = sessao.expand?.protocolo_id
-  const minIntervalo = protocolo?.intervalo_minimo_minutos || 0
-
-  let nextAllowedTime = new Date(0)
-  if (sessao.lastSessao?.data_realizada) {
-    nextAllowedTime = new Date(
-      new Date(sessao.lastSessao.data_realizada).getTime() + minIntervalo * 60000,
-    )
-  }
-
-  const isAllowed = now >= nextAllowedTime
-  const missingMin = Math.max(0, Math.ceil((nextAllowedTime.getTime() - now.getTime()) / 60000))
-
-  return (
-    <div
-      className={cn(
-        'bg-white border rounded-xl p-5 shadow-sm flex flex-col gap-4 transition-all hover:shadow-md',
-        isActive && 'border-blue-400 ring-1 ring-blue-400',
-      )}
-    >
-      <div className="flex justify-between items-start">
-        <div>
-          <h3 className="font-bold text-lg text-slate-900">{paciente?.nome || 'Paciente'}</h3>
-          <p className="text-sm text-slate-500">Unidade: {paciente?.unidade || 'N/A'}</p>
-        </div>
-        {isActive ? (
-          <Badge className="bg-blue-500 hover:bg-blue-600 text-white">Em execução</Badge>
-        ) : sessao.status === 'realizada' ? (
-          <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white">Concluída</Badge>
-        ) : sessao.status === 'faltou' ? (
-          <Badge className="bg-rose-500 hover:bg-rose-600 text-white">Faltou</Badge>
-        ) : sessao.status === 'agendada' ? (
-          <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">
-            Aguardando
-          </Badge>
-        ) : (
-          <Badge variant="secondary">{sessao.status}</Badge>
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded-lg text-sm">
-        <div>
-          <span className="block text-slate-500 mb-1">Protocolo</span>
-          <span className="font-semibold text-slate-800">{protocolo?.tipo}</span>
-        </div>
-        <div>
-          <span className="block text-slate-500 mb-1">Agendado</span>
-          <span className="font-semibold text-slate-800 flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5" />
-            {sessao.data_agendada
-              ? new Date(sessao.data_agendada).toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })
-              : '--:--'}
-          </span>
-        </div>
-      </div>
-
-      {sessao.status === 'agendada' && minIntervalo > 0 && !isActive && (
-        <div
-          className={cn(
-            'text-sm p-3 rounded-md flex items-center gap-2',
-            isAllowed ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700',
-          )}
-        >
-          {isAllowed ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
-          <span>
-            {minIntervalo} minutos
-            {!isAllowed && <span className="font-semibold ml-1">(⚠️ Faltam {missingMin}min)</span>}
-            {isAllowed && <span className="font-semibold ml-1">(OK)</span>}
-          </span>
-        </div>
-      )}
-
-      {sessao.status === 'agendada' && !isActive && (
-        <Button
-          onClick={() => onStart(sessao)}
-          disabled={!isAllowed}
-          className="w-full mt-2 sm:w-auto self-start"
-        >
-          <PlayCircle className="w-4 h-4 mr-2" />
-          Iniciar Sessão
-        </Button>
-      )}
-
-      {sessao.status === 'realizada' && (
-        <div className="text-sm text-slate-500 flex items-center gap-2 mt-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-          Realizada às{' '}
-          {new Date(sessao.data_realizada).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
-        </div>
-      )}
-
-      {sessao.status === 'faltou' && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-2">
-          <div className="text-sm text-rose-500 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
-            Sessão marcada como falta
-          </div>
-          {(userRole === 'assistente_líder' || userRole === 'neuromoduladora' || !userRole) && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onRemarcar}
-              className="text-blue-600 border-blue-200 hover:bg-blue-50 self-start sm:self-auto"
-            >
-              <CalendarOff className="w-4 h-4 mr-2" />
-              Remarcar
-            </Button>
-          )}
         </div>
       )}
     </div>

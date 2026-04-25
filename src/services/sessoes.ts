@@ -168,8 +168,14 @@ export async function registrarExecucao(
   })
 
   if (observacoes && observacoes.trim().length > 0) {
+    const paciente = await pb
+      .collection('pacientes')
+      .getOne(pacienteId)
+      .catch(() => null)
+    const neuropsicologoId = paciente?.usuario_id || usuarioId
+
     await pb.collection('alertas').create({
-      usuario_id: usuarioId,
+      usuario_id: neuropsicologoId,
       paciente_id: pacienteId,
       tipo: 'observacao_clinica',
       mensagem: `Observação: ${observacoes.substring(0, 150)}`,
