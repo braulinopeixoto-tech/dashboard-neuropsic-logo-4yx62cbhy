@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -22,22 +22,32 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
-import { ChevronLeft, Upload, File as FileIcon, X } from 'lucide-react'
+import {
+  ChevronLeft,
+  Upload,
+  File as FileIcon,
+  X,
+  User,
+  FileText,
+  Hospital,
+  CheckCircle,
+  Check,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 const phoneRegex = /^\+55 \d{2} \d{4,5}-\d{4}$/
 
 const formSchema = z.object({
-  nome: z.string().min(1, 'Campo obrigatório: Nome completo'),
+  nome: z.string().min(1, 'Campo obrigatório'),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
   telefone: z.string().regex(phoneRegex, 'Formato: +55 XX XXXXX-XXXX'),
-  endereco: z.string().min(1, 'Campo obrigatório: Endereço'),
-  data_nascimento: z.string().min(1, 'Campo obrigatório: Data de nascimento'),
-  unidade: z.string().min(1, 'Campo obrigatório: Unidade'),
-  documento: z.string().min(1, 'Campo obrigatório: Documento (CPF ou RG)'),
+  endereco: z.string().min(1, 'Campo obrigatório'),
+  data_nascimento: z.string().min(1, 'Campo obrigatório'),
+  unidade: z.string().min(1, 'Campo obrigatório'),
+  documento: z.string().min(1, 'Campo obrigatório'),
   queixa_principal: z.string().optional(),
   historico_medico: z.string().optional(),
   medicacoes_atuais: z.string().optional(),
@@ -47,11 +57,13 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>
 
 export default function NovoPaciente() {
-  const navigate = useNavigate()
+  const nav = useNavigate()
   const { user } = useAuth()
   const [step, setStep] = useState(1)
   const [files, setFiles] = useState<File[]>([])
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => setMounted(true), [])
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -70,8 +82,8 @@ export default function NovoPaciente() {
     },
   })
 
-  const handleNext = async () => {
-    const valid = await form.trigger([
+  const nextStep = async () => {
+    const ok = await form.trigger([
       'nome',
       'email',
       'telefone',
@@ -80,135 +92,129 @@ export default function NovoPaciente() {
       'unidade',
       'documento',
     ])
-    if (valid) setStep(2)
+    if (ok) setStep(2)
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const selected = Array.from(e.target.files)
-      const validFiles = selected.filter(
-        (f) => f.type === 'application/pdf' || f.type === 'image/jpeg' || f.type === 'image/jpg',
-      )
-      if (validFiles.length !== selected.length) {
-        toast.error('Apenas arquivos PDF e JPG são permitidos.')
-      }
-      setFiles((prev) => [...prev, ...validFiles])
-    }
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return
+    const valid = Array.from(e.target.files).filter((f) =>
+      ['application/pdf', 'image/jpeg', 'image/jpg'].includes(f.type),
+    )
+    if (valid.length !== e.target.files.length) toast.error('Apenas PDF e JPG permitidos.')
+    setFiles((prev) => [...prev, ...valid])
     e.target.value = ''
   }
 
-  const removeFile = (index: number) => {
-    setFiles((prev) => prev.filter((_, i) => i !== index))
-  }
-
   const onSubmit = async (data: FormValues) => {
-    if (files.length > 0 && !data.examesConfirmados) {
-      toast.error('Confirme que os exames foram digitalizados e anexados.')
-      return
-    }
-
-    setIsSubmitting(true)
+    if (files.length > 0 && !data.examesConfirmados)
+      return toast.error('Confirme a anexação dos exames.')
     try {
       if (data.email) {
         try {
-          const existing = await pb
-            .collection('pacientes')
-            .getFirstListItem(`email="${data.email}"`)
-          if (existing) {
-            toast.error('Email já cadastrado')
-            setIsSubmitting(false)
-            return
-          }
-        } catch (err) {
-          // not found, we can proceed
+          if (await pb.collection('pacientes').getFirstListItem(`email="${data.email}"`))
+            return toast.error('Email já cadastrado')
+        } catch {
+          /* intentionally ignored */
         }
       }
+      const fd = new FormData()
+      Object.entries(data).forEach(([k, v]) => {
+        if (v !== undefined && v !== '' && k !== 'examesConfirmados') {
+          fd.append(k, k === 'data_nascimento' ? `${v} 12:00:00.000Z` : String(v))
+        }
+      })
+      fd.append('ativo', 'true')
+      if (user?.id) fd.append('usuario_id', user.id)
+      files.forEach((f) => fd.append('exames', f))
 
-      const formData = new FormData()
-      formData.append('nome', data.nome)
-      if (data.email) formData.append('email', data.email)
-      formData.append('telefone', data.telefone)
-      formData.append('endereco', data.endereco)
-      formData.append('data_nascimento', data.data_nascimento + ' 12:00:00.000Z')
-      formData.append('unidade', data.unidade)
-      formData.append('documento', data.documento)
-      if (data.queixa_principal) formData.append('queixa_principal', data.queixa_principal)
-      if (data.historico_medico) formData.append('historico_medico', data.historico_medico)
-      if (data.medicacoes_atuais) formData.append('medicacoes_atuais', data.medicacoes_atuais)
-      formData.append('ativo', 'true')
-      if (user?.id) formData.append('usuario_id', user.id)
-
-      files.forEach((f) => formData.append('exames', f))
-
-      const record = await pb.collection('pacientes').create(formData)
-
-      toast.success('Paciente cadastrado com sucesso!')
-      navigate(`/pacientes/${record.id}`)
-    } catch (error: any) {
-      toast.error(error.message || 'Erro ao cadastrar paciente')
-      setIsSubmitting(false)
+      const record = await pb.collection('pacientes').create(fd)
+      toast.success('Paciente cadastrado!', {
+        icon: <CheckCircle className="w-5 h-5 text-success" />,
+      })
+      nav(`/pacientes/${record.id}`)
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao cadastrar paciente')
     }
   }
 
-  if (isSubmitting) {
-    return (
-      <div className="space-y-6 max-w-[800px] mx-auto animate-fade-in-up pb-12">
-        <div className="flex items-center gap-4">
-          <Skeleton className="h-10 w-10 rounded-md" />
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-64" />
-            <Skeleton className="h-4 w-48" />
-          </div>
-        </div>
-        <div className="bg-white p-6 md:p-8 rounded-xl border border-slate-200 shadow-sm">
-          <Skeleton className="h-8 w-1/3 mb-6" />
-          <div className="space-y-6">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-24 w-full" />
-            <div className="flex justify-end pt-4">
-              <Skeleton className="h-10 w-32" />
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  if (!mounted) return null
 
   return (
-    <div className="space-y-6 max-w-[800px] mx-auto animate-fade-in-up pb-12">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/pacientes')}>
-          <ChevronLeft className="h-5 w-5" />
+    <div className="max-w-[800px] mx-auto animate-in fade-in duration-300 pb-[32px] px-4 md:px-0">
+      <div className="flex items-center gap-[16px] mb-[32px]">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => nav('/pacientes')}
+          className="hover:shadow-elevation transition-all duration-300"
+        >
+          <ChevronLeft className="w-5 h-5" />
         </Button>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-            Cadastrar Novo Paciente
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Preencha os dados básicos e o relatório clínico inicial.
+          <h1 className="text-[24px] font-bold text-slate-900">Novo Paciente</h1>
+          <p className="text-[14px] font-normal text-muted-foreground mt-1">
+            Preencha os dados e relatório clínico.
           </p>
         </div>
       </div>
 
+      <div className="mb-[32px] relative px-[20px] max-w-md mx-auto">
+        <div className="absolute left-[40px] right-[40px] top-1/2 -translate-y-1/2 h-1 bg-slate-200 z-0 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-primary transition-all duration-300"
+            style={{ width: step === 1 ? '50%' : '100%' }}
+          />
+        </div>
+        <div className="relative z-10 flex justify-between">
+          <div className="flex flex-col items-center gap-2">
+            <div
+              className={cn(
+                'w-10 h-10 rounded-full flex items-center justify-center font-bold text-[14px] transition-colors duration-300',
+                step >= 1
+                  ? 'bg-primary text-white shadow-elevation'
+                  : 'bg-slate-200 text-slate-500',
+              )}
+            >
+              {step > 1 ? <Check className="w-5 h-5" /> : '1'}
+            </div>
+            <span className="text-[16px] font-semibold text-slate-700 bg-background px-2">
+              Dados Básicos
+            </span>
+          </div>
+          <div className="flex flex-col items-center gap-2">
+            <div
+              className={cn(
+                'w-10 h-10 rounded-full flex items-center justify-center font-bold text-[14px] transition-colors duration-300',
+                step >= 2
+                  ? 'bg-primary text-white shadow-elevation'
+                  : 'bg-slate-200 text-slate-500',
+              )}
+            >
+              2
+            </div>
+            <span className="text-[16px] font-semibold text-slate-700 bg-background px-2">
+              Quick Report
+            </span>
+          </div>
+        </div>
+      </div>
+
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={form.handleSubmit(onSubmit)}>
           {step === 1 && (
-            <div className="bg-white p-6 md:p-8 rounded-xl border border-slate-200 shadow-sm animate-fade-in">
-              <h2 className="text-xl font-semibold mb-6 text-slate-900 border-b pb-4">
-                Seção 1: Dados Básicos
+            <div className="bg-white p-[20px] rounded-xl border border-slate-200 shadow-subtle animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <h2 className="text-[16px] font-semibold mb-[16px] flex items-center gap-2 border-b pb-4">
+                <User className="w-5 h-5 text-primary" /> Dados Pessoais
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px]">
                 <FormField
                   control={form.control}
                   name="nome"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Nome completo <span className="text-red-500">*</span>
-                      </FormLabel>
+                      <FormLabel className="text-[14px] font-normal">Nome *</FormLabel>
                       <FormControl>
-                        <Input placeholder="Ex: João da Silva" {...field} />
+                        <Input {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -219,9 +225,9 @@ export default function NovoPaciente() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel className="text-[14px] font-normal">Email</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="joao@exemplo.com" {...field} />
+                        <Input type="email" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -232,30 +238,21 @@ export default function NovoPaciente() {
                   name="telefone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Telefone <span className="text-red-500">*</span>
-                      </FormLabel>
+                      <FormLabel className="text-[14px] font-normal">Telefone *</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="+55 11 99999-9999"
                           {...field}
                           onChange={(e) => {
-                            let val = e.target.value.replace(/\D/g, '')
-                            if (val.length === 0) {
-                              field.onChange('')
-                              return
-                            }
-                            if (!val.startsWith('55')) val = '55' + val
-                            let formatted = '+' + val.substring(0, 2)
-                            if (val.length > 2) formatted += ' ' + val.substring(2, 4)
-                            if (val.length > 4) {
-                              const p3 = val.length > 12 ? val.substring(4, 9) : val.substring(4, 8)
-                              formatted += ' ' + p3
-                              const p4 =
-                                val.length > 12 ? val.substring(9, 13) : val.substring(8, 12)
-                              if (p4) formatted += '-' + p4
-                            }
-                            field.onChange(formatted)
+                            let v = e.target.value.replace(/\D/g, '')
+                            if (!v) return field.onChange('')
+                            if (!v.startsWith('55')) v = '55' + v
+                            field.onChange(
+                              '+' +
+                                v.substring(0, 2) +
+                                (v.length > 2 ? ' ' + v.substring(2, 4) : '') +
+                                (v.length > 4 ? ' ' + v.substring(4, 9) : '') +
+                                (v.length > 9 ? '-' + v.substring(9, 13) : ''),
+                            )
                           }}
                         />
                       </FormControl>
@@ -268,9 +265,7 @@ export default function NovoPaciente() {
                   name="data_nascimento"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Data de nascimento <span className="text-red-500">*</span>
-                      </FormLabel>
+                      <FormLabel className="text-[14px] font-normal">Data Nascimento *</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
@@ -283,11 +278,11 @@ export default function NovoPaciente() {
                   name="documento"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Documento (CPF/RG) <span className="text-red-500">*</span>
+                      <FormLabel className="text-[14px] font-normal flex items-center gap-1">
+                        <FileText className="w-4 h-4 text-slate-500" /> Documento (CPF/RG) *
                       </FormLabel>
                       <FormControl>
-                        <Input placeholder="Apenas números ou formato padrão" {...field} />
+                        <Input {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -298,20 +293,16 @@ export default function NovoPaciente() {
                   name="unidade"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Unidade <span className="text-red-500">*</span>
-                      </FormLabel>
+                      <FormLabel className="text-[14px] font-normal">Unidade *</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Selecione a unidade" />
+                            <SelectValue placeholder="Selecione" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="Cidade A">Cidade A</SelectItem>
                           <SelectItem value="Cidade B">Cidade B</SelectItem>
-                          <SelectItem value="Cidade C">Cidade C</SelectItem>
-                          <SelectItem value="Cidade D">Cidade D</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -323,19 +314,21 @@ export default function NovoPaciente() {
                   name="endereco"
                   render={({ field }) => (
                     <FormItem className="md:col-span-2">
-                      <FormLabel>
-                        Endereço <span className="text-red-500">*</span>
-                      </FormLabel>
+                      <FormLabel className="text-[14px] font-normal">Endereço *</FormLabel>
                       <FormControl>
-                        <Input placeholder="Rua, número, bairro, cidade - UF" {...field} />
+                        <Input {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
-              <div className="mt-8 flex justify-end">
-                <Button type="button" onClick={handleNext} className="w-full sm:w-auto">
+              <div className="mt-[32px] flex justify-end">
+                <Button
+                  type="button"
+                  onClick={nextStep}
+                  className="hover:shadow-elevation transition-all duration-300"
+                >
                   Próximo
                 </Button>
               </div>
@@ -343,23 +336,19 @@ export default function NovoPaciente() {
           )}
 
           {step === 2 && (
-            <div className="bg-white p-6 md:p-8 rounded-xl border border-slate-200 shadow-sm animate-fade-in">
-              <h2 className="text-xl font-semibold mb-6 text-slate-900 border-b pb-4">
-                Seção 2: Quick Report
+            <div className="bg-white p-[20px] rounded-xl border border-slate-200 shadow-subtle animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <h2 className="text-[16px] font-semibold mb-[16px] flex items-center gap-2 border-b pb-4">
+                <Hospital className="w-5 h-5 text-primary" /> Relatório Clínico
               </h2>
-              <div className="space-y-6">
+              <div className="flex flex-col gap-[16px]">
                 <FormField
                   control={form.control}
                   name="queixa_principal"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Queixa principal</FormLabel>
+                      <FormLabel className="text-[14px] font-normal">Queixa Principal</FormLabel>
                       <FormControl>
-                        <Textarea
-                          placeholder="Descreva a queixa principal do paciente..."
-                          className="min-h-[100px] resize-none"
-                          {...field}
-                        />
+                        <Textarea className="min-h-[80px]" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -370,13 +359,9 @@ export default function NovoPaciente() {
                   name="historico_medico"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Histórico médico</FormLabel>
+                      <FormLabel className="text-[14px] font-normal">Histórico Médico</FormLabel>
                       <FormControl>
-                        <Textarea
-                          placeholder="Doenças prévias, cirurgias, histórico familiar..."
-                          className="min-h-[100px] resize-none"
-                          {...field}
-                        />
+                        <Textarea className="min-h-[80px]" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -387,60 +372,56 @@ export default function NovoPaciente() {
                   name="medicacoes_atuais"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Medicações atuais</FormLabel>
+                      <FormLabel className="text-[14px] font-normal">Medicações Atuais</FormLabel>
                       <FormControl>
-                        <Textarea
-                          placeholder="Lista de medicamentos em uso, dosagem..."
-                          className="min-h-[80px] resize-none"
-                          {...field}
-                        />
+                        <Textarea className="min-h-[80px]" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <div className="space-y-4 pt-4 border-t">
-                  <FormLabel className="text-base font-medium text-slate-900">
+                <div className="pt-[16px] border-t mt-[16px]">
+                  <FormLabel className="text-[16px] font-semibold text-slate-900 mb-4 block">
                     Anexar Exames
                   </FormLabel>
-                  <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-[16px]">
                     <div className="flex items-center gap-4">
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => document.getElementById('exames-upload')?.click()}
+                        onClick={() => document.getElementById('file-upload')?.click()}
+                        className="hover:shadow-elevation transition-all duration-300"
                       >
-                        <Upload className="w-4 h-4 mr-2" /> Digitalizar exames
+                        <Upload className="w-4 h-4 mr-2" /> Digitalizar
                       </Button>
-                      <span className="text-sm text-slate-500">PDF ou JPG</span>
+                      <span className="text-[14px] font-normal text-slate-500">PDF ou JPG</span>
                       <input
-                        id="exames-upload"
+                        id="file-upload"
                         type="file"
                         multiple
                         accept=".pdf,.jpg,.jpeg"
                         className="hidden"
-                        onChange={handleFileChange}
+                        onChange={handleFile}
                       />
                     </div>
-
                     {files.length > 0 && (
                       <div className="grid gap-2">
-                        {files.map((file, i) => (
+                        {files.map((f, i) => (
                           <div
                             key={i}
                             className="flex items-center justify-between p-3 border rounded-md bg-slate-50"
                           >
-                            <div className="flex items-center gap-3 overflow-hidden">
-                              <FileIcon className="w-5 h-5 text-primary shrink-0" />
-                              <span className="text-sm font-medium truncate">{file.name}</span>
+                            <div className="flex items-center gap-3">
+                              <FileIcon className="w-4 h-4 text-primary" />
+                              <span className="text-[14px] font-normal">{f.name}</span>
                             </div>
                             <Button
                               type="button"
                               variant="ghost"
                               size="icon"
-                              onClick={() => removeFile(i)}
-                              className="text-slate-500 hover:text-red-500 shrink-0"
+                              onClick={() => setFiles((p) => p.filter((_, j) => j !== i))}
+                              className="hover:text-error transition-colors"
                             >
                               <X className="w-4 h-4" />
                             </Button>
@@ -455,35 +436,34 @@ export default function NovoPaciente() {
                   control={form.control}
                   name="examesConfirmados"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 bg-slate-50 mt-4">
+                    <FormItem className="flex items-start gap-3 p-4 bg-slate-50 border rounded-md mt-4">
                       <FormControl>
                         <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                       </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Exames digitalizados e anexados</FormLabel>
-                        <p className="text-sm text-muted-foreground">
-                          Confirmo que os arquivos selecionados estão corretos.
-                        </p>
+                      <div className="space-y-1">
+                        <FormLabel className="text-[14px] font-normal leading-none cursor-pointer">
+                          Exames digitalizados e anexados corretamente
+                        </FormLabel>
                       </div>
                     </FormItem>
                   )}
                 />
               </div>
-
-              <div className="mt-8 flex flex-col sm:flex-row justify-between gap-4">
+              <div className="mt-[32px] flex justify-between gap-[16px]">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setStep(1)}
-                  className="w-full sm:w-auto"
+                  className="hover:shadow-elevation transition-all duration-300"
                 >
                   Voltar
                 </Button>
                 <Button
                   type="submit"
-                  className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90"
+                  disabled={form.formState.isSubmitting}
+                  className="hover:shadow-elevation transition-all duration-300 bg-primary text-white"
                 >
-                  Salvar paciente
+                  Salvar Paciente
                 </Button>
               </div>
             </div>
