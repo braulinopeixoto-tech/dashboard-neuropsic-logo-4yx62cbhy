@@ -19,6 +19,7 @@ import Login from './pages/Login'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import CommandCenter from './pages/CommandCenter'
+import RelatorioFinal from './pages/RelatorioFinal'
 
 const App = () => (
   <AuthProvider>
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/pacientes/:id/dnda/novo" element={<NovoDNDA />} />
             <Route path="/pacientes/:id/dnda/:dndaId/editar" element={<NovoDNDA />} />
             <Route path="/pacientes/:id/dnda/:dndaId" element={<VisualizarDNDA />} />
+            <Route path="/relatorio-final/:id" element={<RelatorioFinal />} />
             <Route path="/alertas" element={<Alertas />} />
             <Route path="/relatorios" element={<Relatorios />} />
             <Route path="/auditoria" element={<Auditoria />} />

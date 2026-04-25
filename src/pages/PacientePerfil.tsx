@@ -89,12 +89,17 @@ export default function PacientePerfil() {
             <ArrowLeft className="w-4 h-4" /> Voltar para Pacientes
           </Link>
         </Button>
-        <Button
-          className="bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
-          asChild
-        >
-          <Link to={`/pacientes/${id}/dnda/novo`}>Nova DNDA™</Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="shadow-sm" asChild>
+            <Link to={`/relatorio-final/${id}`}>Gerar Relatório</Link>
+          </Button>
+          <Button
+            className="bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
+            asChild
+          >
+            <Link to={`/pacientes/${id}/dnda/novo`}>Nova DNDA™</Link>
+          </Button>
+        </div>
       </div>
 
       <PacienteHeader paciente={paciente} />
