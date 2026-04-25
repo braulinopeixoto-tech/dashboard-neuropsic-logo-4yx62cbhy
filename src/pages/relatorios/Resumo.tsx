@@ -17,11 +17,9 @@ import { Users, CheckCircle2, AlertTriangle, ShieldCheck, Activity } from 'lucid
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
-export function RelatoriosResumo({ data, rawData }: any) {
+export function RelatoriosResumo({ data }: any) {
   const kpis = useMemo(() => {
-    const activePatients = new Set(
-      data.protocolos.filter((p: any) => p.status === 'ativo').map((p: any) => p.paciente_id),
-    ).size
+    const activePatients = data.pacientes.filter((p: any) => p.ativo).length
 
     const completionRates = data.protocolos.map((p: any) =>
       p.total_sessoes > 0 ? (p.sessoes_concluidas / p.total_sessoes) * 100 : 0,
@@ -32,24 +30,15 @@ export function RelatoriosResumo({ data, rawData }: any) {
 
     const faltas = data.sessoes.filter((s: any) => s.status === 'faltou').length
 
-    const desistenciaEvitada = data.alertas.filter((a: any) => {
-      if (a.tipo !== 'risco_desistência') return false
-      const p = rawData.protocolos.find(
-        (prot: any) =>
-          prot.paciente_id === a.paciente_id &&
-          (prot.status === 'ativo' || prot.status === 'concluído'),
-      )
-      return !!p
-    }).length
+    const desistenciaEvitada = data.alertas.filter(
+      (a: any) => a.tipo === 'risco_desistência' && a.intervencao_realizada === true,
+    ).length
 
-    const scheduledOrDone = data.sessoes.filter((s: any) =>
-      ['realizada', 'faltou'].includes(s.status),
-    )
-    const realizadas = scheduledOrDone.filter((s: any) => s.status === 'realizada').length
-    const adhesionRate = scheduledOrDone.length ? (realizadas / scheduledOrDone.length) * 100 : 0
+    const realizadas = data.sessoes.filter((s: any) => s.status === 'realizada').length
+    const adhesionRate = data.sessoes.length ? (realizadas / data.sessoes.length) * 100 : 0
 
     return { activePatients, avgCompletionRate, faltas, desistenciaEvitada, adhesionRate }
-  }, [data, rawData])
+  }, [data])
 
   const charts = useMemo(() => {
     const sessoesRealizadas = data.sessoes.filter(
@@ -62,7 +51,13 @@ export function RelatoriosResumo({ data, rawData }: any) {
       return acc
     }, {})
 
-    const lineData = Object.entries(groupedByMonth).map(([name, total]) => ({ name, total }))
+    const lineData = Object.entries(groupedByMonth)
+      .sort(([a], [b]) => {
+        const [da, ma, ya] = a.split('/')
+        const [db, mb, yb] = b.split('/')
+        return new Date(`20${ya}-${ma}-${da}`).getTime() - new Date(`20${yb}-${mb}-${db}`).getTime()
+      })
+      .map(([name, total]) => ({ name, total }))
 
     const protoCounts = data.protocolos.reduce((acc: any, p: any) => {
       acc[p.tipo] = (acc[p.tipo] || 0) + 1

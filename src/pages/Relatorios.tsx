@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import pb from '@/lib/pocketbase/client'
+import { useRealtime } from '@/hooks/use-realtime'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { RefreshCw, BarChart3, Users, Settings } from 'lucide-react'
@@ -26,9 +27,9 @@ export default function Relatorios() {
     pacientes: [] as any[],
   })
 
-  const loadData = async () => {
+  const loadData = useCallback(async (isSilent = false) => {
     try {
-      setLoading(true)
+      if (!isSilent) setLoading(true)
       setError(false)
       const [protocolos, sessoes, alertas, pacientes] = await Promise.all([
         pb.collection('protocolos').getFullList({ expand: 'paciente_id' }),
@@ -40,17 +41,25 @@ export default function Relatorios() {
     } catch (err) {
       setError(true)
     } finally {
-      setLoading(false)
+      if (!isSilent) setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [loadData])
+
+  useRealtime('protocolos', () => loadData(true))
+  useRealtime('sessoes', () => loadData(true))
+  useRealtime('alertas', () => loadData(true))
+  useRealtime('pacientes', () => loadData(true))
 
   const filteredData = useMemo(() => {
     const start = new Date(dateRange.start)
+    start.setHours(0, 0, 0, 0)
     const end = new Date(dateRange.end)
+    end.setHours(23, 59, 59, 999)
+
     const isDateInRange = (dateStr: string) => {
       if (!dateStr) return false
       const d = new Date(dateStr)
@@ -157,7 +166,7 @@ export default function Relatorios() {
           </TabsList>
 
           <TabsContent value="resumo" className="mt-0">
-            <RelatoriosResumo data={filteredData} rawData={rawData} />
+            <RelatoriosResumo data={filteredData} />
           </TabsContent>
           <TabsContent value="pacientes" className="mt-0">
             <RelatoriosPacientes data={filteredData} rawData={rawData} />

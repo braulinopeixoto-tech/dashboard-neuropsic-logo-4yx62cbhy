@@ -32,7 +32,7 @@ export function RelatoriosProtocolos({ data }: any) {
       let sumDays = 0
       let countConcluidos = 0
       g.protocolos.forEach((p: any) => {
-        if (p.data_inicio && p.data_prevista_fim) {
+        if (p.status === 'concluído' && p.data_inicio && p.data_prevista_fim) {
           const start = new Date(p.data_inicio)
           const end = new Date(p.data_prevista_fim)
           sumDays += (end.getTime() - start.getTime()) / (1000 * 3600 * 24)
