@@ -8,6 +8,7 @@ import Prescrever from './pages/Prescrever'
 import Pacientes from './pages/Pacientes'
 import PacientePerfil from './pages/PacientePerfil'
 import NovoPaciente from './pages/NovoPaciente'
+import NovoDNDA from './pages/NovoDNDA'
 import MinhasSessoes from './pages/Sessoes'
 import Alertas from './pages/Alertas'
 import Relatorios from './pages/Relatorios'
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/pacientes" element={<Pacientes />} />
             <Route path="/pacientes/novo" element={<NovoPaciente />} />
             <Route path="/pacientes/:id" element={<PacientePerfil />} />
+            <Route path="/pacientes/:id/dnda/novo" element={<NovoDNDA />} />
             <Route path="/alertas" element={<Alertas />} />
             <Route path="/relatorios" element={<Relatorios />} />
             <Route path="/configuracoes" element={<Configuracoes />} />

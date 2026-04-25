@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-25T16:59:57.379Z",
+  "generatedAt": "2026-04-25T17:06:07.725Z",
   "collections": [
     {
       "name": "users",
@@ -452,6 +452,342 @@
           "name": "data_intervencao",
           "type": "date",
           "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "dnda",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "view": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "create": "@request.auth.id != '' && @request.auth.tipo = 'neuropsicólogo'",
+        "update": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && usuario_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "paciente_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pacientes"
+        },
+        {
+          "name": "d1_delta",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d1_theta",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d1_alpha",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d1_beta",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d1_gamma",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d1_tbr",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d1_excitation",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d1_variability",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["instável", "normal", "rígido"]
+        },
+        {
+          "name": "d1_class",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["hipoativo", "hiperativo", "instável"]
+        },
+        {
+          "name": "d2_coherence",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d2_connectivity",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d2_dmn",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["acoplado", "desacoplado", "hiperacoplado"]
+        },
+        {
+          "name": "d2_salience",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["acoplado", "desacoplado", "hiperacoplado"]
+        },
+        {
+          "name": "d2_executive",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["acoplado", "desacoplado", "hiperacoplado"]
+        },
+        {
+          "name": "d3_symmetry",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d3_gradients",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d3_topography",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d3_entropy",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d3_class",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["coerente", "difuso", "desorganizado"]
+        },
+        {
+          "name": "d4_attention",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d4_inhibitory",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d4_flexibility",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d4_memory",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d4_emotion",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d4_big_five",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["abertura", "consciência", "extroversão", "amabilidade", "neuroticismo"]
+        },
+        {
+          "name": "d5_negative",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d5_positive",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d5_cognitive",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d5_social",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d5_sensory",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d5_arousal",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d6_metabolism",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d6_inflammation",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d6_sleep",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d6_hrv",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d6_menstrual",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["regular", "irregular", "menopausa", "n/a"]
+        },
+        {
+          "name": "d6_diet",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["adequada", "inflamatória", "restritiva"]
+        },
+        {
+          "name": "d6_intestinal",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["regular", "constipado", "diarreico", "alternante"]
+        },
+        {
+          "name": "d7_traumas",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d7_losses",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d7_evolution",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d7_previous",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d7_loss_class",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["aguda", "crônica", "resolvida"]
+        },
+        {
+          "name": "d8_risk",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["baixo", "médio", "alto"]
+        },
+        {
+          "name": "d8_summary",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d9_phases",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "d9_tools",
+          "type": "json",
+          "required": false,
           "system": false
         },
         {

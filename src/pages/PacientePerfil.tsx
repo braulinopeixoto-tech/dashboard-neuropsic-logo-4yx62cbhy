@@ -79,11 +79,19 @@ export default function PacientePerfil() {
 
   return (
     <div className="max-w-[1000px] mx-auto space-y-8 animate-fade-in-up">
-      <Button variant="ghost" className="gap-2 -ml-4 text-slate-500 hover:text-slate-900" asChild>
-        <Link to="/pacientes">
-          <ArrowLeft className="w-4 h-4" /> Voltar para Pacientes
-        </Link>
-      </Button>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <Button variant="ghost" className="gap-2 -ml-4 text-slate-500 hover:text-slate-900" asChild>
+          <Link to="/pacientes">
+            <ArrowLeft className="w-4 h-4" /> Voltar para Pacientes
+          </Link>
+        </Button>
+        <Button
+          className="bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
+          asChild
+        >
+          <Link to={`/pacientes/${id}/dnda/novo`}>Nova DNDA™</Link>
+        </Button>
+      </div>
 
       <PacienteHeader paciente={paciente} />
 
