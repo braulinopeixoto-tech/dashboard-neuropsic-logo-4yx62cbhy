@@ -9,9 +9,18 @@ import { useAuth } from '@/hooks/use-auth'
 import { getPaciente } from '@/services/pacientes'
 import { createDnda, getDnda } from '@/services/dnda'
 import pb from '@/lib/pocketbase/client'
-import { ArrowLeft, Save, Code, AlertTriangle, CheckCircle2 } from 'lucide-react'
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import {
+  ArrowLeft,
+  Save,
+  Code,
+  AlertTriangle,
+  CheckCircle2,
+  ChevronUp,
+  ChevronDown,
+} from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { cn } from '@/lib/utils'
 
 import { Tabs1To3 } from '@/components/dnda/Tabs1To3'
 import { Tabs4To6 } from '@/components/dnda/Tabs4To6'
@@ -135,7 +144,15 @@ const FIELD_NAMES_MAP: Record<string, string> = {
   convergencia_resumo: 'Síntese Convergente',
 }
 
-function JsonPreview({ control, pacienteId }: { control: any; pacienteId: string }) {
+function JsonPreview({
+  control,
+  pacienteId,
+  isMobile,
+}: {
+  control: any
+  pacienteId: string
+  isMobile?: boolean
+}) {
   const values = useWatch({ control })
 
   const missingFields = useMemo(() => {
@@ -158,7 +175,7 @@ function JsonPreview({ control, pacienteId }: { control: any; pacienteId: string
         count++
       }
     }
-    return count > 0 ? Math.round((sum / count) * 10) : 0
+    return count > 0 ? Math.round((sum / (count * 10)) * 100) : 0
   }, [values])
 
   const getVal = (field: string) => {
@@ -204,60 +221,80 @@ function JsonPreview({ control, pacienteId }: { control: any; pacienteId: string
     classification:
       getVal('neuroenergetica_variabilidade') !== 'low_confidence'
         ? String(values.neuroenergetica_variabilidade).toLowerCase()
-        : 'low_confidence',
+        : 'instável',
     integrationStatus:
       getVal('integracao_dmn') !== 'low_confidence'
         ? String(values.integracao_dmn).toLowerCase()
-        : 'low_confidence',
+        : 'desacoplado',
     organizationStatus:
       getVal('organizacional_simetria') !== 'low_confidence'
         ? Number(values.organizacional_simetria) > 5
           ? 'coerente'
           : 'difuso'
-        : 'low_confidence',
+        : 'difuso',
   }
 
   return (
-    <div className="flex flex-col h-full bg-slate-950 rounded-xl overflow-hidden text-slate-300 font-mono text-xs shadow-xl">
-      <div className="flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-800">
-        <div className="flex items-center gap-2 text-slate-100 font-sans text-sm font-semibold">
-          <Code className="w-4 h-4 text-primary" />
-          JSON Preview
+    <div
+      className={cn(
+        'flex flex-col bg-slate-950 text-slate-300 shadow-xl',
+        isMobile ? 'h-full' : 'h-full rounded-xl overflow-hidden',
+      )}
+    >
+      {!isMobile && (
+        <div className="flex items-center justify-between p-[20px] bg-slate-900 border-b border-slate-800">
+          <div className="flex items-center gap-2 text-slate-100 text-[14px] font-semibold">
+            <Code className="w-4 h-4 text-primary" />
+            JSON Preview
+          </div>
+          <div className="flex items-center gap-2">
+            {missingFields.length === 0 ? (
+              <span className="flex items-center gap-1 text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded text-[12px] font-bold">
+                <CheckCircle2 className="w-3 h-3" />
+                100% COMPLETE
+              </span>
+            ) : (
+              <span className="text-amber-400 bg-amber-400/10 px-2 py-1 rounded text-[12px] font-bold">
+                {Math.round(confidenceLevel * 100)}% CONFIDENCE
+              </span>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          {missingFields.length === 0 ? (
-            <span className="flex items-center gap-1 text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded text-[10px] font-sans font-bold">
-              <CheckCircle2 className="w-3 h-3" />
-              100% COMPLETE
-            </span>
-          ) : (
-            <span className="text-amber-400 bg-amber-400/10 px-2 py-1 rounded text-[10px] font-sans font-bold">
-              {Math.round(confidenceLevel * 100)}% CONFIDENCE
-            </span>
-          )}
-        </div>
-      </div>
+      )}
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        <pre className="text-[11px] leading-relaxed text-slate-300">
+      <div className="flex-1 overflow-y-auto p-[20px] space-y-[16px]">
+        {isMobile && missingFields.length === 0 && (
+          <div className="mb-4 inline-flex items-center gap-1 text-emerald-400 bg-emerald-400/10 px-3 py-1.5 rounded text-[12px] font-bold">
+            <CheckCircle2 className="w-4 h-4" />
+            100% COMPLETE
+          </div>
+        )}
+
+        <pre className="text-[12px] font-mono leading-relaxed text-slate-300 transition-all duration-200">
           {JSON.stringify(jsonPreview, null, 2)}
         </pre>
 
         {missingFields.length > 0 && (
-          <div className="mt-6 pt-4 border-t border-slate-800 space-y-2">
-            <h4 className="text-amber-400 font-sans font-semibold flex items-center gap-2 text-sm">
+          <div className="mt-6 pt-4 border-t border-slate-800 space-y-[16px]">
+            <h4 className="text-amber-400 text-[16px] font-semibold flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" />
               Avisos de Validação
             </h4>
-            <ul className="space-y-1">
+            <ul className="space-y-2">
               {missingFields.slice(0, 10).map((f) => (
-                <li key={f} className="text-slate-400 text-[10px]">
-                  Campo <strong className="text-amber-200/80">{FIELD_NAMES_MAP[f] || f}</strong> não
-                  preenchido — confiança reduzida
+                <li
+                  key={f}
+                  className="text-slate-400 text-[14px] font-normal flex items-start gap-2 leading-tight"
+                >
+                  <span className="mt-0.5">⚠️</span>
+                  <span>
+                    Campo <strong className="text-amber-200/80">{FIELD_NAMES_MAP[f] || f}</strong>{' '}
+                    não preenchido — confiança reduzida
+                  </span>
                 </li>
               ))}
               {missingFields.length > 10 && (
-                <li className="text-slate-500 text-[10px] italic">
+                <li className="text-slate-500 text-[14px] italic">
                   ...e mais {missingFields.length - 10} campos.
                 </li>
               )}
@@ -278,6 +315,7 @@ export default function NovoDNDA() {
   const [paciente, setPaciente] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [isMobilePreviewOpen, setIsMobilePreviewOpen] = useState(false)
 
   const methods = useForm({
     defaultValues: {
@@ -350,7 +388,7 @@ export default function NovoDNDA() {
       if (dndaId) {
         await pb.collection('dnda').update(dndaId, payload)
         toast({
-          title: 'DNDA padronizado atualizado!',
+          title: 'DNDA padronizado com sucesso!',
           className: 'bg-success text-white border-none',
         })
       } else {
@@ -361,7 +399,6 @@ export default function NovoDNDA() {
         })
       }
 
-      // Maintain JSON preview state while gently navigating back after save
       setTimeout(() => navigate(`/pacientes/${paciente.id}`), 1000)
     } catch (err) {
       toast({ title: 'Erro ao salvar DNDA™', variant: 'destructive' })
@@ -372,10 +409,10 @@ export default function NovoDNDA() {
 
   if (loading) {
     return (
-      <div className="max-w-[1400px] px-4 md:px-8 mx-auto space-y-6">
+      <div className="max-w-[1400px] px-4 md:px-8 mx-auto space-y-[32px] py-8">
         <Skeleton className="h-10 w-48" />
         <Skeleton className="h-24 w-full rounded-xl" />
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-[32px]">
           <Skeleton className="xl:col-span-2 h-[500px] rounded-xl" />
           <Skeleton className="xl:col-span-1 h-[500px] rounded-xl" />
         </div>
@@ -384,35 +421,39 @@ export default function NovoDNDA() {
   }
 
   return (
-    <div className="max-w-[1400px] px-4 md:px-8 mx-auto space-y-8 animate-fade-in-up pb-20 relative">
+    <div className="max-w-[1400px] px-4 md:px-8 mx-auto space-y-[32px] py-8 animate-fade-in relative pb-24">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <Button variant="ghost" className="gap-2 -ml-4 text-slate-500 hover:text-slate-900" asChild>
+        <Button
+          variant="ghost"
+          className="gap-2 -ml-4 text-[14px] font-normal text-slate-500 hover:text-slate-900"
+          asChild
+        >
           <Link to={`/pacientes/${id}`}>
             <ArrowLeft className="w-4 h-4" /> Voltar para Paciente
           </Link>
         </Button>
       </div>
 
-      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-        <div className="flex items-center gap-4 mb-2">
-          <div className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+      <div className="bg-white p-[20px] rounded-xl border border-slate-200 shadow-sm space-y-[16px]">
+        <div className="flex items-center gap-4">
+          <div className="bg-primary/10 text-primary px-3 py-1 rounded-full text-[12px] font-bold uppercase tracking-wider">
             {dndaId ? 'Editar Avaliação' : 'Nova Avaliação'}
           </div>
-          <span className="text-slate-400 text-sm font-semibold">Estrutura Computável</span>
+          <span className="text-slate-400 text-[14px] font-semibold">Estrutura Computável</span>
         </div>
-        <h1 className="text-2xl font-bold text-slate-900">
-          Padronização DNDA™ — Estrutura Computável
+        <h1 className="text-[24px] font-bold text-slate-900">
+          Padronizar DNDA™ — Estrutura Computável
         </h1>
-        <p className="text-slate-500 mt-2">
+        <p className="text-[14px] font-normal text-slate-500">
           Paciente: <strong className="text-slate-700">{paciente?.nome}</strong>
         </p>
 
         {!dndaId && (
-          <Alert className="mt-6 bg-blue-50/50 border-blue-100 text-blue-800">
-            <AlertTitle className="text-blue-900 font-semibold">
+          <Alert className="bg-blue-50/50 border-blue-100 text-blue-800">
+            <AlertTitle className="text-[16px] text-blue-900 font-semibold">
               Instruções de Preenchimento
             </AlertTitle>
-            <AlertDescription className="text-blue-700/80 mt-1">
+            <AlertDescription className="text-[14px] text-blue-700/80 mt-1 font-normal">
               Preencha todas as 9 dimensões do DNDA™ para habilitar o salvamento. Os valores
               inseridos alimentarão automaticamente a estrutura computável (JSON) necessária para
               relatórios avançados e análise de dados.
@@ -421,66 +462,63 @@ export default function NovoDNDA() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-[32px]">
         <div className="xl:col-span-2">
           <FormProvider {...methods}>
-            <form
-              onSubmit={methods.handleSubmit(onSubmit)}
-              className="space-y-8 bg-white p-6 rounded-xl border border-slate-200 shadow-sm"
-            >
+            <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-[32px]">
               <Tabs defaultValue="d1" className="w-full">
-                <TabsList className="w-full flex-wrap h-auto gap-2 p-1 bg-slate-50 justify-start">
+                <TabsList className="w-full flex-wrap h-auto gap-[8px] p-2 bg-slate-50 justify-start rounded-lg border border-slate-200">
                   <TabsTrigger
                     value="d1"
-                    className="flex-1 min-w-[100px] data-[state=active]:shadow-sm"
+                    className="flex-1 min-w-[100px] text-[14px] font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200"
                   >
                     1. Neuro
                   </TabsTrigger>
                   <TabsTrigger
                     value="d2"
-                    className="flex-1 min-w-[100px] data-[state=active]:shadow-sm"
+                    className="flex-1 min-w-[100px] text-[14px] font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200"
                   >
                     2. Integr
                   </TabsTrigger>
                   <TabsTrigger
                     value="d3"
-                    className="flex-1 min-w-[100px] data-[state=active]:shadow-sm"
+                    className="flex-1 min-w-[100px] text-[14px] font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200"
                   >
                     3. Org
                   </TabsTrigger>
                   <TabsTrigger
                     value="d4"
-                    className="flex-1 min-w-[100px] data-[state=active]:shadow-sm"
+                    className="flex-1 min-w-[100px] text-[14px] font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200"
                   >
                     4. Func
                   </TabsTrigger>
                   <TabsTrigger
                     value="d5"
-                    className="flex-1 min-w-[100px] data-[state=active]:shadow-sm"
+                    className="flex-1 min-w-[100px] text-[14px] font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200"
                   >
                     5. RDoC
                   </TabsTrigger>
                   <TabsTrigger
                     value="d6"
-                    className="flex-1 min-w-[100px] data-[state=active]:shadow-sm"
+                    className="flex-1 min-w-[100px] text-[14px] font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200"
                   >
                     6. Bio
                   </TabsTrigger>
                   <TabsTrigger
                     value="d7"
-                    className="flex-1 min-w-[100px] data-[state=active]:shadow-sm"
+                    className="flex-1 min-w-[100px] text-[14px] font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200"
                   >
                     7. Temp
                   </TabsTrigger>
                   <TabsTrigger
                     value="d8"
-                    className="flex-1 min-w-[100px] data-[state=active]:shadow-sm"
+                    className="flex-1 min-w-[100px] text-[14px] font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200"
                   >
                     8. Conv
                   </TabsTrigger>
                   <TabsTrigger
                     value="d9"
-                    className="flex-1 min-w-[100px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                    className="flex-1 min-w-[100px] text-[14px] font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200"
                   >
                     9. Interv
                   </TabsTrigger>
@@ -494,10 +532,10 @@ export default function NovoDNDA() {
               {!isComplete && (
                 <Alert variant="destructive" className="mt-8 bg-red-50/50 border-red-100">
                   <AlertTriangle className="w-4 h-4 text-red-600" />
-                  <AlertTitle className="text-red-800 font-semibold">
+                  <AlertTitle className="text-[16px] text-red-800 font-semibold">
                     Validação Incompleta
                   </AlertTitle>
-                  <AlertDescription className="text-red-700/90 mt-1">
+                  <AlertDescription className="text-[14px] text-red-700/90 mt-1 font-normal">
                     Complete todas as dimensões:{' '}
                     {missingFields
                       .slice(0, 5)
@@ -517,7 +555,7 @@ export default function NovoDNDA() {
                 <Button
                   type="submit"
                   size="lg"
-                  className="bg-primary hover:bg-primary/90 text-white font-semibold px-8 gap-2 transition-all"
+                  className="bg-primary hover:bg-primary/90 text-white text-[16px] font-semibold px-8 gap-2 transition-all"
                   disabled={saving || !isComplete}
                 >
                   {saving ? (
@@ -537,23 +575,22 @@ export default function NovoDNDA() {
         </div>
       </div>
 
-      <div className="xl:hidden fixed bottom-6 right-6 z-50">
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button
-              size="icon"
-              className="h-14 w-14 rounded-full shadow-2xl bg-slate-900 hover:bg-slate-800 text-white border-2 border-white/10 ring-4 ring-slate-900/20"
-            >
-              <Code className="w-6 h-6" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent
-            side="bottom"
-            className="h-[85vh] p-0 bg-slate-950 border-t-slate-800 rounded-t-2xl overflow-hidden"
-          >
-            <JsonPreview control={methods.control} pacienteId={paciente?.id || ''} />
-          </SheetContent>
-        </Sheet>
+      <div className="xl:hidden fixed bottom-0 left-0 right-0 z-50 bg-slate-950 border-t border-slate-800 rounded-t-xl shadow-[0_-10px_40px_rgba(0,0,0,0.3)]">
+        <Collapsible open={isMobilePreviewOpen} onOpenChange={setIsMobilePreviewOpen}>
+          <CollapsibleTrigger className="w-full flex items-center justify-between p-[20px] text-slate-100 hover:bg-slate-900 transition-colors rounded-t-xl">
+            <div className="flex items-center gap-2 font-semibold text-[14px]">
+              <Code className="w-4 h-4 text-primary" /> Preview JSON
+            </div>
+            {isMobilePreviewOpen ? (
+              <ChevronDown className="w-4 h-4" />
+            ) : (
+              <ChevronUp className="w-4 h-4" />
+            )}
+          </CollapsibleTrigger>
+          <CollapsibleContent className="bg-slate-950 max-h-[70vh] overflow-y-auto border-t border-slate-800">
+            <JsonPreview control={methods.control} pacienteId={paciente?.id || ''} isMobile />
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     </div>
   )
