@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
-import { Search, Activity, ChevronRight } from 'lucide-react'
+import { Search, Activity, ChevronRight, FileText } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useDashboardData } from '@/hooks/use-dashboard-data'
@@ -125,9 +125,21 @@ export default function Pacientes() {
                     <span className="text-slate-400 font-normal">de {patient.totalSessions}</span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button className="inline-flex items-center gap-1 text-primary hover:text-primary/80 font-medium text-sm transition-colors group-hover:underline">
-                      Prontuário <ChevronRight className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center justify-end gap-3">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigate(`/relatorio-final/${patient.id}`)
+                        }}
+                        className="inline-flex items-center gap-1 text-slate-500 hover:text-slate-700 font-medium text-sm transition-colors"
+                        title="Gerar Relatório Final"
+                      >
+                        <FileText className="w-4 h-4" /> Relatório
+                      </button>
+                      <button className="inline-flex items-center gap-1 text-primary hover:text-primary/80 font-medium text-sm transition-colors group-hover:underline">
+                        Prontuário <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

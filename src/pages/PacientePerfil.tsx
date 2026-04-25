@@ -91,7 +91,7 @@ export default function PacientePerfil() {
         </Button>
         <div className="flex gap-2">
           <Button variant="outline" className="shadow-sm" asChild>
-            <Link to={`/relatorio-final/${id}`}>Gerar Relatório</Link>
+            <Link to={`/relatorio-final/${id}`}>Gerar Relatório Final</Link>
           </Button>
           <Button
             className="bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"

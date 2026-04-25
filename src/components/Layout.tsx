@@ -12,7 +12,6 @@ import {
   SidebarFooter,
 } from '@/components/ui/sidebar'
 import {
-  LayoutDashboard,
   PlusCircle,
   Users,
   Settings,
@@ -30,8 +29,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { NotificationBell } from './NotificationBell'
 
 const menuItems = [
-  { title: 'Dashboard', icon: LayoutDashboard, path: '/' },
-  { title: 'Cockpit Clínico', icon: ShieldAlert, path: '/cockpit' },
+  { title: 'Command Center', icon: ShieldAlert, path: '/' },
   { title: 'Minhas Sessões', icon: Activity, path: '/minhas-sessoes' },
   { title: 'Prescrever', icon: PlusCircle, path: '/prescrever-protocolo' },
   { title: 'Pacientes', icon: Users, path: '/pacientes' },
