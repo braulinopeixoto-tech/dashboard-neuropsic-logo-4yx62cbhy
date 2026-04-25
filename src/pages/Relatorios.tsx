@@ -10,6 +10,8 @@ import { RelatoriosFiltros } from './relatorios/Filtros'
 import { RelatoriosResumo } from './relatorios/Resumo'
 import { RelatoriosPacientes } from './relatorios/Pacientes'
 import { RelatoriosProtocolos } from './relatorios/Protocolos'
+import { RelatoriosDnda } from './relatorios/Dnda'
+import { Activity } from 'lucide-react'
 
 export default function Relatorios() {
   const [dateRange, setDateRange] = useState({
@@ -163,6 +165,12 @@ export default function Relatorios() {
             >
               <Settings className="h-4 w-4" /> Protocolos
             </TabsTrigger>
+            <TabsTrigger
+              value="dnda"
+              className="rounded-lg data-[state=active]:bg-slate-100 data-[state=active]:text-primary px-6 py-2 flex items-center gap-2"
+            >
+              <Activity className="h-4 w-4" /> DNDA™
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="resumo" className="mt-0">
@@ -173,6 +181,9 @@ export default function Relatorios() {
           </TabsContent>
           <TabsContent value="protocolos" className="mt-0">
             <RelatoriosProtocolos data={filteredData} />
+          </TabsContent>
+          <TabsContent value="dnda" className="mt-0">
+            <RelatoriosDnda pacientes={rawData.pacientes} />
           </TabsContent>
         </Tabs>
       )}
