@@ -22,7 +22,13 @@ routerAdd(
         return e.badRequestError('datas inválidas.')
       }
 
-      const protocolo = $app.findRecordById('protocolos', protocolo_id)
+      let protocolo
+      try {
+        protocolo = $app.findRecordById('protocolos', protocolo_id)
+      } catch (_) {
+        return e.badRequestError('Protocolo não encontrado.')
+      }
+
       $app.expandRecord(protocolo, ['paciente_id'])
       const paciente = protocolo.expandedOne('paciente_id')
 
@@ -81,8 +87,12 @@ routerAdd(
             attempt++
           } else {
             // Break without retry on 400, 401, 404, or after max retries
-            break
+            throw new Error(`Google API HTTP ${res.statusCode}: ${JSON.stringify(res.json || {})}`)
           }
+        }
+
+        if (!success) {
+          throw new Error(`Max retries reached for event ${i}`)
         }
       }
 
