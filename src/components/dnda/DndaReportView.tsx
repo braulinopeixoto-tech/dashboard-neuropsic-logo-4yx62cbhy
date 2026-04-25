@@ -183,8 +183,8 @@ export function DndaReportView({ paciente, dndas, loading, error }: any) {
     )
   }
 
-  const currentDnda = dndas[0]
-  const previousDndas = dndas.slice(1)
+  const currentDnda = dndas[0]?.raw_data ? { ...dndas[0].raw_data, ...dndas[0] } : dndas[0]
+  const previousDndas = dndas.slice(1).map((d: any) => (d.raw_data ? { ...d.raw_data, ...d } : d))
   const radarData = calculateRadarData(currentDnda)
 
   const shareWhatsApp = () => {
@@ -273,13 +273,24 @@ export function DndaReportView({ paciente, dndas, loading, error }: any) {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-slate-800 leading-tight mb-4">
-                {currentDnda.convergencia_estado_neurofuncional ||
+                {currentDnda.dominant_pattern ||
+                  currentDnda.convergencia_estado_neurofuncional ||
                   'Padrão não definido na avaliação atual'}
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-slate-600">Risco Clínico:</span>
-                <Badge className={getRiskColor(currentDnda.convergencia_risco_clinico)}>
-                  {currentDnda.convergencia_risco_clinico || 'Desconhecido'}
+                <Badge
+                  className={getRiskColor(
+                    currentDnda.risk_level
+                      ? currentDnda.risk_level.charAt(0).toUpperCase() +
+                          currentDnda.risk_level.slice(1)
+                      : currentDnda.convergencia_risco_clinico,
+                  )}
+                >
+                  {(currentDnda.risk_level
+                    ? currentDnda.risk_level.charAt(0).toUpperCase() +
+                      currentDnda.risk_level.slice(1)
+                    : currentDnda.convergencia_risco_clinico) || 'Desconhecido'}
                 </Badge>
               </div>
             </CardContent>
@@ -307,9 +318,15 @@ export function DndaReportView({ paciente, dndas, loading, error }: any) {
                         <span className="text-xs text-slate-500">Risco:</span>
                         <Badge
                           variant="outline"
-                          className={getRiskColor(d.convergencia_risco_clinico)}
+                          className={getRiskColor(
+                            d.risk_level
+                              ? d.risk_level.charAt(0).toUpperCase() + d.risk_level.slice(1)
+                              : d.convergencia_risco_clinico,
+                          )}
                         >
-                          {d.convergencia_risco_clinico || 'N/A'}
+                          {(d.risk_level
+                            ? d.risk_level.charAt(0).toUpperCase() + d.risk_level.slice(1)
+                            : d.convergencia_risco_clinico) || 'N/A'}
                         </Badge>
                       </div>
                     </div>

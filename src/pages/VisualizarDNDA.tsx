@@ -22,7 +22,7 @@ export default function VisualizarDNDA() {
         setPaciente(p)
 
         const allDndas = await pb
-          .collection('dnda')
+          .collection('dnda_schema')
           .getFullList({ filter: `paciente_id="${id}"`, sort: '-created' })
 
         const specificIndex = allDndas.findIndex((d) => d.id === dndaId)

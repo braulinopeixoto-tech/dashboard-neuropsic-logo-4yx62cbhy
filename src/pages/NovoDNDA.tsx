@@ -184,12 +184,12 @@ function JsonPreview({
   }
 
   const jsonPreview = {
-    patient_id: pacienteId || 'UUID',
+    paciente_id: pacienteId || 'UUID',
     timestamp: new Date().toISOString(),
-    neuroEnergy: getVal('neuroenergetica_potencia'),
-    networkIntegration: getVal('integracao_coerencia'),
+    neuro_energy: getVal('neuroenergetica_potencia'),
+    network_integration: getVal('integracao_coerencia'),
     organization: getVal('organizacional_simetria'),
-    cognitiveFunction: {
+    cognitive_function: {
       atencao_sustentada: getVal('funcional_atencao_sustentada'),
       atencao_seletiva: getVal('funcional_atencao_seletiva'),
       controle_inibitorio: getVal('funcional_controle_inibitorio'),
@@ -197,7 +197,7 @@ function JsonPreview({
       memoria_trabalho: getVal('funcional_memoria_trabalho'),
       processamento_emocional: getVal('funcional_processamento_emocional'),
     },
-    rdocDomains: {
+    rdoc_domains: {
       valencia_negativa: getVal('rdoc_valencia_negativa'),
       valencia_positiva: getVal('rdoc_valencia_positiva'),
       sistemas_cognitivos: getVal('rdoc_sistemas_cognitivos'),
@@ -205,28 +205,28 @@ function JsonPreview({
       regulacao_sensoriomotora: getVal('rdoc_regulacao_sensoriomotora'),
       arousal_regulacao: getVal('rdoc_arousal_regulacao'),
     },
-    bioMarkers: {
+    bio_markers: {
       metabolismo: getVal('neurobiologica_metabolismo'),
       inflamacao: getVal('neurobiologica_inflamacao'),
       sono: getVal('neurobiologica_sono'),
       hrv: getVal('neurobiologica_hrv'),
     },
-    temporalIndex: {
+    temporal_index: {
       traumas: getVal('temporal_traumas'),
       perdas: getVal('temporal_perdas'),
       evolucao: getVal('temporal_evolucao'),
     },
-    convergenceScore,
-    confidenceLevel: Number(confidenceLevel.toFixed(2)),
+    convergence_score: convergenceScore,
+    confidence_level: Number(confidenceLevel.toFixed(2)),
     classification:
       getVal('neuroenergetica_variabilidade') !== 'low_confidence'
         ? String(values.neuroenergetica_variabilidade).toLowerCase()
         : 'instável',
-    integrationStatus:
+    integration_status:
       getVal('integracao_dmn') !== 'low_confidence'
         ? String(values.integracao_dmn).toLowerCase()
         : 'desacoplado',
-    organizationStatus:
+    organization_status:
       getVal('organizacional_simetria') !== 'low_confidence'
         ? Number(values.organizacional_simetria) > 5
           ? 'coerente'
@@ -351,7 +351,11 @@ export default function NovoDNDA() {
         }
         if (dndaId) {
           const dnda = await getDnda(dndaId)
-          methods.reset(dnda)
+          if (dnda.raw_data) {
+            methods.reset(dnda.raw_data)
+          } else {
+            methods.reset(dnda)
+          }
         }
       } catch (e) {
         toast({ title: 'Erro ao carregar dados', variant: 'destructive' })
@@ -379,14 +383,51 @@ export default function NovoDNDA() {
 
     try {
       setSaving(true)
+      const confidenceLevel =
+        REQUIRED_FIELDS.length > 0
+          ? (REQUIRED_FIELDS.length - missingFields.length) / REQUIRED_FIELDS.length
+          : 0
+
       const payload = {
-        ...data,
-        paciente_id: paciente.id,
         usuario_id: user.id,
+        paciente_id: paciente.id,
+        timestamp: new Date().toISOString(),
+        neuro_energy: Number(data.neuroenergetica_potencia || 0),
+        network_integration: Number(data.integracao_coerencia || 0),
+        organization: Number(data.organizacional_simetria || 0),
+        cognitive_function: {
+          atencao_sustentada: Number(data.funcional_atencao_sustentada || 0),
+          atencao_seletiva: Number(data.funcional_atencao_seletiva || 0),
+          controle_inibitorio: Number(data.funcional_controle_inibitorio || 0),
+          flexibilidade: Number(data.funcional_flexibilidade || 0),
+          memoria_trabalho: Number(data.funcional_memoria_trabalho || 0),
+          processamento_emocional: Number(data.funcional_processamento_emocional || 0),
+        },
+        rdoc_domains: {
+          valencia_negativa: Number(data.rdoc_valencia_negativa || 0),
+          valencia_positiva: Number(data.rdoc_valencia_positiva || 0),
+          sistemas_cognitivos: Number(data.rdoc_sistemas_cognitivos || 0),
+          sistemas_sociais: Number(data.rdoc_sistemas_sociais || 0),
+          regulacao_sensoriomotora: Number(data.rdoc_regulacao_sensoriomotora || 0),
+          arousal_regulacao: Number(data.rdoc_arousal_regulacao || 0),
+        },
+        bio_markers: {
+          metabolismo: Number(data.neurobiologica_metabolismo || 0),
+          inflamacao: Number(data.neurobiologica_inflamacao || 0),
+          sono: Number(data.neurobiologica_sono || 0),
+          hrv: Number(data.neurobiologica_hrv || 0),
+        },
+        temporal_index: {
+          traumas: data.temporal_traumas || '',
+          perdas: data.temporal_perdas || '',
+          evolucao: data.temporal_evolucao || '',
+        },
+        confidence_level: confidenceLevel,
+        raw_data: data,
       }
 
       if (dndaId) {
-        await pb.collection('dnda').update(dndaId, payload)
+        await pb.collection('dnda_schema').update(dndaId, payload)
         toast({
           title: 'DNDA padronizado com sucesso!',
           className: 'bg-success text-white border-none',

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-25T20:24:51.257Z",
+  "generatedAt": "2026-04-25T20:36:28.621Z",
   "collections": [
     {
       "name": "users",
@@ -1158,6 +1158,232 @@
           "name": "conteudo",
           "type": "text",
           "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "dnda_schema",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "view": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && usuario_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "paciente_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pacientes"
+        },
+        {
+          "name": "timestamp",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "neuro_energy",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "network_integration",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "organization",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cognitive_function",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rdoc_domains",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "bio_markers",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "temporal_index",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "convergence_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "confidence_level",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "classification",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["hipoativo", "hiperativo", "instável", "estável"]
+        },
+        {
+          "name": "integration_status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["acoplado", "desacoplado", "hiperacoplado"]
+        },
+        {
+          "name": "organization_status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["coerente", "difuso", "normal"]
+        },
+        {
+          "name": "dominant_pattern",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "adaptive_vector",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "risk_level",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["baixo", "moderado", "alto"]
+        },
+        {
+          "name": "intervention_priority",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "clinical_justification",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "raw_data",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "convergence_log",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "view": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && usuario_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "dnda_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "dnda_schema"
+        },
+        {
+          "name": "convergence_score_old",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "convergence_score_new",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "change_reason",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "timestamp",
+          "type": "date",
+          "required": false,
           "system": false
         },
         {
