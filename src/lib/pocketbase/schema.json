@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-25T20:36:28.621Z",
+  "generatedAt": "2026-04-25T20:41:30.291Z",
   "collections": [
     {
       "name": "users",
@@ -1402,6 +1402,107 @@
         }
       ],
       "indexes": []
+    },
+    {
+      "name": "audit_log",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "view": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "create": null,
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "entity_type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["DNDA", "protocolo", "sessao", "alerta", "intervencao"]
+        },
+        {
+          "name": "entity_id",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "version",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "timestamp",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "author_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "action",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["create", "update", "delete"]
+        },
+        {
+          "name": "change_summary",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "old_values",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "new_values",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "hash_integrity",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_audit_log_entity ON audit_log (entity_type, entity_id)",
+        "CREATE INDEX idx_audit_log_usuario ON audit_log (usuario_id)"
+      ]
     }
   ]
 }

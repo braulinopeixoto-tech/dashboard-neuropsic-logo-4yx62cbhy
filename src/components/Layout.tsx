@@ -21,6 +21,7 @@ import {
   Activity,
   Bell,
   BarChart3,
+  ShieldCheck,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -34,6 +35,7 @@ const menuItems = [
   { title: 'Pacientes', icon: Users, path: '/pacientes' },
   { title: 'Alertas', icon: Bell, path: '/alertas' },
   { title: 'Relatórios', icon: BarChart3, path: '/relatorios' },
+  { title: 'Auditoria', icon: ShieldCheck, path: '/auditoria', roles: ['neuropsicólogo'] },
   { title: 'Configurações', icon: Settings, path: '/configuracoes' },
 ]
 
@@ -57,21 +59,23 @@ export default function Layout() {
         </SidebarHeader>
         <SidebarContent className="p-3">
           <SidebarMenu>
-            {menuItems.map((item) => (
-              <SidebarMenuItem key={item.path}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={location.pathname === item.path}
-                  tooltip={item.title}
-                  className="mb-1 transition-colors hover:bg-primary/5 hover:text-primary data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
-                >
-                  <Link to={item.path}>
-                    <item.icon className="h-4 w-4" />
-                    <span className="font-medium">{item.title}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
+            {menuItems
+              .filter((item) => !item.roles || item.roles.includes(user?.tipo))
+              .map((item) => (
+                <SidebarMenuItem key={item.path}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.pathname === item.path}
+                    tooltip={item.title}
+                    className="mb-1 transition-colors hover:bg-primary/5 hover:text-primary data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
+                  >
+                    <Link to={item.path}>
+                      <item.icon className="h-4 w-4" />
+                      <span className="font-medium">{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter className="p-4 border-t border-slate-100">

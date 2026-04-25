@@ -3,6 +3,8 @@ import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { Microscope, CalendarIcon } from 'lucide-react'
 import { format } from 'date-fns'
+import { useState } from 'react'
+import { AuditHistoryModal } from '@/components/audit/AuditHistoryModal'
 
 const statusStyles: Record<string, string> = {
   ativo: 'bg-success/10 text-success border-success/20',
@@ -24,6 +26,7 @@ const getStatusLabel = (status: string, previstaFim?: string) => {
 }
 
 export function TabProtocolo({ protocolo }: { protocolo: any }) {
+  const [auditOpen, setAuditOpen] = useState(false)
   if (!protocolo) {
     return (
       <div className="p-5 text-center text-[14px] text-slate-500 bg-white rounded-xl border border-border animate-fade-in font-normal">
@@ -56,10 +59,31 @@ export function TabProtocolo({ protocolo }: { protocolo: any }) {
           </div>
           <p className="text-[14px] text-slate-500 mt-1 font-normal">Tratamento em andamento</p>
         </div>
-        <Button variant="outline" size="sm" className="transition-all duration-200">
-          Editar protocolo
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setAuditOpen(true)}
+            className="transition-all duration-200 shadow-sm font-semibold"
+          >
+            Ver histórico
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="transition-all duration-200 shadow-sm font-semibold"
+          >
+            Editar protocolo
+          </Button>
+        </div>
       </div>
+
+      <AuditHistoryModal
+        open={auditOpen}
+        onOpenChange={setAuditOpen}
+        entityType="protocolo"
+        entityId={protocolo.id}
+      />
 
       <div className="space-y-2">
         <div className="flex justify-between text-[14px] font-semibold text-slate-700">

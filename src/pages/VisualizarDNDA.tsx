@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import pb from '@/lib/pocketbase/client'
 import { DndaReportView } from '@/components/dnda/DndaReportView'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { AuditHistoryModal } from '@/components/audit/AuditHistoryModal'
 
 export default function VisualizarDNDA() {
   const { id, dndaId } = useParams()
@@ -12,6 +13,7 @@ export default function VisualizarDNDA() {
   const [paciente, setPaciente] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [auditOpen, setAuditOpen] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -55,11 +57,26 @@ export default function VisualizarDNDA() {
         >
           <ArrowLeft className="h-5 w-5 text-slate-600" />
         </Button>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Visualizar DNDA™</h1>
           <p className="text-sm text-slate-500">Relatório clínico e neurofuncional</p>
         </div>
+        {dndas.length > 0 && (
+          <Button variant="outline" onClick={() => setAuditOpen(true)} className="shadow-sm">
+            <ShieldCheck className="h-4 w-4 mr-2 text-primary" /> Histórico Trust Layer™
+          </Button>
+        )}
       </div>
+
+      {dndas.length > 0 && (
+        <AuditHistoryModal
+          open={auditOpen}
+          onOpenChange={setAuditOpen}
+          entityType="DNDA"
+          entityId={dndas[0].id}
+        />
+      )}
+
       <DndaReportView paciente={paciente} dndas={dndas} loading={loading} error={error} />
     </div>
   )

@@ -22,6 +22,7 @@ import { format } from 'date-fns'
 import { useAuth } from '@/hooks/use-auth'
 import { createIntervencao } from '@/services/intervencoes'
 import { useToast } from '@/hooks/use-toast'
+import { AuditHistoryModal } from '@/components/audit/AuditHistoryModal'
 
 export function TabIntervencoes({
   intervencoes,
@@ -35,6 +36,7 @@ export function TabIntervencoes({
   const isNeuro = user?.tipo === 'neuropsicólogo'
 
   const [open, setOpen] = useState(false)
+  const [auditId, setAuditId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     tipo: '',
@@ -114,6 +116,14 @@ export function TabIntervencoes({
                     {format(new Date(int.data_intervencao), 'dd/MM/yyyy HH:mm')}
                   </span>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs font-semibold text-slate-600"
+                  onClick={() => setAuditId(int.id)}
+                >
+                  Ver histórico
+                </Button>
               </div>
               <p className="text-[14px] font-normal text-slate-600 whitespace-pre-wrap border-l-2 border-border pl-3 ml-2 mt-2 transition-all duration-200">
                 {int.descricao}
@@ -193,6 +203,13 @@ export function TabIntervencoes({
           </form>
         </DialogContent>
       </Dialog>
+
+      <AuditHistoryModal
+        open={!!auditId}
+        onOpenChange={(v) => !v && setAuditId(null)}
+        entityType="intervencao"
+        entityId={auditId || ''}
+      />
     </div>
   )
 }

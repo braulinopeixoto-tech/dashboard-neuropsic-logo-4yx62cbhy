@@ -26,6 +26,7 @@ import { useToast } from '@/hooks/use-toast'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import { RemarcarModal } from '@/components/sessoes/RemarcarModal'
+import { AuditHistoryModal } from '@/components/audit/AuditHistoryModal'
 
 function ExecutionModal({ open, onOpenChange, sessao, user, onSuccess }: any) {
   const [elapsed, setElapsed] = useState(0)
@@ -161,6 +162,7 @@ function SessaoCard({ sessao, user, onRegistered }: any) {
     }
   }, [now, sessao, minMin])
 
+  const [auditOpen, setAuditOpen] = useState(false)
   const isRealizada = sessao.status === 'realizada'
   const horaFormatada = sessao.data_agendada
     ? new Date(sessao.data_agendada).toLocaleTimeString('pt-BR', {
@@ -190,6 +192,14 @@ function SessaoCard({ sessao, user, onRegistered }: any) {
               >
                 Sessão {sessao.numero_sessao}
               </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs font-medium text-slate-500"
+                onClick={() => setAuditOpen(true)}
+              >
+                Histórico
+              </Button>
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center gap-y-2 gap-x-6 text-[14px] font-normal">
               <div className="flex items-center gap-1.5 text-slate-600">
@@ -320,6 +330,12 @@ function SessaoCard({ sessao, user, onRegistered }: any) {
         onOpenChange={setRemarcarOpen}
         sessao={sessao}
         onSuccess={onRegistered}
+      />
+      <AuditHistoryModal
+        open={auditOpen}
+        onOpenChange={setAuditOpen}
+        entityType="sessao"
+        entityId={sessao.id}
       />
     </div>
   )
