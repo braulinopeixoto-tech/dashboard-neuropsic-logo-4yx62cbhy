@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { AlertCircle, AlertOctagon, AlertTriangle, Info, CheckCircle2 } from 'lucide-react'
+import { AlertCircle, AlertTriangle, CheckCircle2, ShieldAlert } from 'lucide-react'
 import { InterventionModal } from '@/components/InterventionModal'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -19,12 +19,10 @@ export default function Alertas() {
 
   const [intervencaoModal, setIntervencaoModal] = useState<{
     open: boolean
-    alertaId: string
-    pacienteId: string
+    alerta: any
   }>({
     open: false,
-    alertaId: '',
-    pacienteId: '',
+    alerta: null,
   })
 
   const loadAlertas = async () => {
@@ -68,13 +66,12 @@ export default function Alertas() {
   const getIcon = (tipo: string) => {
     switch (tipo) {
       case 'falta_consecutiva':
-        return <AlertCircle className="h-5 w-5 text-red-500" />
       case 'risco_desistência':
-        return <AlertOctagon className="h-5 w-5 text-red-500" />
+        return <AlertCircle className="h-6 w-6 text-error shrink-0" />
       case 'pausa_excedida':
-        return <AlertTriangle className="h-5 w-5 text-amber-500" />
+        return <AlertTriangle className="h-6 w-6 text-alert shrink-0" />
       default:
-        return <Info className="h-5 w-5 text-blue-500" />
+        return <ShieldAlert className="h-6 w-6 text-primary shrink-0" />
     }
   }
 
@@ -87,18 +84,16 @@ export default function Alertas() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-fade-in-up">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Alertas Clínicos</h1>
-          <p className="text-muted-foreground mt-1">
-            Gerencie notificações de risco e intervenções
-          </p>
-        </div>
+    <div className="max-w-4xl mx-auto animate-fade-in-up">
+      <div className="mb-[32px]">
+        <h1 className="text-[24px] font-bold tracking-tight text-slate-900">Alertas Clínicos</h1>
+        <p className="text-[14px] text-muted-foreground mt-1">
+          Gerencie notificações de risco e intervenções
+        </p>
       </div>
 
-      <Tabs defaultValue="todos" value={filter} onValueChange={setFilter}>
-        <TabsList className="flex flex-wrap h-auto mb-4">
+      <Tabs defaultValue="todos" value={filter} onValueChange={setFilter} className="mb-[32px]">
+        <TabsList className="flex flex-wrap h-auto">
           <TabsTrigger value="todos">Todos</TabsTrigger>
           <TabsTrigger value="nao_lidos">Não lidos</TabsTrigger>
           <TabsTrigger value="risco_desistência">Risco de Desistência</TabsTrigger>
@@ -108,43 +103,46 @@ export default function Alertas() {
       </Tabs>
 
       {error && (
-        <div className="p-8 text-center text-red-500">
+        <div className="p-8 text-center text-error bg-error/10 rounded-xl mb-[32px]">
           Erro ao carregar alertas. Tente novamente.
         </div>
       )}
 
       {loading ? (
-        <div className="space-y-4">
+        <div className="flex flex-col gap-[16px]">
           {[1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-24 w-full rounded-xl" />
           ))}
         </div>
       ) : filteredAlertas.length === 0 ? (
         <div className="p-12 text-center bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col items-center">
-          <CheckCircle2 className="h-12 w-12 text-emerald-500 mb-4" />
-          <h3 className="text-lg font-medium text-slate-900">Nenhum alerta</h3>
-          <p className="text-slate-500">Tudo sob controle por aqui.</p>
+          <CheckCircle2 className="h-12 w-12 text-success mb-4" />
+          <h3 className="text-[16px] font-semibold text-slate-900">Nenhum alerta</h3>
+          <p className="text-[14px] text-slate-500 mt-1">Tudo sob controle por aqui.</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="flex flex-col gap-[16px]">
           {filteredAlertas.map((alerta) => (
             <div
               key={alerta.id}
               className={cn(
-                'flex flex-col sm:flex-row gap-4 p-5 bg-white border rounded-xl shadow-sm transition-colors duration-200',
-                !alerta.lido ? 'border-l-4 border-l-red-500' : 'border-slate-200 opacity-75',
+                'flex flex-col sm:flex-row gap-4 p-[20px] bg-white border rounded-xl shadow-subtle transition-all duration-200',
+                !alerta.lido ? 'border-l-4 border-l-error' : 'border-slate-200 opacity-75',
               )}
             >
               <div className="flex items-start gap-4 flex-1">
-                <div className="mt-1 shrink-0 p-2 bg-slate-50 rounded-full">
-                  {getIcon(alerta.tipo)}
-                </div>
+                {getIcon(alerta.tipo)}
                 <div>
-                  <h4 className="font-semibold text-slate-900">
-                    {alerta.expand?.paciente_id?.nome || 'Paciente não encontrado'}
+                  <h4 className="text-[16px] font-semibold text-slate-900">
+                    {alerta.expand?.paciente_id?.nome || 'Paciente não encontrado'} —{' '}
+                    {alerta.mensagem}
                   </h4>
-                  <p className="text-sm text-slate-600 mt-1">{alerta.mensagem}</p>
-                  <p className="text-xs text-slate-400 mt-2">
+                  {alerta.intervencao_realizada && (
+                    <span className="inline-flex items-center rounded-full bg-success/10 px-2 py-1 text-[12px] font-medium text-success mt-2">
+                      Intervenção realizada
+                    </span>
+                  )}
+                  <p className="text-[14px] text-slate-400 mt-2">
                     {new Date(alerta.created).toLocaleString('pt-BR')}
                   </p>
                 </div>
@@ -160,8 +158,7 @@ export default function Alertas() {
                   onClick={() =>
                     setIntervencaoModal({
                       open: true,
-                      alertaId: alerta.id,
-                      pacienteId: alerta.paciente_id,
+                      alerta: alerta,
                     })
                   }
                 >
@@ -173,12 +170,11 @@ export default function Alertas() {
         </div>
       )}
 
-      {intervencaoModal.open && (
+      {intervencaoModal.open && intervencaoModal.alerta && (
         <InterventionModal
           open={intervencaoModal.open}
           onOpenChange={(open) => setIntervencaoModal((prev) => ({ ...prev, open }))}
-          alertaId={intervencaoModal.alertaId}
-          pacienteId={intervencaoModal.pacienteId}
+          alerta={intervencaoModal.alerta}
         />
       )}
     </div>

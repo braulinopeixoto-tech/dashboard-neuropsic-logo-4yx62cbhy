@@ -18,18 +18,17 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { createIntervencao } from '@/services/intervencoes'
-import { marcarComoLido } from '@/services/alertas'
+import { registrarIntervencaoAlerta } from '@/services/alertas'
 import { useAuth } from '@/hooks/use-auth'
 import { toast } from 'sonner'
 
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
-  alertaId: string
-  pacienteId: string
+  alerta: any
 }
 
-export function InterventionModal({ open, onOpenChange, alertaId, pacienteId }: Props) {
+export function InterventionModal({ open, onOpenChange, alerta }: Props) {
   const { user } = useAuth()
   const [tipo, setTipo] = useState('')
   const [descricao, setDescricao] = useState('')
@@ -45,13 +44,14 @@ export function InterventionModal({ open, onOpenChange, alertaId, pacienteId }: 
     try {
       await createIntervencao({
         usuario_id: user.id,
-        paciente_id: pacienteId,
+        paciente_id: alerta.paciente_id,
         tipo,
         descricao,
         data_intervencao: new Date().toISOString(),
       })
 
-      await marcarComoLido(alertaId)
+      await registrarIntervencaoAlerta(alerta.id, alerta.mensagem)
+
       toast.success('Intervenção registrada com sucesso!')
       onOpenChange(false)
       setTipo('')
@@ -67,14 +67,23 @@ export function InterventionModal({ open, onOpenChange, alertaId, pacienteId }: 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Registrar Intervenção</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-[24px] font-bold">Registrar Intervenção</DialogTitle>
+          <DialogDescription className="text-[14px]">
             Registre a ação clínica tomada em resposta a este alerta.
           </DialogDescription>
         </DialogHeader>
+
+        <div className="bg-slate-50 p-3 rounded-md border border-slate-100 mb-2">
+          <p className="text-[14px] font-medium text-slate-900 line-clamp-2">
+            Alerta: {alerta.mensagem}
+          </p>
+        </div>
+
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="tipo">Tipo de Intervenção</Label>
+            <Label htmlFor="tipo" className="text-[14px] font-medium">
+              Tipo de Intervenção
+            </Label>
             <Select value={tipo} onValueChange={setTipo}>
               <SelectTrigger id="tipo">
                 <SelectValue placeholder="Selecione o tipo..." />
@@ -88,13 +97,15 @@ export function InterventionModal({ open, onOpenChange, alertaId, pacienteId }: 
             </Select>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="descricao">Notas</Label>
+            <Label htmlFor="descricao" className="text-[14px] font-medium">
+              Notas Clínicas
+            </Label>
             <Textarea
               id="descricao"
               placeholder="Descreva a intervenção realizada..."
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
-              className="min-h-[100px] resize-none"
+              className="min-h-[100px] resize-none text-[14px]"
             />
           </div>
         </div>

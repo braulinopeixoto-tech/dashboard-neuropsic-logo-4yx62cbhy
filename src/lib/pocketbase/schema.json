@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-25T15:51:06.451Z",
+  "generatedAt": "2026-04-25T15:58:22.271Z",
   "collections": [
     {
       "name": "users",
@@ -362,6 +362,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "intervencao_realizada",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []

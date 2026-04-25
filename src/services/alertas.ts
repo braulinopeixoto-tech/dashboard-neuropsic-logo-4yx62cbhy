@@ -19,3 +19,13 @@ export async function getAlertasNaoLidos(userId: string) {
 export async function marcarComoLido(alertaId: string) {
   return pb.collection('alertas').update(alertaId, { lido: true })
 }
+
+export async function registrarIntervencaoAlerta(alertaId: string, mensagemAtual: string) {
+  return pb.collection('alertas').update(alertaId, {
+    lido: true,
+    intervencao_realizada: true,
+    mensagem: mensagemAtual.includes('Intervenção realizada')
+      ? mensagemAtual
+      : `${mensagemAtual} (Intervenção realizada)`,
+  })
+}
