@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-25T16:27:02.901Z",
+  "generatedAt": "2026-04-25T16:58:32.437Z",
   "collections": [
     {
       "name": "users",
@@ -130,9 +130,47 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "endereco",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "documento",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "queixa_principal",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "historico_medico",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "medicacoes_atuais",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "exames",
+          "type": "file",
+          "required": false,
+          "system": false
         }
       ],
-      "indexes": []
+      "indexes": [
+        "CREATE UNIQUE INDEX `idx_pacientes_email_unique` ON `pacientes` (email) WHERE email != ''"
+      ]
     },
     {
       "name": "protocolos",

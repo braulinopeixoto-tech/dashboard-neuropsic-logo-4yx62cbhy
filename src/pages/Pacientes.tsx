@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
 import { Search, Activity, ChevronRight } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { useDashboardData } from '@/hooks/use-dashboard-data'
 
 const statusStyles: Record<string, string> = {
@@ -67,14 +68,19 @@ export default function Pacientes() {
             Gestão completa da base de pacientes e histórico de tratamentos.
           </p>
         </div>
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-          <Input
-            placeholder="Buscar por nome..."
-            className="pl-9 bg-white shadow-sm"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Buscar por nome..."
+              className="pl-9 bg-white shadow-sm"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <Button onClick={() => navigate('/pacientes/novo')} className="w-full sm:w-auto">
+            Novo Paciente
+          </Button>
         </div>
       </div>
 
