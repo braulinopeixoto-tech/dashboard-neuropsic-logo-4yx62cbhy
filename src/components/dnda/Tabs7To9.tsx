@@ -1,5 +1,5 @@
 import { TabsContent } from '@/components/ui/tabs'
-import { FormText, FormRadio, FormChecklist } from './FormFields'
+import { FormText, FormRadio, FormCheckboxBoolean } from './FormFields'
 
 export function Tabs7To9() {
   return (
@@ -8,18 +8,18 @@ export function Tabs7To9() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-4">
             <h3 className="font-semibold text-lg border-b pb-2">Histórico Crítico</h3>
-            <FormText name="d7_traumas" label="Traumas Relevantes" />
-            <FormText name="d7_losses" label="Perdas Significativas" />
+            <FormText name="temporal_traumas" label="Traumas Relevantes" />
+            <FormText name="temporal_perdas" label="Perdas Significativas" />
             <FormRadio
-              name="d7_loss_class"
+              name="temporal_classificacao_perdas"
               label="Classificação de Perda/Luto"
-              options={['aguda', 'crônica', 'resolvida']}
+              options={['Com oportunidade', 'Sem oportunidade', 'Terminal']}
             />
           </div>
           <div className="space-y-4">
             <h3 className="font-semibold text-lg border-b pb-2">Curso Clínico</h3>
-            <FormText name="d7_evolution" label="Evolução do Quadro" />
-            <FormText name="d7_previous" label="Intervenções Anteriores" />
+            <FormText name="temporal_evolucao" label="Evolução do Quadro" />
+            <FormText name="temporal_resposta_intervencoes" label="Resposta a Intervenções" />
           </div>
         </div>
       </TabsContent>
@@ -28,17 +28,17 @@ export function Tabs7To9() {
         <div className="max-w-2xl mx-auto bg-slate-50/50 p-6 rounded-xl border border-slate-100 shadow-subtle space-y-6">
           <div className="text-center">
             <h3 className="font-bold text-2xl mb-2 text-primary">Convergência Diagnóstica</h3>
-            <p className="text-slate-500 mb-6">
-              Síntese automatizada do padrão neurofuncional dimensional.
-            </p>
+            <p className="text-slate-500 mb-6">Síntese do padrão neurofuncional dimensional.</p>
           </div>
 
           <FormRadio
-            name="d8_risk"
+            name="convergencia_risco_clinico"
             label="Risco Clínico Avaliado"
-            options={['baixo', 'médio', 'alto']}
+            options={['Baixo', 'Médio', 'Alto']}
           />
-          <FormText name="d8_summary" label="Síntese Convergente (Auto-gerada)" />
+          <FormText name="convergencia_estado_neurofuncional" label="Estado Neurofuncional" />
+          <FormText name="convergencia_vetor_adaptativo" label="Vetor Adaptativo" />
+          <FormText name="convergencia_resumo" label="Síntese Convergente" />
         </div>
       </TabsContent>
 
@@ -51,29 +51,32 @@ export function Tabs7To9() {
             </p>
           </div>
 
-          <FormChecklist
-            name="d9_phases"
-            label="Fases de Intervenção Recomendadas"
-            options={[
-              'Base / Estabilização',
-              'Integração Neuromodulatória',
-              'Especialização Cognitiva',
-            ]}
-          />
+          <div>
+            <h4 className="font-semibold text-slate-800 mb-3">Fases de Intervenção</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <FormCheckboxBoolean name="intervencao_base" label="Base / Estabilização" />
+              <FormCheckboxBoolean
+                name="intervencao_integracao"
+                label="Integração Neuromodulatória"
+              />
+              <FormCheckboxBoolean
+                name="intervencao_especializacao"
+                label="Especialização Cognitiva"
+              />
+            </div>
+          </div>
 
-          <FormChecklist
-            name="d9_tools"
-            label="Ferramentas Técnicas (Protocolos)"
-            options={[
-              'tDCS',
-              'tACS',
-              'REAC',
-              'TMS',
-              'HRV Biofeedback',
-              'Neurofeedback',
-              'Estimulação Magnética Transcraniana',
-            ]}
-          />
+          <div>
+            <h4 className="font-semibold text-slate-800 mb-3">Ferramentas de Neuromodulação</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <FormCheckboxBoolean name="intervencao_neuromodulacao_tdcs" label="tDCS" />
+              <FormCheckboxBoolean name="intervencao_neuromodulacao_tacs" label="tACS" />
+              <FormCheckboxBoolean name="intervencao_neuromodulacao_reac" label="REAC" />
+              <FormCheckboxBoolean name="intervencao_neuromodulacao_tms" label="TMS" />
+              <FormCheckboxBoolean name="intervencao_neurofeedback" label="Neurofeedback" />
+              <FormCheckboxBoolean name="intervencao_biofeedback" label="HRV Biofeedback" />
+            </div>
+          </div>
         </div>
       </TabsContent>
     </>

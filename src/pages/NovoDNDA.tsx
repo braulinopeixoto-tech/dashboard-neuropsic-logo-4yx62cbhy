@@ -26,11 +26,18 @@ export default function NovoDNDA() {
 
   const methods = useForm({
     defaultValues: {
-      d9_phases: [],
-      d9_tools: [],
+      intervencao_base: false,
+      intervencao_integracao: false,
+      intervencao_especializacao: false,
+      intervencao_neuromodulacao_tdcs: false,
+      intervencao_neuromodulacao_tacs: false,
+      intervencao_neuromodulacao_reac: false,
+      intervencao_neuromodulacao_tms: false,
+      intervencao_neurofeedback: false,
+      intervencao_biofeedback: false,
     },
   })
-  const { watch, setValue, handleSubmit } = methods
+  const { handleSubmit } = methods
 
   useEffect(() => {
     if (id) {
@@ -40,33 +47,6 @@ export default function NovoDNDA() {
         .finally(() => setLoading(false))
     }
   }, [id])
-
-  const d1_excitation = watch('d1_excitation') || 0
-  const d3_entropy = watch('d3_entropy') || 0
-  const d1_class = watch('d1_class')
-  const d3_class = watch('d3_class')
-
-  useEffect(() => {
-    if (d1_excitation > 7) setValue('d1_class', 'hiperativo')
-    else if (d1_excitation < 4) setValue('d1_class', 'hipoativo')
-    else setValue('d1_class', 'instável')
-  }, [d1_excitation, setValue])
-
-  useEffect(() => {
-    if (d3_entropy > 7) setValue('d3_class', 'desorganizado')
-    else if (d3_entropy < 4) setValue('d3_class', 'coerente')
-    else setValue('d3_class', 'difuso')
-  }, [d3_entropy, setValue])
-
-  useEffect(() => {
-    let risk = 'baixo'
-    if (d1_excitation > 7 || d3_entropy > 7) risk = 'alto'
-    else if (d1_excitation > 5 || d3_entropy > 5) risk = 'médio'
-    setValue('d8_risk', risk)
-
-    const summary = `Paciente apresenta padrão neuroenergético classificado como ${d1_class || 'indefinido'}, com organização espacial ${d3_class || 'indefinida'}. O nível de excitação global é ${d1_excitation}/10 e a entropia de sinal é ${d3_entropy}/10. O risco clínico estimado pelas métricas fundamentais é ${risk.toUpperCase()}.`
-    setValue('d8_summary', summary)
-  }, [d1_class, d3_class, d1_excitation, d3_entropy, setValue])
 
   const onSubmit = async (data: any) => {
     if (!paciente?.id || !user?.id) {

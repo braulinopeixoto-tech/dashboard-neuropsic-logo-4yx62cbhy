@@ -8,25 +8,16 @@ export function Tabs1To3() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-4">
             <h3 className="font-semibold text-lg border-b pb-2">Marcadores Frequenciais</h3>
-            <FormSlider name="d1_delta" label="Delta" />
-            <FormSlider name="d1_theta" label="Theta" />
-            <FormSlider name="d1_alpha" label="Alpha" />
-            <FormSlider name="d1_beta" label="Beta" />
-            <FormSlider name="d1_gamma" label="Gamma" />
+            <FormSlider name="neuroenergetica_potencia" label="Potência Absoluta" />
+            <FormSlider name="neuroenergetica_tbr" label="Theta/Beta Ratio (TBR)" />
+            <FormSlider name="neuroenergetica_excitacao" label="Nível de Excitação Global" />
           </div>
           <div className="space-y-4">
-            <h3 className="font-semibold text-lg border-b pb-2">Métricas Compostas</h3>
-            <FormSlider name="d1_tbr" label="TBR (Theta/Beta Ratio)" />
-            <FormSlider name="d1_excitation" label="Nível de Excitação Global" />
+            <h3 className="font-semibold text-lg border-b pb-2">Características</h3>
             <FormRadio
-              name="d1_variability"
+              name="neuroenergetica_variabilidade"
               label="Variabilidade"
-              options={['instável', 'normal', 'rígido']}
-            />
-            <FormRadio
-              name="d1_class"
-              label="Classificação Neuroenergética (Auto)"
-              options={['hipoativo', 'hiperativo', 'instável']}
+              options={['Instável', 'Normal', 'Rígido']}
             />
           </div>
         </div>
@@ -36,25 +27,25 @@ export function Tabs1To3() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-4">
             <h3 className="font-semibold text-lg border-b pb-2">Métricas de Conexão</h3>
-            <FormSlider name="d2_coherence" label="Coerência Global" />
-            <FormSlider name="d2_connectivity" label="Conectividade Funcional" />
+            <FormSlider name="integracao_coerencia" label="Coerência Global" />
+            <FormSlider name="integracao_conectividade" label="Conectividade Funcional" />
           </div>
           <div className="space-y-4">
             <h3 className="font-semibold text-lg border-b pb-2">Redes Intrínsecas</h3>
             <FormRadio
-              name="d2_dmn"
+              name="integracao_dmn"
               label="Default Mode Network (DMN)"
-              options={['acoplado', 'desacoplado', 'hiperacoplado']}
+              options={['Acoplado', 'Desacoplado', 'Hiperacoplado']}
             />
             <FormRadio
-              name="d2_salience"
+              name="integracao_salience"
               label="Rede de Saliência"
-              options={['acoplado', 'desacoplado', 'hiperacoplado']}
+              options={['Acoplado', 'Desacoplado', 'Hiperacoplado']}
             />
             <FormRadio
-              name="d2_executive"
+              name="integracao_executive"
               label="Rede Executiva Central"
-              options={['acoplado', 'desacoplado', 'hiperacoplado']}
+              options={['Acoplado', 'Desacoplado', 'Hiperacoplado']}
             />
           </div>
         </div>
@@ -64,18 +55,10 @@ export function Tabs1To3() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-4">
             <h3 className="font-semibold text-lg border-b pb-2">Organização Espacial</h3>
-            <FormSlider name="d3_symmetry" label="Simetria Hemisférica" />
-            <FormSlider name="d3_gradients" label="Gradientes Antero-Posteriores" />
-            <FormSlider name="d3_topography" label="Distribuição Topográfica" />
-            <FormSlider name="d3_entropy" label="Entropia de Sinal" />
-          </div>
-          <div className="space-y-4">
-            <h3 className="font-semibold text-lg border-b pb-2">Classificação</h3>
-            <FormRadio
-              name="d3_class"
-              label="Classificação Organizacional (Auto)"
-              options={['coerente', 'difuso', 'desorganizado']}
-            />
+            <FormSlider name="organizacional_simetria" label="Simetria Hemisférica" />
+            <FormSlider name="organizacional_gradientes" label="Gradientes Antero-Posteriores" />
+            <FormSlider name="organizacional_topografia" label="Distribuição Topográfica" />
+            <FormSlider name="organizacional_complexidade" label="Complexidade (Entropia)" />
           </div>
         </div>
       </TabsContent>

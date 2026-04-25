@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-25T17:07:32.685Z",
+  "generatedAt": "2026-04-25T17:19:13.657Z",
   "collections": [
     {
       "name": "users",
@@ -788,6 +788,376 @@
           "name": "d9_tools",
           "type": "json",
           "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "neuroenergetica_potencia",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "neuroenergetica_tbr",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "neuroenergetica_excitacao",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "neuroenergetica_variabilidade",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Instável", "Normal", "Rígido"]
+        },
+        {
+          "name": "integracao_coerencia",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "integracao_conectividade",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "integracao_dmn",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Acoplado", "Desacoplado", "Hiperacoplado"]
+        },
+        {
+          "name": "integracao_salience",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Acoplado", "Desacoplado", "Hiperacoplado"]
+        },
+        {
+          "name": "integracao_executive",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Acoplado", "Desacoplado", "Hiperacoplado"]
+        },
+        {
+          "name": "organizacional_simetria",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "organizacional_gradientes",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "organizacional_topografia",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "organizacional_complexidade",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "funcional_atencao_sustentada",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "funcional_atencao_seletiva",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "funcional_controle_inibitorio",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "funcional_flexibilidade",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "funcional_memoria_trabalho",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "funcional_processamento_emocional",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "funcional_big_five",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Abertura", "Consciência", "Extroversão", "Amabilidade", "Neuroticismo"]
+        },
+        {
+          "name": "rdoc_valencia_negativa",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rdoc_valencia_positiva",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rdoc_sistemas_cognitivos",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rdoc_sistemas_sociais",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rdoc_regulacao_sensoriomotora",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rdoc_arousal_regulacao",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "neurobiologica_metabolismo",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "neurobiologica_inflamacao",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "neurobiologica_sono",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "neurobiologica_hrv",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "neurobiologica_ciclo_menstrual",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Regular", "Irregular", "N/A"]
+        },
+        {
+          "name": "neurobiologica_dieta",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Balanceada", "Seletiva", "Abusiva"]
+        },
+        {
+          "name": "neurobiologica_intestino",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Normal", "Constipação", "Diarreia"]
+        },
+        {
+          "name": "temporal_traumas",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "temporal_perdas",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "temporal_evolucao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "temporal_resposta_intervencoes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "temporal_classificacao_perdas",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Com oportunidade", "Sem oportunidade", "Terminal"]
+        },
+        {
+          "name": "convergencia_risco_clinico",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Baixo", "Médio", "Alto"]
+        },
+        {
+          "name": "convergencia_estado_neurofuncional",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "convergencia_vetor_adaptativo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "convergencia_resumo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "intervencao_base",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "intervencao_integracao",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "intervencao_especializacao",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "intervencao_neuromodulacao_tdcs",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "intervencao_neuromodulacao_tacs",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "intervencao_neuromodulacao_reac",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "intervencao_neuromodulacao_tms",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "intervencao_neurofeedback",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "intervencao_biofeedback",
+          "type": "bool",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "quick_reports",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "view": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "create": "@request.auth.id != '' && @request.auth.tipo = 'neuropsicólogo'",
+        "update": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && usuario_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "paciente_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pacientes"
+        },
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "conteudo",
+          "type": "text",
+          "required": true,
           "system": false
         },
         {

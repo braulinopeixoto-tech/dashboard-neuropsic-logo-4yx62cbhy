@@ -8,18 +8,19 @@ export function Tabs4To6() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-4">
             <h3 className="font-semibold text-lg border-b pb-2">Desempenho Cognitivo</h3>
-            <FormSlider name="d4_attention" label="Atenção Concentrada" />
-            <FormSlider name="d4_inhibitory" label="Controle Inibitório" />
-            <FormSlider name="d4_flexibility" label="Flexibilidade Cognitiva" />
-            <FormSlider name="d4_memory" label="Memória de Trabalho" />
-            <FormSlider name="d4_emotion" label="Regulação Emocional" />
+            <FormSlider name="funcional_atencao_sustentada" label="Atenção Sustentada" />
+            <FormSlider name="funcional_atencao_seletiva" label="Atenção Seletiva" />
+            <FormSlider name="funcional_controle_inibitorio" label="Controle Inibitório" />
+            <FormSlider name="funcional_flexibilidade" label="Flexibilidade Cognitiva" />
+            <FormSlider name="funcional_memoria_trabalho" label="Memória de Trabalho" />
+            <FormSlider name="funcional_processamento_emocional" label="Processamento Emocional" />
           </div>
           <div className="space-y-4">
-            <h3 className="font-semibold text-lg border-b pb-2">Integração de Personalidade</h3>
+            <h3 className="font-semibold text-lg border-b pb-2">Personalidade</h3>
             <FormRadio
-              name="d4_big_five"
+              name="funcional_big_five"
               label="Traço Dominante (Big Five)"
-              options={['abertura', 'consciência', 'extroversão', 'amabilidade', 'neuroticismo']}
+              options={['Abertura', 'Consciência', 'Extroversão', 'Amabilidade', 'Neuroticismo']}
             />
           </div>
         </div>
@@ -29,15 +30,15 @@ export function Tabs4To6() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-4">
             <h3 className="font-semibold text-lg border-b pb-2">Sistemas de Valência</h3>
-            <FormSlider name="d5_negative" label="Valência Negativa" />
-            <FormSlider name="d5_positive" label="Valência Positiva" />
-            <FormSlider name="d5_arousal" label="Arousal / Excitação" />
+            <FormSlider name="rdoc_valencia_negativa" label="Valência Negativa" />
+            <FormSlider name="rdoc_valencia_positiva" label="Valência Positiva" />
+            <FormSlider name="rdoc_arousal_regulacao" label="Arousal / Excitação" />
           </div>
           <div className="space-y-4">
             <h3 className="font-semibold text-lg border-b pb-2">Sistemas Funcionais</h3>
-            <FormSlider name="d5_cognitive" label="Sistemas Cognitivos" />
-            <FormSlider name="d5_social" label="Processos Sociais" />
-            <FormSlider name="d5_sensory" label="Sistemas Sensório-Motores" />
+            <FormSlider name="rdoc_sistemas_cognitivos" label="Sistemas Cognitivos" />
+            <FormSlider name="rdoc_sistemas_sociais" label="Processos Sociais" />
+            <FormSlider name="rdoc_regulacao_sensoriomotora" label="Regulação Sensório-motora" />
           </div>
         </div>
       </TabsContent>
@@ -46,27 +47,27 @@ export function Tabs4To6() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-4">
             <h3 className="font-semibold text-lg border-b pb-2">Métricas Orgânicas</h3>
-            <FormSlider name="d6_metabolism" label="Perfil Metabólico" />
-            <FormSlider name="d6_inflammation" label="Nível de Inflamação Sistêmica" />
-            <FormSlider name="d6_sleep" label="Qualidade do Sono" />
-            <FormSlider name="d6_hrv" label="VFC (Heart Rate Variability)" />
+            <FormSlider name="neurobiologica_metabolismo" label="Perfil Metabólico" />
+            <FormSlider name="neurobiologica_inflamacao" label="Nível de Inflamação Sistêmica" />
+            <FormSlider name="neurobiologica_sono" label="Qualidade do Sono" />
+            <FormSlider name="neurobiologica_hrv" label="VFC (Heart Rate Variability)" />
           </div>
           <div className="space-y-4">
             <h3 className="font-semibold text-lg border-b pb-2">Influências Sistêmicas</h3>
             <FormRadio
-              name="d6_menstrual"
+              name="neurobiologica_ciclo_menstrual"
               label="Ciclo Menstrual"
-              options={['regular', 'irregular', 'menopausa', 'n/a']}
+              options={['Regular', 'Irregular', 'N/A']}
             />
             <FormRadio
-              name="d6_diet"
+              name="neurobiologica_dieta"
               label="Perfil de Dieta"
-              options={['adequada', 'inflamatória', 'restritiva']}
+              options={['Balanceada', 'Seletiva', 'Abusiva']}
             />
             <FormRadio
-              name="d6_intestinal"
+              name="neurobiologica_intestino"
               label="Trânsito Intestinal"
-              options={['regular', 'constipado', 'diarreico', 'alternante']}
+              options={['Normal', 'Constipação', 'Diarreia']}
             />
           </div>
         </div>

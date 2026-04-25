@@ -70,19 +70,44 @@ export default function VisualizarDNDA() {
     )
   }
 
+  const intervencaoScore =
+    (dnda.intervencao_base ? 3 : 0) +
+      (dnda.intervencao_integracao ? 3 : 0) +
+      (dnda.intervencao_especializacao ? 4 : 0) || 5
+
   const chartData = [
-    { subject: 'Neuroenergética', score: dnda.d1_excitation || Math.floor(Math.random() * 5) + 3 },
-    { subject: 'Integração', score: dnda.d2_coherence || Math.floor(Math.random() * 5) + 3 },
-    { subject: 'Organizacional', score: dnda.d3_entropy || Math.floor(Math.random() * 5) + 3 },
-    { subject: 'Funcional', score: dnda.d4_attention || Math.floor(Math.random() * 5) + 3 },
-    { subject: 'RDoC', score: dnda.d5_arousal || Math.floor(Math.random() * 5) + 3 },
-    { subject: 'Neurobiológica', score: dnda.d6_hrv || Math.floor(Math.random() * 5) + 3 },
-    { subject: 'Temporal', score: dnda.d7_traumas ? 8 : 4 },
+    {
+      subject: 'Neuroenergética',
+      score: dnda.neuroenergetica_excitacao || Math.floor(Math.random() * 5) + 3,
+    },
+    {
+      subject: 'Integração',
+      score: dnda.integracao_coerencia || Math.floor(Math.random() * 5) + 3,
+    },
+    {
+      subject: 'Organizacional',
+      score: dnda.organizacional_simetria || Math.floor(Math.random() * 5) + 3,
+    },
+    {
+      subject: 'Funcional',
+      score: dnda.funcional_atencao_sustentada || Math.floor(Math.random() * 5) + 3,
+    },
+    { subject: 'RDoC', score: dnda.rdoc_arousal_regulacao || Math.floor(Math.random() * 5) + 3 },
+    {
+      subject: 'Neurobiológica',
+      score: dnda.neurobiologica_hrv || Math.floor(Math.random() * 5) + 3,
+    },
+    { subject: 'Temporal', score: dnda.temporal_traumas ? 8 : 4 },
     {
       subject: 'Convergência',
-      score: dnda.d8_risk === 'alto' ? 8 : dnda.d8_risk === 'médio' ? 5 : 2,
+      score:
+        dnda.convergencia_risco_clinico === 'Alto'
+          ? 8
+          : dnda.convergencia_risco_clinico === 'Médio'
+            ? 5
+            : 2,
     },
-    { subject: 'Intervenção', score: (dnda.d9_phases?.length || 1) * 3 },
+    { subject: 'Intervenção', score: intervencaoScore },
   ]
 
   const chartConfig = {
@@ -98,7 +123,7 @@ export default function VisualizarDNDA() {
     alto: 'bg-error text-white',
   }
 
-  const riskLevel = (dnda.d8_risk || 'médio').toLowerCase()
+  const riskLevel = (dnda.convergencia_risco_clinico || 'Médio').toLowerCase()
   const badgeClass = riskColors[riskLevel as keyof typeof riskColors] || 'bg-slate-200'
 
   const handleShare = () => {
@@ -106,6 +131,19 @@ export default function VisualizarDNDA() {
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`
     window.open(url, '_blank')
   }
+
+  const phases = []
+  if (dnda.intervencao_base) phases.push('Base / Estabilização')
+  if (dnda.intervencao_integracao) phases.push('Integração Neuromodulatória')
+  if (dnda.intervencao_especializacao) phases.push('Especialização Cognitiva')
+
+  const tools = []
+  if (dnda.intervencao_neuromodulacao_tdcs) tools.push('tDCS')
+  if (dnda.intervencao_neuromodulacao_tacs) tools.push('tACS')
+  if (dnda.intervencao_neuromodulacao_reac) tools.push('REAC')
+  if (dnda.intervencao_neuromodulacao_tms) tools.push('TMS')
+  if (dnda.intervencao_neurofeedback) tools.push('Neurofeedback')
+  if (dnda.intervencao_biofeedback) tools.push('HRV Biofeedback')
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-fade-in-up pb-20">
@@ -200,21 +238,21 @@ export default function VisualizarDNDA() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
-              <p className="text-sm font-semibold text-slate-500 mb-1">Estado Dominante</p>
+              <p className="text-sm font-semibold text-slate-500 mb-1">Estado Neurofuncional</p>
               <p className="text-lg font-bold text-slate-900 capitalize">
-                {dnda.d1_class || 'Indefinido'} / {dnda.d3_class || 'Indefinido'}
+                {dnda.convergencia_estado_neurofuncional || 'Não informado'}
               </p>
             </div>
             <div>
               <p className="text-sm font-semibold text-slate-500 mb-1">Vetor Adaptativo</p>
               <p className="text-base text-slate-700">
-                {dnda.d1_excitation > 5 ? 'Hiperativação compensatória' : 'Hipoativação de rede'}
+                {dnda.convergencia_vetor_adaptativo || 'Não informado'}
               </p>
             </div>
             <div>
               <p className="text-sm font-semibold text-slate-500 mb-1">Resumo Clínico</p>
               <p className="text-sm text-slate-600 leading-relaxed">
-                {dnda.d8_summary || 'Nenhum resumo gerado para esta avaliação.'}
+                {dnda.convergencia_resumo || 'Nenhum resumo gerado para esta avaliação.'}
               </p>
             </div>
           </CardContent>
@@ -233,9 +271,9 @@ export default function VisualizarDNDA() {
               <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-primary" /> Fases Recomendadas
               </h4>
-              {dnda.d9_phases && dnda.d9_phases.length > 0 ? (
+              {phases.length > 0 ? (
                 <ul className="space-y-2">
-                  {dnda.d9_phases.map((fase: string, idx: number) => (
+                  {phases.map((fase: string, idx: number) => (
                     <li
                       key={idx}
                       className="flex items-center gap-2 text-sm text-slate-700 bg-slate-50 p-2 rounded-md border border-slate-100"
@@ -246,7 +284,7 @@ export default function VisualizarDNDA() {
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-slate-500">Nenhuma fase definida.</p>
+                <p className="text-sm text-slate-500">Nenhuma fase selecionada.</p>
               )}
             </div>
 
@@ -254,9 +292,9 @@ export default function VisualizarDNDA() {
               <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-alert" /> Ferramentas Clínicas
               </h4>
-              {dnda.d9_tools && dnda.d9_tools.length > 0 ? (
+              {tools.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
-                  {dnda.d9_tools.map((tool: string, idx: number) => (
+                  {tools.map((tool: string, idx: number) => (
                     <Badge
                       key={idx}
                       variant="secondary"
@@ -313,7 +351,8 @@ export default function VisualizarDNDA() {
                           )}
                         </div>
                         <div className="font-semibold text-slate-800 text-sm mb-2 capitalize">
-                          {item.d1_class || 'Indefinido'} / {item.d8_risk}
+                          {item.neuroenergetica_variabilidade || 'Indefinido'} /{' '}
+                          {item.convergencia_risco_clinico || 'Indefinido'}
                         </div>
                         {!isActive && (
                           <Button

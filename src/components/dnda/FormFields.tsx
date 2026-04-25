@@ -146,3 +146,32 @@ export function FormChecklist({
     />
   )
 }
+
+export function FormCheckboxBoolean({
+  name,
+  label,
+  description,
+}: {
+  name: string
+  label: string
+  description?: string
+}) {
+  const { control } = useFormContext()
+  return (
+    <FormField
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border border-slate-100 p-4 shadow-sm bg-slate-50/50">
+          <FormControl>
+            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+          </FormControl>
+          <div className="space-y-1 leading-none">
+            <FormLabel className="font-normal cursor-pointer">{label}</FormLabel>
+            {description && <p className="text-sm text-slate-500">{description}</p>}
+          </div>
+        </FormItem>
+      )}
+    />
+  )
+}
