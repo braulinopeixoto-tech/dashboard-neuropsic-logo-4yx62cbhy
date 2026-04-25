@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useRealtime } from '@/hooks/use-realtime'
 import { getPaciente, getProtocolos, getSessoes } from '@/services/pacientes'
 import { getIntervencoes } from '@/services/intervencoes'
+import { getDndasByPaciente } from '@/services/dnda'
 import { ArrowLeft } from 'lucide-react'
 
 import { PacienteHeader } from '@/components/paciente/PacienteHeader'
@@ -22,21 +23,24 @@ export default function PacientePerfil() {
   const [protocolos, setProtocolos] = useState<any[]>([])
   const [sessoes, setSessoes] = useState<any[]>([])
   const [intervencoes, setIntervencoes] = useState<any[]>([])
+  const [dndas, setDndas] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   const loadData = async () => {
     if (!id) return
     try {
-      const [pt, prots, sess, intervs] = await Promise.all([
+      const [pt, prots, sess, intervs, dndasRes] = await Promise.all([
         getPaciente(id),
         getProtocolos(id),
         getSessoes(id),
         getIntervencoes(id),
+        getDndasByPaciente(id),
       ])
       setPaciente(pt)
       setProtocolos(prots)
       setSessoes(sess)
       setIntervencoes(intervs)
+      setDndas(dndasRes)
     } catch (error) {
       console.error(error)
       toast({
@@ -115,6 +119,12 @@ export default function PacientePerfil() {
           >
             Intervenções
           </TabsTrigger>
+          <TabsTrigger
+            value="dnda"
+            className="w-full sm:w-auto py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200"
+          >
+            Avaliações DNDA™
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent
@@ -136,6 +146,40 @@ export default function PacientePerfil() {
           className="m-0 transition-opacity duration-200 animate-fade-in"
         >
           <TabIntervencoes intervencoes={intervencoes} pacienteId={id!} />
+        </TabsContent>
+
+        <TabsContent value="dnda" className="m-0 transition-opacity duration-200 animate-fade-in">
+          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <h3 className="text-lg font-bold mb-4 text-slate-800">Histórico DNDA™</h3>
+            {dndas.length > 0 ? (
+              <div className="space-y-4">
+                {dndas.map((d) => (
+                  <div
+                    key={d.id}
+                    className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 p-4 border rounded-lg hover:border-primary/50 transition-colors"
+                  >
+                    <div>
+                      <div className="font-semibold text-slate-800">
+                        Avaliação do dia {new Date(d.created).toLocaleDateString('pt-BR')}
+                      </div>
+                      <div className="text-sm text-slate-500 capitalize">
+                        Risco: {d.d8_risk || 'N/A'} | Estado: {d.d1_class || 'N/A'}
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="w-full sm:w-auto text-primary hover:text-primary"
+                      asChild
+                    >
+                      <Link to={`/pacientes/${id}/dnda/${d.id}`}>Visualizar Relatório</Link>
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-slate-500 text-center py-8">Nenhuma avaliação DNDA™ encontrada.</p>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
     </div>
