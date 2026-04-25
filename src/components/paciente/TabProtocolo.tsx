@@ -5,16 +5,28 @@ import { Activity, CalendarIcon } from 'lucide-react'
 import { format } from 'date-fns'
 
 const statusStyles: Record<string, string> = {
-  ativo: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  pausado: 'bg-amber-50 text-amber-700 border-amber-200',
-  concluído: 'bg-blue-50 text-blue-700 border-blue-200',
-  cancelado: 'bg-rose-50 text-rose-700 border-rose-200',
+  ativo: 'bg-success/10 text-success border-success/20',
+  pausado: 'bg-risk/10 text-risk border-risk/20',
+  concluído: 'bg-primary/10 text-primary border-primary/20',
+  cancelado: 'bg-error/10 text-error border-error/20',
+}
+
+const getStatusLabel = (status: string, previstaFim?: string) => {
+  if (status === 'ativo') {
+    if (previstaFim && new Date(previstaFim) < new Date()) {
+      return { label: 'Atrasado', className: 'bg-alert/10 text-alert border-alert/20' }
+    }
+    return { label: 'Em dia', className: 'bg-success/10 text-success border-success/20' }
+  }
+  if (status === 'pausado')
+    return { label: 'Pausado', className: 'bg-risk/10 text-risk border-risk/20' }
+  return { label: status, className: statusStyles[status] || '' }
 }
 
 export function TabProtocolo({ protocolo }: { protocolo: any }) {
   if (!protocolo) {
     return (
-      <div className="p-8 text-center text-slate-500 bg-white rounded-xl border border-slate-200">
+      <div className="p-5 text-center text-slate-500 bg-white rounded-xl border border-border">
         Nenhum protocolo ativo encontrado.
       </div>
     )
@@ -25,21 +37,27 @@ export function TabProtocolo({ protocolo }: { protocolo: any }) {
   )
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6">
+    <div className="bg-white rounded-xl border border-border p-5 shadow-subtle hover:shadow-elevation transition-all duration-200 space-y-4 animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+            <h3 className="text-base font-semibold text-slate-900 flex items-center gap-2">
               <Activity className="w-5 h-5 text-primary" /> {protocolo.tipo}
             </h3>
-            <Badge variant="outline" className={statusStyles[protocolo.status] || ''}>
-              {protocolo.status}
+            <Badge
+              variant="outline"
+              className={
+                getStatusLabel(protocolo.status, protocolo.data_prevista_fim).className +
+                ' capitalize'
+              }
+            >
+              {getStatusLabel(protocolo.status, protocolo.data_prevista_fim).label}
             </Badge>
           </div>
-          <p className="text-sm text-slate-500 mt-1">Tratamento em andamento</p>
+          <p className="text-sm text-slate-500 mt-1 font-normal">Tratamento em andamento</p>
         </div>
         <Button variant="outline" size="sm">
-          Editar Protocolo
+          Editar protocolo
         </Button>
       </div>
 
@@ -53,7 +71,7 @@ export function TabProtocolo({ protocolo }: { protocolo: any }) {
         <Progress value={progress} className="h-2.5" />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-border">
         <div className="flex flex-col gap-1">
           <span className="text-sm text-slate-500 flex items-center gap-1.5">
             <CalendarIcon className="w-4 h-4" /> Data de Início

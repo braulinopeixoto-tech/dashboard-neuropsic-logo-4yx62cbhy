@@ -74,39 +74,47 @@ export function TabIntervencoes({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6">
+    <div className="bg-white rounded-xl border border-border p-5 shadow-subtle hover:shadow-elevation transition-all duration-200 space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h3 className="text-lg font-semibold text-slate-900">Registro de Intervenções</h3>
-          <p className="text-sm text-slate-500 mt-1">Ações clínicas fora do protocolo padrão.</p>
+          <h3 className="text-base font-semibold text-slate-900">Registro de Intervenções</h3>
+          <p className="text-sm font-normal text-slate-500 mt-1">
+            Ações clínicas fora do protocolo padrão.
+          </p>
         </div>
         {isNeuro && (
           <Button onClick={() => setOpen(true)} className="w-full sm:w-auto shrink-0 gap-1.5">
-            <Plus className="w-4 h-4" /> Nova Intervenção
+            <Plus className="w-4 h-4" /> Adicionar intervenção
           </Button>
         )}
       </div>
 
       {intervencoes.length === 0 ? (
-        <div className="p-8 text-center text-slate-500 bg-slate-50 rounded-lg border border-slate-100">
-          Nenhuma intervenção registrada.
+        <div className="p-5 text-center text-slate-500 bg-slate-50 rounded-lg border border-border text-sm font-normal">
+          Nenhuma intervenção
         </div>
       ) : (
         <div className="space-y-4">
-          {intervencoes.map((int) => (
+          {intervencoes.map((int, index) => (
             <div
               key={int.id}
-              className="p-4 rounded-lg border border-slate-100 bg-slate-50/50 flex flex-col gap-2"
+              className="p-5 rounded-lg border border-border bg-slate-50/50 flex flex-col gap-2 hover:shadow-subtle transition-all duration-200 animate-fade-in"
+              style={{ animationDelay: `${index * 50}ms` }}
             >
               <div className="flex justify-between items-start gap-4">
-                <span className="font-medium text-slate-900 flex items-center gap-1.5">
-                  <Stethoscope className="w-4 h-4 text-primary" /> {int.tipo}
-                </span>
-                <span className="text-xs text-slate-500 shrink-0">
-                  {format(new Date(int.data_intervencao), 'dd/MM/yyyy HH:mm')}
-                </span>
+                <div className="flex flex-wrap items-center gap-2 text-base">
+                  <span className="font-semibold text-slate-900 flex items-center gap-1.5">
+                    <Stethoscope className="w-4 h-4 text-primary" /> {int.tipo}
+                  </span>
+                  <span className="text-slate-400 hidden sm:inline">—</span>
+                  <span className="text-sm font-normal text-slate-500">
+                    {format(new Date(int.data_intervencao), 'dd/MM/yyyy HH:mm')}
+                  </span>
+                </div>
               </div>
-              <p className="text-sm text-slate-600 whitespace-pre-wrap">{int.descricao}</p>
+              <p className="text-sm font-normal text-slate-600 whitespace-pre-wrap border-l-2 border-border pl-3 ml-2 mt-1">
+                {int.descricao}
+              </p>
             </div>
           ))}
         </div>

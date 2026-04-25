@@ -41,7 +41,7 @@ export default function PacientePerfil() {
       console.error(error)
       toast({
         title: 'Erro',
-        description: 'Falha ao carregar dados do paciente.',
+        description: 'Erro ao carregar perfil. Tente novamente.',
         variant: 'destructive',
       })
     } finally {
@@ -78,7 +78,7 @@ export default function PacientePerfil() {
   const protocoloAtual = protocolos.find((p) => p.status === 'ativo') || protocolos[0]
 
   return (
-    <div className="max-w-[1000px] mx-auto space-y-6 animate-fade-in-up">
+    <div className="max-w-[1000px] mx-auto space-y-8 animate-fade-in-up">
       <Button variant="ghost" className="gap-2 -ml-4 text-slate-500 hover:text-slate-900" asChild>
         <Link to="/pacientes">
           <ArrowLeft className="w-4 h-4" /> Voltar para Pacientes
@@ -88,7 +88,7 @@ export default function PacientePerfil() {
       <PacienteHeader paciente={paciente} />
 
       <Tabs defaultValue="protocolo" className="w-full">
-        <TabsList className="w-full sm:w-auto flex-col sm:flex-row h-auto p-1 bg-slate-100 mb-6 border border-slate-200 rounded-lg">
+        <TabsList className="w-full sm:w-auto flex-col sm:flex-row h-auto p-1 bg-slate-100 mb-8 border border-border rounded-lg">
           <TabsTrigger
             value="protocolo"
             className="w-full sm:w-auto py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
