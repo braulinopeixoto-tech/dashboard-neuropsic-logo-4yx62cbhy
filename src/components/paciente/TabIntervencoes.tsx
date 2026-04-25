@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Stethoscope, Plus } from 'lucide-react'
+import { MessageSquare, Plus } from 'lucide-react'
 import { format } from 'date-fns'
 import { useAuth } from '@/hooks/use-auth'
 import { createIntervencao } from '@/services/intervencoes'
@@ -74,23 +74,26 @@ export function TabIntervencoes({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-border p-5 shadow-subtle hover:shadow-elevation transition-all duration-200 space-y-4">
+    <div className="bg-white rounded-xl border border-border p-5 shadow-subtle hover:shadow-elevation transition-all duration-200 space-y-4 animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h3 className="text-base font-semibold text-slate-900">Registro de Intervenções</h3>
-          <p className="text-sm font-normal text-slate-500 mt-1">
+          <h3 className="text-[16px] font-semibold text-slate-900">Registro de Intervenções</h3>
+          <p className="text-[14px] font-normal text-slate-500 mt-1">
             Ações clínicas fora do protocolo padrão.
           </p>
         </div>
         {isNeuro && (
-          <Button onClick={() => setOpen(true)} className="w-full sm:w-auto shrink-0 gap-1.5">
+          <Button
+            onClick={() => setOpen(true)}
+            className="w-full sm:w-auto shrink-0 gap-1.5 transition-all duration-200"
+          >
             <Plus className="w-4 h-4" /> Adicionar intervenção
           </Button>
         )}
       </div>
 
       {intervencoes.length === 0 ? (
-        <div className="p-5 text-center text-slate-500 bg-slate-50 rounded-lg border border-border text-sm font-normal">
+        <div className="p-5 text-center text-slate-500 bg-slate-50 rounded-lg border border-border text-[14px] font-normal">
           Nenhuma intervenção
         </div>
       ) : (
@@ -98,21 +101,21 @@ export function TabIntervencoes({
           {intervencoes.map((int, index) => (
             <div
               key={int.id}
-              className="p-5 rounded-lg border border-border bg-slate-50/50 flex flex-col gap-2 hover:shadow-subtle transition-all duration-200 animate-fade-in"
+              className="p-5 rounded-lg border border-border bg-slate-50/50 flex flex-col gap-2 hover:shadow-subtle transition-all duration-200 animate-fade-in-up"
               style={{ animationDelay: `${index * 50}ms` }}
             >
               <div className="flex justify-between items-start gap-4">
-                <div className="flex flex-wrap items-center gap-2 text-base">
-                  <span className="font-semibold text-slate-900 flex items-center gap-1.5">
-                    <Stethoscope className="w-4 h-4 text-primary" /> {int.tipo}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-semibold text-slate-900 text-[16px] flex items-center gap-1.5">
+                    <MessageSquare className="w-4 h-4 text-primary" /> {int.tipo}
                   </span>
                   <span className="text-slate-400 hidden sm:inline">—</span>
-                  <span className="text-sm font-normal text-slate-500">
+                  <span className="text-[14px] font-normal text-slate-500">
                     {format(new Date(int.data_intervencao), 'dd/MM/yyyy HH:mm')}
                   </span>
                 </div>
               </div>
-              <p className="text-sm font-normal text-slate-600 whitespace-pre-wrap border-l-2 border-border pl-3 ml-2 mt-1">
+              <p className="text-[14px] font-normal text-slate-600 whitespace-pre-wrap border-l-2 border-border pl-3 ml-2 mt-2 transition-all duration-200">
                 {int.descricao}
               </p>
             </div>
@@ -121,18 +124,22 @@ export function TabIntervencoes({
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] transition-all duration-200">
           <DialogHeader>
-            <DialogTitle>Registrar Intervenção Clínica</DialogTitle>
+            <DialogTitle className="text-[24px] font-bold">
+              Registrar Intervenção Clínica
+            </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="tipo">Tipo de Intervenção</Label>
+              <Label htmlFor="tipo" className="text-[14px] font-semibold">
+                Tipo de Intervenção
+              </Label>
               <Select
                 onValueChange={(v) => setFormData((p) => ({ ...p, tipo: v }))}
                 value={formData.tipo}
               >
-                <SelectTrigger id="tipo">
+                <SelectTrigger id="tipo" className="transition-all duration-200">
                   <SelectValue placeholder="Selecione o tipo..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -144,17 +151,22 @@ export function TabIntervencoes({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="data">Data e Hora</Label>
+              <Label htmlFor="data" className="text-[14px] font-semibold">
+                Data e Hora
+              </Label>
               <Input
                 id="data"
                 type="datetime-local"
                 value={formData.data_intervencao}
                 onChange={(e) => setFormData((p) => ({ ...p, data_intervencao: e.target.value }))}
                 required
+                className="transition-all duration-200"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="descricao">Descrição / Observações</Label>
+              <Label htmlFor="descricao" className="text-[14px] font-semibold">
+                Descrição / Observações
+              </Label>
               <Textarea
                 id="descricao"
                 rows={4}
@@ -162,13 +174,19 @@ export function TabIntervencoes({
                 value={formData.descricao}
                 onChange={(e) => setFormData((p) => ({ ...p, descricao: e.target.value }))}
                 required
+                className="transition-all duration-200 font-normal"
               />
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+                className="transition-all duration-200"
+              >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" disabled={loading} className="transition-all duration-200">
                 {loading ? 'Salvando...' : 'Salvar Intervenção'}
               </Button>
             </DialogFooter>

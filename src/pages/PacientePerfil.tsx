@@ -91,33 +91,42 @@ export default function PacientePerfil() {
         <TabsList className="w-full sm:w-auto flex-col sm:flex-row h-auto p-1 bg-slate-100 mb-8 border border-border rounded-lg">
           <TabsTrigger
             value="protocolo"
-            className="w-full sm:w-auto py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+            className="w-full sm:w-auto py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200"
           >
             Protocolo Atual
           </TabsTrigger>
           <TabsTrigger
             value="historico"
-            className="w-full sm:w-auto py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+            className="w-full sm:w-auto py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200"
           >
             Histórico (Timeline)
           </TabsTrigger>
           <TabsTrigger
             value="intervencoes"
-            className="w-full sm:w-auto py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+            className="w-full sm:w-auto py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200"
           >
             Intervenções
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="protocolo" className="m-0">
+        <TabsContent
+          value="protocolo"
+          className="m-0 transition-opacity duration-200 animate-fade-in"
+        >
           <TabProtocolo protocolo={protocoloAtual} />
         </TabsContent>
 
-        <TabsContent value="historico" className="m-0">
+        <TabsContent
+          value="historico"
+          className="m-0 transition-opacity duration-200 animate-fade-in"
+        >
           <TabHistorico sessoes={sessoes} />
         </TabsContent>
 
-        <TabsContent value="intervencoes" className="m-0">
+        <TabsContent
+          value="intervencoes"
+          className="m-0 transition-opacity duration-200 animate-fade-in"
+        >
           <TabIntervencoes intervencoes={intervencoes} pacienteId={id!} />
         </TabsContent>
       </Tabs>
