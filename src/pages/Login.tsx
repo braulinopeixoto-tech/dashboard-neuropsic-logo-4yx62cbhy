@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/hooks/use-toast'
-import { BrainCircuit, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -19,6 +19,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { extractFieldErrors } from '@/lib/pocketbase/errors'
 
 const passwordRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/
@@ -66,6 +74,40 @@ function LoginFormView({
     defaultValues: { email: '', password: '', rememberMe: false },
   })
 
+  const { resetPassword } = useAuth()
+  const { toast } = useToast()
+  const [resetLoading, setResetLoading] = useState(false)
+  const [resetEmail, setResetEmail] = useState('')
+  const [resetOpen, setResetOpen] = useState(false)
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!resetEmail) {
+      toast({
+        title: 'Erro',
+        description: 'Informe o email para recuperação.',
+        variant: 'destructive',
+      })
+      return
+    }
+    setResetLoading(true)
+    const { error } = await resetPassword(resetEmail)
+    setResetLoading(false)
+    if (error) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível solicitar a recuperação.',
+        variant: 'destructive',
+      })
+    } else {
+      toast({
+        title: 'Sucesso',
+        description: 'Email de recuperação enviado com sucesso.',
+      })
+      setResetOpen(false)
+    }
+  }
+
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2">
@@ -84,13 +126,41 @@ function LoginFormView({
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label htmlFor="login-password">Senha</Label>
-          <Link
-            to="#"
-            className="text-sm text-slate-500 hover:text-slate-800 transition-colors"
-            onClick={(e) => e.preventDefault()}
-          >
-            Esqueceu a senha?
-          </Link>
+          <Dialog open={resetOpen} onOpenChange={setResetOpen}>
+            <DialogTrigger asChild>
+              <a
+                href="#"
+                className="text-sm text-slate-500 hover:text-slate-800 transition-colors"
+                onClick={(e) => e.preventDefault()}
+              >
+                Esqueceu a senha?
+              </a>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Recuperar Senha</DialogTitle>
+                <DialogDescription>
+                  Informe seu email abaixo para receber as instruções de recuperação de senha.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleResetPassword} className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="reset-email">Email</Label>
+                  <Input
+                    id="reset-email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={resetLoading}>
+                  {resetLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />} Enviar
+                  Instruções
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
         <Input
           id="login-password"
@@ -142,6 +212,7 @@ function SignUpFormView({
   })
 
   const termsChecked = form.watch('terms')
+  const [termsOpen, setTermsOpen] = useState(false)
 
   return (
     <form onSubmit={form.handleSubmit((d) => onSubmit(d, form.setError))} className="space-y-4">
@@ -263,7 +334,40 @@ function SignUpFormView({
             Concordo com os termos
           </Label>
           <p className="text-sm text-slate-500">
-            Você aceita nossos Termos de Serviço e Política de Privacidade.
+            Você aceita nossos{' '}
+            <Dialog open={termsOpen} onOpenChange={setTermsOpen}>
+              <DialogTrigger asChild>
+                <a
+                  href="#"
+                  className="text-primary hover:underline"
+                  onClick={(e) => e.preventDefault()}
+                >
+                  Termos de Serviço e Política de Privacidade
+                </a>
+              </DialogTrigger>
+              <DialogContent className="max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Termos de Serviço e Política de Privacidade</DialogTitle>
+                </DialogHeader>
+                <div className="text-sm text-slate-600 space-y-4 pt-4">
+                  <p>
+                    <strong>1. Uso da Plataforma:</strong> O NeuroDash destina-se ao agendamento e
+                    gerenciamento de sessões de neuromodulação clínica.
+                  </p>
+                  <p>
+                    <strong>2. Privacidade e LGPD:</strong> Todos os dados inseridos estão em
+                    conformidade com as diretrizes de proteção de dados, com absoluto sigilo clínico
+                    preservado.
+                  </p>
+                  <p>
+                    <strong>3. Responsabilidade do Profissional:</strong> O uso clínico da
+                    plataforma não isenta o profissional de suas responsabilidades técnicas e éticas
+                    junto aos pacientes.
+                  </p>
+                </div>
+              </DialogContent>
+            </Dialog>
+            .
           </p>
           {form.formState.errors.terms && (
             <p className="text-sm text-destructive">{form.formState.errors.terms.message}</p>
@@ -343,9 +447,11 @@ export default function Login() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4 py-8">
       <div className="mb-8 flex flex-col items-center text-center animate-fade-in-up">
-        <div className="flex items-center justify-center w-16 h-16 bg-primary text-white rounded-2xl mb-4 shadow-lg">
-          <BrainCircuit className="h-10 w-10" />
-        </div>
+        <img
+          src="https://img.usecurling.com/i?q=neurology+logo&color=blue&shape=fill"
+          alt="Clinic Logo"
+          className="w-16 h-16 rounded-2xl shadow-lg mb-4"
+        />
         <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
           NeuroDash &mdash; Gestão de Neuromodulação
         </h1>
