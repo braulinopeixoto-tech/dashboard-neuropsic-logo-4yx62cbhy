@@ -22,7 +22,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
-import { Clock, Activity, AlertTriangle, CheckCircle2, PlayCircle, CalendarX2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
@@ -65,24 +64,24 @@ function ExecutionModal({ open, onOpenChange, sessao, user, onSuccess }: any) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="text-xl">Execução de Sessão</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-[24px] font-bold">Execução de Sessão</DialogTitle>
+          <DialogDescription className="text-[14px] font-normal">
             Paciente: <strong className="text-slate-900">{sessao.expand?.paciente_id?.nome}</strong>
             <br />
             Protocolo: {sessao.expand?.protocolo_id?.tipo} (Sessão {sessao.numero_sessao})
           </DialogDescription>
         </DialogHeader>
-        <div className="py-6 space-y-6">
-          <div className="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-xl border border-slate-100">
-            <span className="text-sm font-medium text-slate-500 mb-2 uppercase tracking-wider">
+        <div className="py-6 space-y-[16px]">
+          <div className="flex flex-col items-center justify-center p-[20px] bg-slate-50 rounded-xl border border-slate-100">
+            <span className="text-[14px] font-semibold text-slate-500 mb-2 uppercase tracking-wider">
               Tempo Decorrido
             </span>
-            <div className="text-5xl font-mono font-bold text-blue-600 tracking-tight">
+            <div className="text-5xl font-mono font-bold text-primary tracking-tight">
               {formatTime(elapsed)}
             </div>
           </div>
           <div className="space-y-3">
-            <Label htmlFor="obs" className="text-slate-700">
+            <Label htmlFor="obs" className="text-[14px] font-semibold text-slate-700">
               Observações rápidas
             </Label>
             <Textarea
@@ -90,19 +89,19 @@ function ExecutionModal({ open, onOpenChange, sessao, user, onSuccess }: any) {
               placeholder="Sinais, sintomas, comportamento do paciente..."
               value={obs}
               onChange={(e) => setObs(e.target.value)}
-              className="resize-none h-24"
+              className="resize-none h-24 text-[14px] font-normal"
             />
           </div>
-          <div className="flex items-center space-x-3 bg-blue-50 p-4 rounded-lg border border-blue-100">
+          <div className="flex items-center space-x-3 bg-slate-50 p-[20px] rounded-lg border border-slate-100">
             <Checkbox
               id="concluida"
               checked={concluida}
               onCheckedChange={(c) => setConcluida(c as boolean)}
-              className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+              className="data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-colors duration-200"
             />
             <Label
               htmlFor="concluida"
-              className="text-sm font-medium cursor-pointer text-slate-900"
+              className="text-[14px] font-medium cursor-pointer text-slate-900"
             >
               Sessão concluída com sucesso
             </Label>
@@ -115,7 +114,7 @@ function ExecutionModal({ open, onOpenChange, sessao, user, onSuccess }: any) {
           <Button
             onClick={handleSubmit}
             disabled={!concluida || isSubmitting}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-primary hover:bg-primary/90 text-white transition-colors duration-200"
           >
             {isSubmitting ? 'Registrando...' : 'Registrar execução'}
           </Button>
@@ -140,19 +139,22 @@ function SessaoCard({ sessao, user, onRegistered }: any) {
   const minMin = protocolo?.intervalo_minimo_minutos || 0
 
   const intervalStatus = useMemo(() => {
-    if (!sessao.lastSessao?.data_realizada) return { ok: true, text: 'Primeira sessão' }
+    if (!sessao.lastSessao?.data_realizada)
+      return { ok: true, text: 'Primeira sessão', isLow: false }
 
     const diffSecs = Math.floor(
       (now.getTime() - new Date(sessao.lastSessao.data_realizada).getTime()) / 1000,
     )
     const minSecs = minMin * 60
 
-    if (diffSecs >= minSecs) return { ok: true, text: `${Math.floor(diffSecs / 60)} minutos (OK)` }
+    if (diffSecs >= minSecs)
+      return { ok: true, text: `${Math.floor(diffSecs / 60)} minutos (OK)`, isLow: false }
 
     const faltam = minSecs - diffSecs
     return {
       ok: false,
-      text: `${Math.floor(diffSecs / 60)} minutos (⚠️ Faltam ${Math.floor(faltam / 60)}m ${faltam % 60}s)`,
+      text: `${Math.floor(diffSecs / 60)} min (Faltam ${Math.floor(faltam / 60)}m ${faltam % 60}s)`,
+      isLow: faltam <= 300, // less than 5 minutes
     }
   }, [now, sessao, minMin])
 
@@ -165,51 +167,51 @@ function SessaoCard({ sessao, user, onRegistered }: any) {
     : '--:--'
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden transition-all hover:shadow-md relative">
+    <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden transition-all duration-200 hover:shadow-elevation relative">
       <div
         className={cn(
-          'absolute top-0 left-0 right-0 h-1',
-          isRealizada ? 'bg-emerald-500' : intervalStatus.ok ? 'bg-blue-500' : 'bg-amber-500',
+          'absolute top-0 left-0 right-0 h-1 transition-colors duration-200',
+          isRealizada ? 'bg-success' : intervalStatus.ok ? 'bg-primary' : 'bg-alert',
         )}
       />
-      <div className="p-4 sm:p-6 mt-1">
-        <div className="flex flex-col sm:flex-row justify-between gap-4">
+      <div className="p-[20px] mt-1">
+        <div className="flex flex-col sm:flex-row justify-between gap-[16px]">
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-lg text-slate-900">
-                {paciente?.nome || 'Paciente Desconhecido'}
+              <span className="font-semibold text-[16px] text-slate-900">
+                👤 {paciente?.nome || 'Paciente Desconhecido'}
               </span>
-              <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200">
+              <Badge
+                variant="outline"
+                className="bg-slate-50 text-slate-600 border-slate-200 transition-colors duration-200 text-[14px] font-normal"
+              >
                 Sessão {sessao.numero_sessao}
               </Badge>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-2 gap-x-6 text-sm">
-              <div className="flex items-center gap-2 text-slate-600">
-                <Activity className="h-4 w-4 text-blue-500" />
+            <div className="flex flex-col sm:flex-row sm:items-center gap-y-2 gap-x-6 text-[14px] font-normal">
+              <div className="flex items-center gap-1.5 text-slate-600">
+                <span>🔬</span>
                 <span>{protocolo?.tipo || 'Protocolo'}</span>
               </div>
-              <div className="flex items-center gap-2 text-slate-600">
-                <Clock className="h-4 w-4 text-slate-400" />
+              <div className="flex items-center gap-1.5 text-slate-600">
+                <span>⏱️</span>
                 <span>{horaFormatada}</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 {!isRealizada ? (
                   <span
                     className={cn(
-                      'font-medium flex items-center gap-1.5',
-                      intervalStatus.ok ? 'text-emerald-600' : 'text-amber-600',
+                      'font-medium flex items-center gap-1.5 transition-colors duration-200',
+                      intervalStatus.ok ? 'text-success' : 'text-alert',
+                      intervalStatus.isLow && !intervalStatus.ok && 'animate-pulse',
                     )}
                   >
-                    {intervalStatus.ok ? (
-                      <CheckCircle2 className="h-4 w-4" />
-                    ) : (
-                      <AlertTriangle className="h-4 w-4" />
-                    )}
+                    {intervalStatus.ok ? <span>✅</span> : <span>⚠️</span>}
                     {intervalStatus.text}
                   </span>
                 ) : (
-                  <span className="font-medium text-emerald-600 flex items-center gap-1.5">
-                    <CheckCircle2 className="h-4 w-4" /> Realizada
+                  <span className="font-medium text-success flex items-center gap-1.5 transition-colors duration-200">
+                    <span>✅</span> Realizada
                   </span>
                 )}
               </div>
@@ -221,18 +223,25 @@ function SessaoCard({ sessao, user, onRegistered }: any) {
                 onClick={() => setModalOpen(true)}
                 disabled={!intervalStatus.ok}
                 className={cn(
-                  'w-full sm:w-auto transition-all shadow-sm',
+                  'w-full sm:w-auto transition-colors duration-200 shadow-sm text-[14px] font-semibold',
                   intervalStatus.ok
-                    ? 'bg-blue-600 hover:bg-blue-700'
+                    ? 'bg-primary hover:bg-primary/90 text-white'
                     : 'bg-slate-100 text-slate-400 opacity-100',
                 )}
               >
-                <PlayCircle className="h-4 w-4 mr-2" /> Iniciar sessão
+                Iniciar sessão
               </Button>
             ) : (
-              <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 px-3 py-1.5 text-sm rounded-md shadow-sm pointer-events-none">
+              <div
+                className="px-3 py-1.5 text-[14px] font-semibold rounded-md shadow-sm pointer-events-none transition-colors duration-200 border"
+                style={{
+                  backgroundColor: 'hsla(142, 71%, 45%, 0.1)',
+                  color: 'hsl(142, 71%, 45%)',
+                  borderColor: 'hsla(142, 71%, 45%, 0.2)',
+                }}
+              >
                 Concluída
-              </Badge>
+              </div>
             )}
           </div>
         </div>
@@ -296,17 +305,17 @@ export default function MinhasSessoes() {
   )
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto animate-fade-in-up">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Sessões de Hoje</h1>
+    <div className="mb-[32px] max-w-5xl mx-auto animate-fade-in">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-[16px] mb-[32px]">
+        <h1 className="text-[24px] font-bold tracking-tight text-slate-900">Sessões de Hoje</h1>
         <div className="w-full sm:w-64">
           <Select value={unidadeFiltro} onValueChange={setUnidadeFiltro}>
-            <SelectTrigger>
+            <SelectTrigger className="text-[14px] font-normal">
               <SelectValue placeholder="Filtrar por unidade" />
             </SelectTrigger>
             <SelectContent>
               {unidades.map((u) => (
-                <SelectItem key={u} value={u}>
+                <SelectItem key={u} value={u} className="text-[14px] font-normal">
                   {u}
                 </SelectItem>
               ))}
@@ -316,29 +325,31 @@ export default function MinhasSessoes() {
       </div>
 
       {loading ? (
-        <div className="space-y-4">
+        <div className="flex flex-col gap-[16px]">
           {[1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-32 w-full rounded-xl" />
           ))}
         </div>
       ) : error ? (
         <div className="flex flex-col items-center justify-center py-12 text-center bg-white rounded-xl border border-slate-200">
-          <AlertTriangle className="h-10 w-10 text-rose-500 mb-4" />
-          <p className="text-slate-600 mb-4">Erro ao carregar sessões. Tente novamente.</p>
-          <Button onClick={loadSessoes} variant="outline">
+          <span className="text-4xl mb-4">⚠️</span>
+          <p className="text-[14px] font-normal text-slate-600 mb-4">
+            Erro ao carregar sessões. Tente novamente.
+          </p>
+          <Button onClick={loadSessoes} variant="outline" className="text-[14px] font-semibold">
             Tentar Novamente
           </Button>
         </div>
       ) : sessoesFiltradas.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center bg-white rounded-xl border border-slate-200 shadow-sm">
-          <CalendarX2 className="h-12 w-12 text-slate-300 mb-4" />
-          <h3 className="text-lg font-medium text-slate-900 mb-1">Nenhuma sessão hoje</h3>
-          <p className="text-slate-500 max-w-md">
+          <span className="text-4xl mb-4 opacity-50">⏱️</span>
+          <h3 className="text-[16px] font-semibold text-slate-900 mb-1">Nenhuma sessão hoje</h3>
+          <p className="text-[14px] font-normal text-slate-500 max-w-md">
             Não há sessões agendadas para os filtros selecionados ou para o dia de hoje.
           </p>
         </div>
       ) : (
-        <div className="grid gap-4 grid-cols-1">
+        <div className="flex flex-col gap-[16px]">
           {sessoesFiltradas.map((s) => (
             <SessaoCard key={s.id} sessao={s} user={user} onRegistered={loadSessoes} />
           ))}
