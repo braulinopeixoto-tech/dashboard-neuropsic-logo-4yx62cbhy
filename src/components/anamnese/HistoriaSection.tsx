@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Loader2, X } from 'lucide-react'
 import { processarAiResumo } from '@/services/anamneses'
 import { useToast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
 
 function DynamicList({
   items,
@@ -26,10 +27,10 @@ function DynamicList({
     }
   }
   return (
-    <div className="space-y-3 bg-slate-50 p-3 rounded-lg border border-slate-100">
-      <div className="flex gap-2">
+    <div className="space-y-4 bg-slate-50 p-[20px] rounded-lg border border-slate-100">
+      <div className="flex gap-4">
         <Input
-          className="bg-white"
+          className="bg-white text-[14px] font-normal"
           value={val}
           onChange={(e) => setVal(e.target.value)}
           onKeyDown={(e) => {
@@ -40,16 +41,25 @@ function DynamicList({
           }}
           placeholder={placeholder}
         />
-        <Button type="button" variant="secondary" onClick={add}>
+        <Button
+          type="button"
+          variant="secondary"
+          className="text-[14px] font-semibold"
+          onClick={add}
+        >
           Add
         </Button>
       </div>
       <div className="flex flex-wrap gap-2">
         {items.map((item, i) => (
-          <Badge key={i} variant="outline" className="bg-white pl-2 pr-1 py-1 gap-1">
+          <Badge
+            key={i}
+            variant="outline"
+            className="bg-white pl-2 pr-1 py-1 gap-1 text-[14px] font-normal"
+          >
             {item}{' '}
             <div
-              className="p-0.5 rounded-full hover:bg-slate-100 cursor-pointer"
+              className="p-0.5 rounded-full hover:bg-slate-100 cursor-pointer transition-colors"
               onClick={() => onChange(items.filter((_, idx) => idx !== i))}
             >
               <X className="w-3 h-3 text-slate-500" />
@@ -80,6 +90,7 @@ export function HistoriaSection({
     perdas: '',
   })
   const [loading, setLoading] = useState(false)
+  const [isAiGenerated, setIsAiGenerated] = useState(false)
   const { toast } = useToast()
 
   const handleAI = async () => {
@@ -87,95 +98,120 @@ export function HistoriaSection({
     try {
       const res = await processarAiResumo(pacienteId, data)
       onChange(res.resumo)
+      setIsAiGenerated(true)
+      toast({ description: '✅ História resumida com sucesso!' })
     } catch (e) {
       toast({
-        title: 'Erro',
-        description: 'Erro ao resumir com IA. Preencha manualmente.',
+        description: '❌ Erro ao resumir com IA. Preencha manualmente.',
         variant: 'destructive',
       })
-      if (!value) onChange(' ')
+      if (!value) {
+        onChange(' ')
+        setIsAiGenerated(false)
+      }
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <Card className="p-5 space-y-6 shadow-sm">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-        <div className="space-y-2">
-          <Label>Antecedentes Pessoais</Label>
+    <Card className="p-[20px] space-y-6 shadow-sm">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4">
+        <div className="space-y-4">
+          <Label className="text-[16px] font-semibold">Antecedentes Pessoais</Label>
           <Textarea
             rows={3}
+            className="text-[14px] font-normal"
             value={data.pessoais}
             onChange={(e) => setData({ ...data, pessoais: e.target.value })}
           />
         </div>
-        <div className="space-y-2">
-          <Label>Antecedentes Familiares</Label>
+        <div className="space-y-4">
+          <Label className="text-[16px] font-semibold">Antecedentes Familiares</Label>
           <Textarea
             rows={3}
+            className="text-[14px] font-normal"
             value={data.familiares}
             onChange={(e) => setData({ ...data, familiares: e.target.value })}
           />
         </div>
-        <div className="space-y-2">
-          <Label>Medicações Atuais</Label>
+        <div className="space-y-4">
+          <Label className="text-[16px] font-semibold">Medicações Atuais</Label>
           <DynamicList
             items={data.medicacoes}
             onChange={(v) => setData({ ...data, medicacoes: v })}
             placeholder="Ex: Losartana 50mg"
           />
         </div>
-        <div className="space-y-2">
-          <Label>Alergias</Label>
+        <div className="space-y-4">
+          <Label className="text-[16px] font-semibold">Alergias</Label>
           <DynamicList
             items={data.alergias}
             onChange={(v) => setData({ ...data, alergias: v })}
             placeholder="Ex: Penicilina"
           />
         </div>
-        <div className="space-y-2">
-          <Label>Cirurgias Anteriores</Label>
+        <div className="space-y-4">
+          <Label className="text-[16px] font-semibold">Cirurgias Anteriores</Label>
           <DynamicList
             items={data.cirurgias}
             onChange={(v) => setData({ ...data, cirurgias: v })}
             placeholder="Ex: Apendicectomia (2015)"
           />
         </div>
-        <div className="space-y-2">
-          <Label>Traumas</Label>
+        <div className="space-y-4">
+          <Label className="text-[16px] font-semibold">Traumas</Label>
           <Textarea
             rows={2}
+            className="text-[14px] font-normal"
             value={data.traumas}
             onChange={(e) => setData({ ...data, traumas: e.target.value })}
           />
         </div>
-        <div className="space-y-2 md:col-span-2">
-          <Label>Perdas Recentes</Label>
+        <div className="space-y-4 md:col-span-2">
+          <Label className="text-[16px] font-semibold">Perdas Recentes</Label>
           <Textarea
             rows={2}
+            className="text-[14px] font-normal"
             value={data.perdas}
             onChange={(e) => setData({ ...data, perdas: e.target.value })}
           />
         </div>
       </div>
 
-      <div className="flex gap-3 pt-2">
-        <Button onClick={handleAI} disabled={loading} className="flex-1 sm:flex-none">
-          <Loader2 className={loading ? 'w-4 h-4 mr-2 animate-spin' : 'hidden'} /> Resumir com IA
+      <div className="flex gap-4 pt-2">
+        <Button
+          onClick={handleAI}
+          disabled={loading}
+          className="flex-1 sm:flex-none bg-ai/10 text-ai hover:bg-ai/20 border border-ai/20 hover:shadow-elevation hover:-translate-y-0.5 transition-all duration-300 text-[14px] font-semibold"
+        >
+          {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin text-ai" /> : '🤖 '}
+          {loading ? 'Processando...' : 'Resumir com IA'}
         </Button>
         {!value && (
-          <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => onChange(' ')}>
-            Preencher Manualmente
+          <Button
+            variant="outline"
+            className="flex-1 sm:flex-none text-[14px] font-normal hover:shadow-elevation hover:-translate-y-0.5 transition-all duration-300"
+            onClick={() => {
+              onChange(' ')
+              setIsAiGenerated(false)
+            }}
+          >
+            ✏️ Preencher Manualmente
           </Button>
         )}
       </div>
 
       {value ? (
-        <div className="mt-6 space-y-2 border-t border-slate-100 pt-6 animate-fade-in-down">
-          <Label className="text-base text-slate-800">Resumo Narrativo Gerado</Label>
+        <div className="mt-6 space-y-4 border-t border-slate-100 pt-6 animate-slide-up duration-300">
+          <Label className="text-[16px] font-semibold text-slate-800">
+            Resumo Narrativo Gerado
+          </Label>
           <Textarea
-            className="min-h-[120px] text-base leading-relaxed"
+            className={cn(
+              'min-h-[120px] text-[14px] leading-relaxed',
+              isAiGenerated ? 'italic text-ai font-normal border-ai/30 bg-ai/5' : 'font-normal',
+            )}
             value={value.trim()}
             onChange={(e) => onChange(e.target.value)}
           />

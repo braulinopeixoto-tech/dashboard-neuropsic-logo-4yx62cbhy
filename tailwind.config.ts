@@ -93,6 +93,9 @@ export default {
         risk: {
           DEFAULT: 'hsl(var(--risk))',
         },
+        ai: {
+          DEFAULT: 'hsl(var(--ai))',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',
