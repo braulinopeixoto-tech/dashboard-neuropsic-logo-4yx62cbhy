@@ -7,6 +7,7 @@ import Prescrever from './pages/Prescrever'
 import Pacientes from './pages/Pacientes'
 import PacientePerfil from './pages/PacientePerfil'
 import NovoPaciente from './pages/NovoPaciente'
+import NovaAnamnese from './pages/NovaAnamnese'
 import NovoDNDA from './pages/NovoDNDA'
 import VisualizarDNDA from './pages/VisualizarDNDA'
 import MinhasSessoes from './pages/Sessoes'
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/pacientes" element={<Pacientes />} />
             <Route path="/pacientes/novo" element={<NovoPaciente />} />
             <Route path="/pacientes/:id" element={<PacientePerfil />} />
+            <Route path="/pacientes/:id/anamnese" element={<NovaAnamnese />} />
             <Route path="/pacientes/:id/dnda/novo" element={<NovoDNDA />} />
             <Route path="/pacientes/:id/dnda/:dndaId/editar" element={<NovoDNDA />} />
             <Route path="/pacientes/:id/dnda/:dndaId" element={<VisualizarDNDA />} />

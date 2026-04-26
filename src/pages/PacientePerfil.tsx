@@ -89,7 +89,10 @@ export default function PacientePerfil() {
             <ArrowLeft className="w-4 h-4" /> Voltar para Pacientes
           </Link>
         </Button>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 justify-end">
+          <Button variant="outline" className="shadow-sm" asChild>
+            <Link to={`/pacientes/${id}/anamnese`}>Nova Anamnese (IA)</Link>
+          </Button>
           <Button variant="outline" className="shadow-sm" asChild>
             <Link to={`/relatorio-final/${id}`}>Gerar Relatório Final</Link>
           </Button>

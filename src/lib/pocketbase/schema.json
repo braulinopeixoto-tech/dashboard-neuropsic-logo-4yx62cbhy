@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-25T20:59:48.986Z",
+  "generatedAt": "2026-04-26T14:25:14.081Z",
   "collections": [
     {
       "name": "users",
@@ -1597,6 +1597,139 @@
       "indexes": [
         "CREATE UNIQUE INDEX idx_risk_score_pac_prot ON risk_score (paciente_id, protocolo_id)"
       ]
+    },
+    {
+      "name": "anamneses",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "paciente_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pacientes"
+        },
+        {
+          "name": "queixa_estruturada",
+          "type": "json",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "historia_resumo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "exame_fisico",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "impressao_clinica",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "ai_interactions",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "view": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "paciente_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pacientes"
+        },
+        {
+          "name": "tipo_interacao",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["queixa", "resumo", "impressao"]
+        },
+        {
+          "name": "prompt_context",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "response_data",
+          "type": "json",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "confidence_level",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
     }
   ]
 }
