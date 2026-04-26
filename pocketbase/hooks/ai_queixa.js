@@ -7,8 +7,7 @@ routerAdd(
     const paciente_id = body.paciente_id
     if (!texto || !paciente_id) return e.badRequestError('Missing texto or paciente_id')
 
-    const prompt = `Você é um assistente de neuropsicologia.
-Dado o seguinte relato do paciente, extraia as informações clínicas para um objeto JSON válido (APENAS JSON, sem blocos de código ou markdown):
+    const prompt = `Estruture a seguinte queixa clínica em: sintoma principal, duração, intensidade (0-10), fatores desencadeadores, impacto funcional. Responda APENAS em JSON válido, sem blocos de código ou markdown:
 {
   "sintoma_principal": "string",
   "duracao": "string",
@@ -65,6 +64,8 @@ Relato:
     record.set('prompt_context', texto)
     record.set('response_data', parsed)
     record.set('confidence_level', 0.95)
+    record.set('model', res.json.model || 'gpt-4o-mini')
+    record.set('tokens_used', res.json.usage?.total_tokens || 0)
     $app.save(record)
 
     return e.json(200, parsed)

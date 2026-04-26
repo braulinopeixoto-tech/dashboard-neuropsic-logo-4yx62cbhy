@@ -11,28 +11,26 @@ import { cn } from '@/lib/utils'
 export function ImpressaoSection({
   pacienteId,
   context,
-  value,
+  data,
   onChange,
 }: {
   pacienteId: string
   context: any
-  value: string
-  onChange: (v: string) => void
+  data: { texto: string; isAi: boolean }
+  onChange: (v: { texto: string; isAi: boolean }) => void
 }) {
   const [loading, setLoading] = useState(false)
-  const [isAiGenerated, setIsAiGenerated] = useState(false)
   const { toast } = useToast()
 
   const handleAI = async () => {
     setLoading(true)
     try {
       const res = await processarAiImpressao(pacienteId, context)
-      onChange(res.impressao)
-      setIsAiGenerated(true)
+      onChange({ texto: res.impressao, isAi: true })
       toast({ description: '✅ Impressão gerada com sucesso!' })
     } catch (e) {
       toast({
-        description: '❌ Erro ao gerar com IA. Preencha manualmente.',
+        description: '❌ Erro ao gerar com IA. Tente novamente ou preencha manualmente.',
         variant: 'destructive',
       })
     } finally {
@@ -41,7 +39,7 @@ export function ImpressaoSection({
   }
 
   const handleManualChange = (val: string) => {
-    onChange(val)
+    onChange({ texto: val, isAi: false })
   }
 
   return (
@@ -56,23 +54,23 @@ export function ImpressaoSection({
           className="bg-ai/10 text-ai hover:bg-ai/20 border border-ai/20 hover:shadow-elevation hover:-translate-y-0.5 transition-all duration-300 text-[14px] font-semibold shadow-sm"
         >
           {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin text-ai" /> : '🤖 '}
-          {loading ? 'Gerando...' : 'Gerar Síntese com IA'}
+          {loading ? 'IA gerando...' : 'Gerar Síntese com IA'}
         </Button>
       </div>
       <div
         className={cn(
           'transition-all duration-300',
-          value && isAiGenerated ? 'animate-slide-up' : '',
+          data.texto && data.isAi ? 'animate-slide-up' : '',
         )}
       >
         <Textarea
           rows={8}
-          value={value}
+          value={data.texto}
           onChange={(e) => handleManualChange(e.target.value)}
           placeholder="A síntese agregará queixa principal, resumos históricos e exames para criar um quadro descritivo. Pressione o botão acima para gerar, ou redija manualmente."
           className={cn(
             'text-[14px] leading-relaxed bg-white',
-            isAiGenerated && value
+            data.isAi && data.texto
               ? 'italic text-ai font-normal border-ai/30 bg-ai/5'
               : 'font-normal',
           )}

@@ -17,10 +17,21 @@ export default function NovaAnamnese() {
 
   const [paciente, setPaciente] = useState<any>(null)
 
-  const [queixa, setQueixa] = useState<any>(null)
-  const [resumo, setResumo] = useState('')
-  const [exameFisico, setExameFisico] = useState({})
-  const [impressao, setImpressao] = useState('')
+  const [queixaData, setQueixaData] = useState({ raw: '', struct: null as any })
+  const [historiaData, setHistoriaData] = useState({
+    raw: {
+      pessoais: '',
+      familiares: '',
+      medicacoes: [] as string[],
+      alergias: [] as string[],
+      cirurgias: [] as string[],
+      traumas: '',
+      perdas: '',
+    },
+    resumo: '',
+  })
+  const [exameFisico, setExameFisico] = useState<any>({})
+  const [impressaoData, setImpressaoData] = useState({ texto: '', isAi: false })
 
   useEffect(() => {
     if (id)
@@ -40,10 +51,27 @@ export default function NovaAnamnese() {
 
       await criarAnamnese({
         paciente_id: id,
-        queixa_estruturada: queixa || {},
-        historia_resumo: resumo,
-        exame_fisico: { ...exameFisico, imc },
-        impressao_clinica: impressao,
+        queixa_principal: queixaData.raw,
+        queixa_estruturada: queixaData.struct || {},
+        historia_clinica: JSON.stringify(historiaData.raw),
+        historia_resumida: historiaData.resumo,
+        antecedentes_pessoais: historiaData.raw.pessoais,
+        antecedentes_familiares: historiaData.raw.familiares,
+        medicacoes: historiaData.raw.medicacoes,
+        alergias: historiaData.raw.alergias,
+        cirurgias: historiaData.raw.cirurgias,
+        traumas: historiaData.raw.traumas,
+        perdas_recentes: historiaData.raw.perdas,
+        pressao_arterial: exameFisico.pa || '',
+        frequencia_cardiaca: Number(exameFisico.fc) || 0,
+        frequencia_respiratoria: Number(exameFisico.fr) || 0,
+        temperatura: Number(exameFisico.temp) || 0,
+        imc: Number(imc) || 0,
+        exame_neurologico: exameFisico.neuro || '',
+        exame_psiquico: exameFisico.psiquico || '',
+        exame_fisico: exameFisico,
+        impressao_clinica: impressaoData.texto,
+        impressao_ia: impressaoData.isAi ? impressaoData.texto : '',
       })
       toast({ description: '✅ Anamnese estruturada com sucesso!' })
       navigate(`/pacientes/${id}`)
@@ -86,14 +114,14 @@ export default function NovaAnamnese() {
           <h2 className="text-[24px] font-bold mb-4 text-slate-800 border-b pb-2">
             1. Queixa Principal
           </h2>
-          <QueixaSection pacienteId={id!} value={queixa} onChange={setQueixa} />
+          <QueixaSection pacienteId={id!} data={queixaData} onChange={setQueixaData} />
         </section>
 
         <section className="mb-8">
           <h2 className="text-[24px] font-bold mb-4 text-slate-800 border-b pb-2">
             2. História Clínica
           </h2>
-          <HistoriaSection pacienteId={id!} value={resumo} onChange={setResumo} />
+          <HistoriaSection pacienteId={id!} data={historiaData} onChange={setHistoriaData} />
         </section>
 
         <section className="mb-8">
@@ -109,9 +137,13 @@ export default function NovaAnamnese() {
           </h2>
           <ImpressaoSection
             pacienteId={id!}
-            context={{ queixa, resumo, exame_fisico: exameFisico }}
-            value={impressao}
-            onChange={setImpressao}
+            context={{
+              queixa: queixaData.struct,
+              resumo: historiaData.resumo,
+              exame_fisico: exameFisico,
+            }}
+            data={impressaoData}
+            onChange={setImpressaoData}
           />
         </section>
 

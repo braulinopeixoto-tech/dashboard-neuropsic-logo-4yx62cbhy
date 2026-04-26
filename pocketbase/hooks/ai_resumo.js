@@ -6,7 +6,7 @@ routerAdd(
     const paciente_id = body.paciente_id
     if (!paciente_id) return e.badRequestError('Missing paciente_id')
 
-    const prompt = `Você é um assistente de neuropsicologia. Crie um resumo narrativo profissional em português baseado nos dados clínicos fornecidos:
+    const prompt = `Resuma a seguinte história clínica em 3-4 parágrafos narrativos em português. Mantenha informações críticas.
 Antecedentes pessoais: ${body.pessoais || 'Nenhum'}
 Antecedentes familiares: ${body.familiares || 'Nenhum'}
 Medicações: ${(body.medicacoes || []).join(', ') || 'Nenhuma'}
@@ -45,7 +45,18 @@ Perdas: ${body.perdas || 'Nenhuma'}`
     record.set('prompt_context', prompt)
     record.set('response_data', { resumo: content })
     record.set('confidence_level', 0.9)
+    record.set('model', res.json.model || 'gpt-4o-mini')
+    record.set('tokens_used', res.json.usage?.total_tokens || 0)
     $app.save(record)
+
+    const colSummary = $app.findCollectionByNameOrId('ai_summaries')
+    const summary = new Record(colSummary)
+    summary.set('usuario_id', e.auth.id)
+    summary.set('paciente_id', paciente_id)
+    summary.set('tipo', 'historia_clinica')
+    summary.set('conteudo', content)
+    summary.set('versao', 1)
+    $app.save(summary)
 
     return e.json(200, { resumo: content })
   },

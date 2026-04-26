@@ -73,40 +73,35 @@ function DynamicList({
 
 export function HistoriaSection({
   pacienteId,
-  value,
+  data,
   onChange,
 }: {
   pacienteId: string
-  value: string
-  onChange: (v: string) => void
+  data: { raw: any; resumo: string }
+  onChange: (v: { raw: any; resumo: string }) => void
 }) {
-  const [data, setData] = useState({
-    pessoais: '',
-    familiares: '',
-    medicacoes: [] as string[],
-    alergias: [] as string[],
-    cirurgias: [] as string[],
-    traumas: '',
-    perdas: '',
-  })
   const [loading, setLoading] = useState(false)
-  const [isAiGenerated, setIsAiGenerated] = useState(false)
+  const [isAiGenerated, setIsAiGenerated] = useState(!!data.resumo)
   const { toast } = useToast()
+
+  const updateRaw = (field: string, val: any) => {
+    onChange({ ...data, raw: { ...data.raw, [field]: val } })
+  }
 
   const handleAI = async () => {
     setLoading(true)
     try {
-      const res = await processarAiResumo(pacienteId, data)
-      onChange(res.resumo)
+      const res = await processarAiResumo(pacienteId, data.raw)
+      onChange({ ...data, resumo: res.resumo })
       setIsAiGenerated(true)
       toast({ description: '✅ História resumida com sucesso!' })
     } catch (e) {
       toast({
-        description: '❌ Erro ao resumir com IA. Preencha manualmente.',
+        description: '❌ Erro ao resumir com IA. Tente novamente ou preencha manualmente.',
         variant: 'destructive',
       })
-      if (!value) {
-        onChange(' ')
+      if (!data.resumo) {
+        onChange({ ...data, resumo: ' ' })
         setIsAiGenerated(false)
       }
     } finally {
@@ -122,8 +117,8 @@ export function HistoriaSection({
           <Textarea
             rows={3}
             className="text-[14px] font-normal"
-            value={data.pessoais}
-            onChange={(e) => setData({ ...data, pessoais: e.target.value })}
+            value={data.raw.pessoais}
+            onChange={(e) => updateRaw('pessoais', e.target.value)}
           />
         </div>
         <div className="space-y-4">
@@ -131,31 +126,31 @@ export function HistoriaSection({
           <Textarea
             rows={3}
             className="text-[14px] font-normal"
-            value={data.familiares}
-            onChange={(e) => setData({ ...data, familiares: e.target.value })}
+            value={data.raw.familiares}
+            onChange={(e) => updateRaw('familiares', e.target.value)}
           />
         </div>
         <div className="space-y-4">
           <Label className="text-[16px] font-semibold">Medicações Atuais</Label>
           <DynamicList
-            items={data.medicacoes}
-            onChange={(v) => setData({ ...data, medicacoes: v })}
+            items={data.raw.medicacoes}
+            onChange={(v) => updateRaw('medicacoes', v)}
             placeholder="Ex: Losartana 50mg"
           />
         </div>
         <div className="space-y-4">
           <Label className="text-[16px] font-semibold">Alergias</Label>
           <DynamicList
-            items={data.alergias}
-            onChange={(v) => setData({ ...data, alergias: v })}
+            items={data.raw.alergias}
+            onChange={(v) => updateRaw('alergias', v)}
             placeholder="Ex: Penicilina"
           />
         </div>
         <div className="space-y-4">
           <Label className="text-[16px] font-semibold">Cirurgias Anteriores</Label>
           <DynamicList
-            items={data.cirurgias}
-            onChange={(v) => setData({ ...data, cirurgias: v })}
+            items={data.raw.cirurgias}
+            onChange={(v) => updateRaw('cirurgias', v)}
             placeholder="Ex: Apendicectomia (2015)"
           />
         </div>
@@ -164,8 +159,8 @@ export function HistoriaSection({
           <Textarea
             rows={2}
             className="text-[14px] font-normal"
-            value={data.traumas}
-            onChange={(e) => setData({ ...data, traumas: e.target.value })}
+            value={data.raw.traumas}
+            onChange={(e) => updateRaw('traumas', e.target.value)}
           />
         </div>
         <div className="space-y-4 md:col-span-2">
@@ -173,8 +168,8 @@ export function HistoriaSection({
           <Textarea
             rows={2}
             className="text-[14px] font-normal"
-            value={data.perdas}
-            onChange={(e) => setData({ ...data, perdas: e.target.value })}
+            value={data.raw.perdas}
+            onChange={(e) => updateRaw('perdas', e.target.value)}
           />
         </div>
       </div>
@@ -186,14 +181,14 @@ export function HistoriaSection({
           className="flex-1 sm:flex-none bg-ai/10 text-ai hover:bg-ai/20 border border-ai/20 hover:shadow-elevation hover:-translate-y-0.5 transition-all duration-300 text-[14px] font-semibold"
         >
           {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin text-ai" /> : '🤖 '}
-          {loading ? 'Processando...' : 'Resumir com IA'}
+          {loading ? 'IA resumindo...' : 'Resumir com IA'}
         </Button>
-        {!value && (
+        {!data.resumo && (
           <Button
             variant="outline"
             className="flex-1 sm:flex-none text-[14px] font-normal hover:shadow-elevation hover:-translate-y-0.5 transition-all duration-300"
             onClick={() => {
-              onChange(' ')
+              onChange({ ...data, resumo: ' ' })
               setIsAiGenerated(false)
             }}
           >
@@ -202,7 +197,7 @@ export function HistoriaSection({
         )}
       </div>
 
-      {value ? (
+      {data.resumo ? (
         <div className="mt-6 space-y-4 border-t border-slate-100 pt-6 animate-slide-up duration-300">
           <Label className="text-[16px] font-semibold text-slate-800">
             Resumo Narrativo Gerado
@@ -212,8 +207,8 @@ export function HistoriaSection({
               'min-h-[120px] text-[14px] leading-relaxed',
               isAiGenerated ? 'italic text-ai font-normal border-ai/30 bg-ai/5' : 'font-normal',
             )}
-            value={value.trim()}
-            onChange={(e) => onChange(e.target.value)}
+            value={data.resumo.trim()}
+            onChange={(e) => onChange({ ...data, resumo: e.target.value })}
           />
         </div>
       ) : null}

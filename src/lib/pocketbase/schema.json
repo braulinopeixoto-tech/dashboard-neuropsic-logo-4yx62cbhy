@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-26T14:35:12.732Z",
+  "generatedAt": "2026-04-26T14:45:18.663Z",
   "collections": [
     {
       "name": "users",
@@ -1602,11 +1602,11 @@
       "name": "anamneses",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
+        "list": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "view": "@request.auth.id != '' && usuario_id = @request.auth.id",
         "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "update": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && usuario_id = @request.auth.id"
       },
       "fields": [
         {
@@ -1660,6 +1660,114 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "queixa_principal",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "historia_clinica",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "historia_resumida",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "antecedentes_pessoais",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "antecedentes_familiares",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "medicacoes",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "alergias",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cirurgias",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "traumas",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "perdas_recentes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "pressao_arterial",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "frequencia_cardiaca",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "frequencia_respiratoria",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "temperatura",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "imc",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "exame_neurologico",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "exame_psiquico",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "impressao_ia",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []
@@ -1671,8 +1779,8 @@
         "list": "@request.auth.id != '' && usuario_id = @request.auth.id",
         "view": "@request.auth.id != '' && usuario_id = @request.auth.id",
         "create": "@request.auth.id != ''",
-        "update": null,
-        "delete": null
+        "update": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && usuario_id = @request.auth.id"
       },
       "fields": [
         {
@@ -1712,6 +1820,79 @@
           "name": "confidence_level",
           "type": "number",
           "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "model",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tokens_used",
+          "type": "number",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "ai_summaries",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "view": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && usuario_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "paciente_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "pacientes"
+        },
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["historia_clinica", "impressao_clinica", "relatorio_preliminar"]
+        },
+        {
+          "name": "conteudo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "versao",
+          "type": "number",
+          "required": true,
           "system": false
         },
         {
