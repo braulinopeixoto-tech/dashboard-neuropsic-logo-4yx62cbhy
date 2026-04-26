@@ -7,8 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/hooks/use-auth'
 import { getPaciente } from '@/services/pacientes'
-import { createDnda, getDnda } from '@/services/dnda'
-import pb from '@/lib/pocketbase/client'
+import { createDnda, updateDnda, getDnda } from '@/services/dnda'
 import { extractFieldErrors, getErrorMessage } from '@/lib/pocketbase/errors'
 import {
   ArrowLeft,
@@ -399,7 +398,12 @@ export default function NovoDNDA() {
       }
       const convergenceScoreValue = count > 0 ? Math.round((sum / (count * 10)) * 100) : 0
 
-      const payload = {
+      let classificationValue = 'instável'
+      if (data.neuroenergetica_variabilidade === 'Normal') classificationValue = 'estável'
+      else if (data.neuroenergetica_variabilidade === 'Rígido') classificationValue = 'hipoativo'
+      else if (data.neuroenergetica_variabilidade === 'Instável') classificationValue = 'instável'
+
+      const payload: any = {
         usuario_id: user.id,
         paciente_id: paciente.id,
         timestamp: new Date().toISOString(),
@@ -435,11 +439,87 @@ export default function NovoDNDA() {
           evolucao: data.temporal_evolucao || '',
         },
         confidence_level: confidenceLevel,
+        classification: classificationValue,
+        integration_status: data.integracao_dmn
+          ? String(data.integracao_dmn).toLowerCase()
+          : 'desacoplado',
+        organization_status: data.organizacional_simetria
+          ? Number(data.organizacional_simetria) > 5
+            ? 'coerente'
+            : 'difuso'
+          : 'difuso',
         raw_data: data,
+
+        // Native columns mapping
+        neuroenergetica_potencia: Number(data.neuroenergetica_potencia || 0),
+        neuroenergetica_tbr: Number(data.neuroenergetica_tbr || 0),
+        neuroenergetica_excitacao: Number(data.neuroenergetica_excitacao || 0),
+
+        integracao_coerencia: Number(data.integracao_coerencia || 0),
+        integracao_conectividade: Number(data.integracao_conectividade || 0),
+
+        organizacional_simetria: Number(data.organizacional_simetria || 0),
+        organizacional_gradientes: Number(data.organizacional_gradientes || 0),
+        organizacional_topografia: Number(data.organizacional_topografia || 0),
+        organizacional_complexidade: Number(data.organizacional_complexidade || 0),
+
+        funcional_atencao_sustentada: Number(data.funcional_atencao_sustentada || 0),
+        funcional_atencao_seletiva: Number(data.funcional_atencao_seletiva || 0),
+        funcional_controle_inibitorio: Number(data.funcional_controle_inibitorio || 0),
+        funcional_flexibilidade: Number(data.funcional_flexibilidade || 0),
+        funcional_memoria_trabalho: Number(data.funcional_memoria_trabalho || 0),
+        funcional_processamento_emocional: Number(data.funcional_processamento_emocional || 0),
+
+        rdoc_valencia_negativa: Number(data.rdoc_valencia_negativa || 0),
+        rdoc_valencia_positiva: Number(data.rdoc_valencia_positiva || 0),
+        rdoc_sistemas_cognitivos: Number(data.rdoc_sistemas_cognitivos || 0),
+        rdoc_sistemas_sociais: Number(data.rdoc_sistemas_sociais || 0),
+        rdoc_regulacao_sensoriomotora: Number(data.rdoc_regulacao_sensoriomotora || 0),
+        rdoc_arousal_regulacao: Number(data.rdoc_arousal_regulacao || 0),
+
+        neurobiologica_metabolismo: Number(data.neurobiologica_metabolismo || 0),
+        neurobiologica_inflamacao: Number(data.neurobiologica_inflamacao || 0),
+        neurobiologica_sono: Number(data.neurobiologica_sono || 0),
+        neurobiologica_hrv: Number(data.neurobiologica_hrv || 0),
+
+        temporal_traumas: data.temporal_traumas || '',
+        temporal_perdas: data.temporal_perdas || '',
+        temporal_evolucao: data.temporal_evolucao || '',
+        temporal_resposta_intervencoes: data.temporal_resposta_intervencoes || '',
+
+        convergencia_estado_neurofuncional: data.convergencia_estado_neurofuncional || '',
+        convergencia_vetor_adaptativo: data.convergencia_vetor_adaptativo || '',
+        convergencia_resumo: data.convergencia_resumo || '',
+
+        intervencao_base: Boolean(data.intervencao_base),
+        intervencao_integracao: Boolean(data.intervencao_integracao),
+        intervencao_especializacao: Boolean(data.intervencao_especializacao),
+        intervencao_neuromodulacao_tdcs: Boolean(data.intervencao_neuromodulacao_tdcs),
+        intervencao_neuromodulacao_tacs: Boolean(data.intervencao_neuromodulacao_tacs),
+        intervencao_neuromodulacao_reac: Boolean(data.intervencao_neuromodulacao_reac),
+        intervencao_neuromodulacao_tms: Boolean(data.intervencao_neuromodulacao_tms),
+        intervencao_neurofeedback: Boolean(data.intervencao_neurofeedback),
+        intervencao_biofeedback: Boolean(data.intervencao_biofeedback),
       }
 
+      if (data.neuroenergetica_variabilidade)
+        payload.neuroenergetica_variabilidade = data.neuroenergetica_variabilidade
+      if (data.integracao_dmn) payload.integracao_dmn = data.integracao_dmn
+      if (data.integracao_salience) payload.integracao_salience = data.integracao_salience
+      if (data.integracao_executive) payload.integracao_executive = data.integracao_executive
+      if (data.funcional_big_five) payload.funcional_big_five = data.funcional_big_five
+      if (data.neurobiologica_ciclo_menstrual)
+        payload.neurobiologica_ciclo_menstrual = data.neurobiologica_ciclo_menstrual
+      if (data.neurobiologica_dieta) payload.neurobiologica_dieta = data.neurobiologica_dieta
+      if (data.neurobiologica_intestino)
+        payload.neurobiologica_intestino = data.neurobiologica_intestino
+      if (data.temporal_classificacao_perdas)
+        payload.temporal_classificacao_perdas = data.temporal_classificacao_perdas
+      if (data.convergencia_risco_clinico)
+        payload.convergencia_risco_clinico = data.convergencia_risco_clinico
+
       if (dndaId) {
-        await pb.collection('dnda_schema').update(dndaId, payload)
+        await updateDnda(dndaId, payload)
         toast({
           title: 'DNDA padronizado com sucesso!',
           className: 'bg-success text-white border-none',
@@ -459,13 +539,21 @@ export default function NovoDNDA() {
       const errorDetails =
         Object.keys(fieldErrors).length > 0
           ? Object.entries(fieldErrors)
-              .map(([k, v]) => `${k}: ${v}`)
+              .map(([k, v]) => {
+                const ptMsg =
+                  v === 'Missing required value.'
+                    ? 'Campo obrigatório'
+                    : v === 'Invalid value.'
+                      ? 'Valor inválido'
+                      : v
+                return `${k}: ${ptMsg}`
+              })
               .join('\n')
           : errorMsg
 
       toast({
         title: 'Erro de validação DNDA™',
-        description: errorDetails,
+        description: errorDetails || 'Verifique se todos os dados estão preenchidos corretamente.',
         variant: 'destructive',
       })
     } finally {

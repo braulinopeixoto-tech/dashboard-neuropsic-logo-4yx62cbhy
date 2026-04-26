@@ -63,6 +63,7 @@ export default function NovaAnamnese() {
         queixa_principal: queixaData.raw,
         queixa_estruturada: queixaStruct,
         historia_clinica: JSON.stringify(historiaData.raw),
+        historia_resumo: historiaData.resumo,
         historia_resumida: historiaData.resumo,
         antecedentes_pessoais: historiaData.raw.pessoais,
         antecedentes_familiares: historiaData.raw.familiares,
@@ -90,13 +91,21 @@ export default function NovaAnamnese() {
       const errorDetails =
         Object.keys(fieldErrors).length > 0
           ? Object.entries(fieldErrors)
-              .map(([k, v]) => `${k}: ${v}`)
+              .map(([k, v]) => {
+                const ptMsg =
+                  v === 'Missing required value.'
+                    ? 'Campo obrigatório'
+                    : v === 'Invalid value.'
+                      ? 'Valor inválido'
+                      : v
+                return `${k}: ${ptMsg}`
+              })
               .join('\n')
           : errorMsg
 
       toast({
         title: '❌ Erro de validação ao salvar.',
-        description: errorDetails,
+        description: errorDetails || 'Verifique se todos os dados estão preenchidos corretamente.',
         variant: 'destructive',
       })
     } finally {
