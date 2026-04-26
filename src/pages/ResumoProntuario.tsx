@@ -5,6 +5,7 @@ import { CheckCircle2, XCircle, Sparkles, Loader2, Save, ArrowLeft, History } fr
 import pb from '@/lib/pocketbase/client'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
+import { extractFieldErrors, getErrorMessage } from '@/lib/pocketbase/errors'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
@@ -137,6 +138,7 @@ export default function ResumoProntuario() {
   const [loading, setLoading] = useState(true)
   const [isGenerating, setIsGenerating] = useState(false)
   const [regenerating, setRegenerating] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
 
   const [checklist, setChecklist] = useState({
     anamneses: false,
@@ -240,6 +242,7 @@ export default function ResumoProntuario() {
 
   const saveSummary = async () => {
     if (!id || !summary) return
+    setIsSaving(true)
     try {
       const nextVer = versions.length > 0 ? versions[0].versao + 1 : 1
       await pb.collection('ai_summaries').create({
@@ -257,7 +260,22 @@ export default function ResumoProntuario() {
       loadData()
     } catch (err) {
       console.error(err)
-      toast({ title: 'Erro ao salvar resumo.', variant: 'destructive' })
+      const fieldErrors = extractFieldErrors(err)
+      const errorMsg = getErrorMessage(err)
+      const errorDetails =
+        Object.keys(fieldErrors).length > 0
+          ? Object.entries(fieldErrors)
+              .map(([k, v]) => `${k}: ${v}`)
+              .join('\n')
+          : errorMsg
+
+      toast({
+        title: 'Erro de validação ao salvar.',
+        description: errorDetails,
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -342,10 +360,15 @@ export default function ResumoProntuario() {
                 </h2>
                 <Button
                   onClick={saveSummary}
+                  disabled={isSaving}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white hidden sm:flex"
                 >
-                  <Save className="w-4 h-4 mr-2" />
-                  Confirmar Resumo
+                  {isSaving ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4 mr-2" />
+                  )}
+                  {isSaving ? 'Salvando...' : 'Confirmar Resumo'}
                 </Button>
               </div>
 
@@ -386,11 +409,16 @@ export default function ResumoProntuario() {
               <div className="flex justify-end mt-6">
                 <Button
                   onClick={saveSummary}
+                  disabled={isSaving}
                   size="lg"
                   className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-md w-full sm:w-auto"
                 >
-                  <Save className="w-5 h-5 mr-2" />
-                  Confirmar Resumo Definitivo
+                  {isSaving ? (
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="w-5 h-5 mr-2" />
+                  )}
+                  {isSaving ? 'Salvando...' : 'Confirmar Resumo Definitivo'}
                 </Button>
               </div>
             </div>

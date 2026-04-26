@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { getPaciente } from '@/services/pacientes'
 import { createDnda, getDnda } from '@/services/dnda'
 import pb from '@/lib/pocketbase/client'
+import { extractFieldErrors, getErrorMessage } from '@/lib/pocketbase/errors'
 import {
   ArrowLeft,
   Save,
@@ -388,10 +389,21 @@ export default function NovoDNDA() {
           ? (REQUIRED_FIELDS.length - missingFields.length) / REQUIRED_FIELDS.length
           : 0
 
+      let sum = 0
+      let count = 0
+      for (const f of NUMERIC_FIELDS) {
+        if (data[f] !== undefined && data[f] !== '' && data[f] !== null) {
+          sum += Number(data[f])
+          count++
+        }
+      }
+      const convergenceScoreValue = count > 0 ? Math.round((sum / (count * 10)) * 100) : 0
+
       const payload = {
         usuario_id: user.id,
         paciente_id: paciente.id,
         timestamp: new Date().toISOString(),
+        convergence_score: convergenceScoreValue,
         neuro_energy: Number(data.neuroenergetica_potencia || 0),
         network_integration: Number(data.integracao_coerencia || 0),
         organization: Number(data.organizacional_simetria || 0),
@@ -442,7 +454,20 @@ export default function NovoDNDA() {
 
       setTimeout(() => navigate(`/pacientes/${paciente.id}`), 1000)
     } catch (err) {
-      toast({ title: 'Erro ao salvar DNDA™', variant: 'destructive' })
+      const fieldErrors = extractFieldErrors(err)
+      const errorMsg = getErrorMessage(err)
+      const errorDetails =
+        Object.keys(fieldErrors).length > 0
+          ? Object.entries(fieldErrors)
+              .map(([k, v]) => `${k}: ${v}`)
+              .join('\n')
+          : errorMsg
+
+      toast({
+        title: 'Erro de validação DNDA™',
+        description: errorDetails,
+        variant: 'destructive',
+      })
     } finally {
       setSaving(false)
     }

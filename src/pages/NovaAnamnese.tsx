@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
+import { extractFieldErrors, getErrorMessage } from '@/lib/pocketbase/errors'
 import { getPaciente } from '@/services/pacientes'
 import { criarAnamnese } from '@/services/anamneses'
 import { QueixaSection } from '@/components/anamnese/QueixaSection'
@@ -32,6 +33,7 @@ export default function NovaAnamnese() {
   })
   const [exameFisico, setExameFisico] = useState<any>({})
   const [impressaoData, setImpressaoData] = useState({ texto: '', isAi: false })
+  const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
     if (id)
@@ -42,6 +44,7 @@ export default function NovaAnamnese() {
 
   const handleSave = async () => {
     if (!id) return
+    setIsSaving(true)
     try {
       const imc = (() => {
         const w = parseFloat((exameFisico as any).peso)
@@ -49,10 +52,16 @@ export default function NovaAnamnese() {
         return w > 0 && h > 0 ? (w / (h * h)).toFixed(1) : ''
       })()
 
+      // Verifica se a queixa estruturada é um objeto JSON válido para a persistência
+      const queixaStruct =
+        queixaData.struct && Object.keys(queixaData.struct).length > 0
+          ? queixaData.struct
+          : { status: 'Não estruturada' }
+
       await criarAnamnese({
         paciente_id: id,
         queixa_principal: queixaData.raw,
-        queixa_estruturada: queixaData.struct || {},
+        queixa_estruturada: queixaStruct,
         historia_clinica: JSON.stringify(historiaData.raw),
         historia_resumida: historiaData.resumo,
         antecedentes_pessoais: historiaData.raw.pessoais,
@@ -76,7 +85,22 @@ export default function NovaAnamnese() {
       toast({ description: '✅ Anamnese estruturada com sucesso!' })
       navigate(`/pacientes/${id}`)
     } catch (error) {
-      toast({ description: '❌ Erro ao salvar a anamnese.', variant: 'destructive' })
+      const fieldErrors = extractFieldErrors(error)
+      const errorMsg = getErrorMessage(error)
+      const errorDetails =
+        Object.keys(fieldErrors).length > 0
+          ? Object.entries(fieldErrors)
+              .map(([k, v]) => `${k}: ${v}`)
+              .join('\n')
+          : errorMsg
+
+      toast({
+        title: '❌ Erro de validação ao salvar.',
+        description: errorDetails,
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -157,9 +181,11 @@ export default function NovaAnamnese() {
           </Button>
           <Button
             onClick={handleSave}
+            disabled={isSaving}
             className="w-full sm:w-auto gap-2 bg-primary text-primary-foreground text-[14px] font-bold hover:shadow-elevation hover:-translate-y-0.5 transition-all duration-300"
           >
-            💾 Confirmar Anamnese
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : '💾'}
+            {isSaving ? 'Salvando...' : 'Confirmar Anamnese'}
           </Button>
         </div>
       </div>
