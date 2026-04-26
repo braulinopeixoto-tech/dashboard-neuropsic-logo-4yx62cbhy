@@ -20,6 +20,7 @@ import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import CommandCenter from './pages/CommandCenter'
 import RelatorioFinal from './pages/RelatorioFinal'
+import ResumoProntuario from './pages/ResumoProntuario'
 
 const App = () => (
   <AuthProvider>
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/pacientes/:id/dnda/novo" element={<NovoDNDA />} />
             <Route path="/pacientes/:id/dnda/:dndaId/editar" element={<NovoDNDA />} />
             <Route path="/pacientes/:id/dnda/:dndaId" element={<VisualizarDNDA />} />
+            <Route path="/pacientes/:id/resumo-prontuario" element={<ResumoProntuario />} />
             <Route path="/relatorio-final/:id" element={<RelatorioFinal />} />
             <Route path="/alertas" element={<Alertas />} />
             <Route path="/relatorios" element={<Relatorios />} />
