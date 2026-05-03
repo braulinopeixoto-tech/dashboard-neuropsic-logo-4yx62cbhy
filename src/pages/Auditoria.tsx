@@ -38,6 +38,7 @@ import {
   FileDown,
 } from 'lucide-react'
 import { ExportPdfModal } from '@/components/ExportPdfModal'
+import { ExportCsvModal } from '@/components/ExportCsvModal'
 
 const ITEMS_PER_PAGE = 20
 
@@ -88,6 +89,7 @@ export default function Auditoria() {
   const [verifying, setVerifying] = useState(false)
   const [verifyStatus, setVerifyStatus] = useState<'success' | 'error' | null>(null)
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false)
+  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false)
 
   const fetchLogs = async () => {
     setIsLoading(true)
@@ -222,11 +224,28 @@ export default function Auditoria() {
             Monitoramento de integridade e histórico de eventos do sistema.
           </p>
         </div>
-        <Button onClick={() => setIsPdfModalOpen(true)} className="gap-2">
-          <FileDown className="w-4 h-4" />
-          Exportar PDF
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button variant="outline" onClick={() => setIsCsvModalOpen(true)} className="gap-2">
+            <FileDown className="w-4 h-4" />
+            Exportar CSV
+          </Button>
+          <Button onClick={() => setIsPdfModalOpen(true)} className="gap-2">
+            <FileDown className="w-4 h-4" />
+            Exportar PDF
+          </Button>
+        </div>
       </div>
+
+      <ExportCsvModal
+        open={isCsvModalOpen}
+        onOpenChange={setIsCsvModalOpen}
+        defaultStartDate={activeFilters.startDate}
+        defaultEndDate={activeFilters.endDate}
+        filters={{
+          eventType: activeFilters.eventType,
+          userName: activeFilters.userFilter,
+        }}
+      />
 
       <ExportPdfModal
         open={isPdfModalOpen}

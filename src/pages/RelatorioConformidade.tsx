@@ -25,11 +25,13 @@ import { Download, ShieldCheck, CheckCircle2, Stethoscope, ArrowDown, ArrowUp } 
 import pb from '@/lib/pocketbase/client'
 import { useToast } from '@/hooks/use-toast'
 import { ExportPdfModal } from '@/components/ExportPdfModal'
+import { ExportCsvModal } from '@/components/ExportCsvModal'
 
 export default function RelatorioConformidade() {
   const { toast } = useToast()
 
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false)
+  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false)
   const [filters, setFilters] = useState({
     startDate: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
     endDate: format(new Date(), 'yyyy-MM-dd'),
@@ -250,10 +252,16 @@ export default function RelatorioConformidade() {
           </p>
         </div>
         {reportGenerated && (
-          <Button onClick={handleExport} className="gap-2">
-            <Download className="w-4 h-4" />
-            Exportar PDF
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setIsCsvModalOpen(true)} className="gap-2">
+              <Download className="w-4 h-4" />
+              Exportar CSV
+            </Button>
+            <Button onClick={handleExport} className="gap-2">
+              <Download className="w-4 h-4" />
+              Exportar PDF
+            </Button>
+          </div>
         )}
       </div>
 
@@ -488,6 +496,17 @@ export default function RelatorioConformidade() {
               </CardContent>
             </Card>
           </div>
+
+          <ExportCsvModal
+            open={isCsvModalOpen}
+            onOpenChange={setIsCsvModalOpen}
+            defaultStartDate={filters.startDate}
+            defaultEndDate={filters.endDate}
+            filters={{
+              eventType: filters.eventType,
+              userId: filters.userId,
+            }}
+          />
 
           <ExportPdfModal
             open={isPdfModalOpen}
