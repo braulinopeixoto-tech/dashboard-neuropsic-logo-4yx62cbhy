@@ -23,3 +23,18 @@ export const getEntityAuditLogs = async (entity_type: string, entity_id: string)
     expand: 'author_id',
   })
 }
+
+export const sealAuditLog = async (data: {
+  user_id: string
+  event_type: 'login' | 'vital_score' | 'acesso_prontuario'
+  action_description: string
+  payload?: any
+}) => {
+  return await pb.send('/backend/v1/seal_audit_log', {
+    method: 'POST',
+    body: JSON.stringify(data),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+}
