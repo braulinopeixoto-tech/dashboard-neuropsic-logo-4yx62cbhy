@@ -10,10 +10,12 @@ import { getIntervencoes } from '@/services/intervencoes'
 import { getDndasByPaciente } from '@/services/dnda'
 import { ArrowLeft } from 'lucide-react'
 
+import { Activity } from 'lucide-react'
 import { PacienteHeader } from '@/components/paciente/PacienteHeader'
 import { TabProtocolo } from '@/components/paciente/TabProtocolo'
 import { TabHistorico } from '@/components/paciente/TabHistorico'
 import { TabIntervencoes } from '@/components/paciente/TabIntervencoes'
+import { VitalScoreDialog } from '@/components/paciente/VitalScoreDialog'
 
 export default function PacientePerfil() {
   const { id } = useParams<{ id: string }>()
@@ -25,6 +27,7 @@ export default function PacientePerfil() {
   const [intervencoes, setIntervencoes] = useState<any[]>([])
   const [dndas, setDndas] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [vitalScoreModalOpen, setVitalScoreModalOpen] = useState(false)
 
   const loadData = async () => {
     if (!id) return
@@ -90,6 +93,14 @@ export default function PacientePerfil() {
           </Link>
         </Button>
         <div className="flex flex-wrap gap-2 justify-end">
+          <Button
+            variant="outline"
+            className="shadow-sm border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
+            onClick={() => setVitalScoreModalOpen(true)}
+            disabled={!protocolos.length}
+          >
+            <Activity className="h-4 w-4 mr-2" /> Vital Score
+          </Button>
           <Button variant="outline" className="shadow-sm" asChild>
             <Link to={`/pacientes/${id}/anamnese`}>Nova Anamnese (IA)</Link>
           </Button>
@@ -106,6 +117,15 @@ export default function PacientePerfil() {
       </div>
 
       <PacienteHeader paciente={paciente} />
+
+      {protocoloAtual && (
+        <VitalScoreDialog
+          open={vitalScoreModalOpen}
+          onOpenChange={setVitalScoreModalOpen}
+          pacienteId={id!}
+          protocoloId={protocoloAtual.id}
+        />
+      )}
 
       <Tabs defaultValue="protocolo" className="w-full">
         <TabsList className="w-full sm:w-auto flex-col sm:flex-row h-auto p-1 bg-slate-100 mb-8 border border-border rounded-lg">

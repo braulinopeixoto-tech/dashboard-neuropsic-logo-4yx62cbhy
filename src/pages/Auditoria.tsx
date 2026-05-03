@@ -502,6 +502,37 @@ export default function Auditoria() {
                 <span className="text-xs font-bold text-slate-500 uppercase block mb-2">
                   Payload do Evento
                 </span>
+                {selectedLog.event_type === 'vital_score' &&
+                selectedLog.payload?.vital_score_novo !== undefined ? (
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="border border-slate-200 rounded-lg p-3 bg-slate-50">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">
+                        Valor Anterior
+                      </span>
+                      <span className="text-lg font-bold text-slate-600">
+                        {selectedLog.payload.vital_score_anterior}
+                      </span>
+                    </div>
+                    <div className="border border-blue-200 rounded-lg p-3 bg-blue-50">
+                      <span className="text-[10px] font-bold text-blue-500 uppercase block mb-1">
+                        Novo Valor
+                      </span>
+                      <span className="text-lg font-bold text-blue-700">
+                        {selectedLog.payload.vital_score_novo}
+                      </span>
+                    </div>
+                    {selectedLog.payload.motivo_alteracao && (
+                      <div className="col-span-2 border border-slate-200 rounded-lg p-3 bg-white">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">
+                          Motivo da Alteração
+                        </span>
+                        <span className="text-sm text-slate-700">
+                          {selectedLog.payload.motivo_alteracao}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
                 <ScrollArea className="h-[120px] w-full rounded-lg border border-slate-200 bg-slate-50 p-3">
                   <pre className="text-xs font-mono text-slate-700 whitespace-pre-wrap">
                     {JSON.stringify(selectedLog.payload, null, 2)}
