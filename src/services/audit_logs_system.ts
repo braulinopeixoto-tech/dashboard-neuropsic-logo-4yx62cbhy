@@ -1,5 +1,13 @@
 import pb from '@/lib/pocketbase/client'
 
+export const verifyAuditLogIntegrity = async (logId: string) => {
+  return await pb.send('/backend/v1/verify-integrity', {
+    method: 'POST',
+    body: JSON.stringify({ log_id: logId }),
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
 export const getAuditLogsSystemList = async (
   page: number,
   perPage: number,

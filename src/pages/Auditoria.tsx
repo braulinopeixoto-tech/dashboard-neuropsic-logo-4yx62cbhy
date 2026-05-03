@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { useAuth } from '@/hooks/use-auth'
-import { getAuditLogsSystemList } from '@/services/audit_logs_system'
+import { getAuditLogsSystemList, verifyAuditLogIntegrity } from '@/services/audit_logs_system'
 import {
   Select,
   SelectContent,
@@ -133,13 +133,39 @@ export default function Auditoria() {
     setCurrentPage(1)
   }
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
+    if (!selectedLog) return
+
     setVerifying(true)
     setVerifyStatus(null)
-    setTimeout(() => {
+    try {
+      const response = await verifyAuditLogIntegrity(selectedLog.id)
+      setVerifyStatus(response.integrity_status === 'corrupted' ? 'error' : 'success')
+
+      setSelectedLog((prev: any) => ({
+        ...prev,
+        integrity_status: response.integrity_status,
+        hash_recalculated: response.hash_recalculated,
+        verified_at: response.verified_at,
+      }))
+
+      setLogs((prev) =>
+        prev.map((log) =>
+          log.id === selectedLog.id
+            ? {
+                ...log,
+                integrity_status: response.integrity_status,
+                verified_at: response.verified_at,
+              }
+            : log,
+        ),
+      )
+    } catch (error) {
+      console.error('Failed to verify integrity:', error)
+      setVerifyStatus('error')
+    } finally {
       setVerifying(false)
-      setVerifyStatus(selectedLog?.integrity_status === 'corrupted' ? 'error' : 'success')
-    }, 1000)
+    }
   }
 
   useEffect(() => {
@@ -439,12 +465,28 @@ export default function Auditoria() {
                 <div className="space-y-2">
                   <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
                     <span className="text-[10px] font-bold text-slate-400 uppercase block mb-0.5">
-                      Hash Atual (SHA-256)
+                      Hash Armazenado (SHA-256)
                     </span>
                     <span className="text-xs font-mono text-emerald-400 break-all leading-tight">
                       {selectedLog.hash_sha256}
                     </span>
                   </div>
+                  {selectedLog.hash_recalculated && (
+                    <div
+                      className={`p-3 rounded-lg border ${selectedLog.hash_recalculated === selectedLog.hash_sha256 ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}
+                    >
+                      <span
+                        className={`text-[10px] font-bold uppercase block mb-0.5 ${selectedLog.hash_recalculated === selectedLog.hash_sha256 ? 'text-emerald-600' : 'text-rose-600'}`}
+                      >
+                        Hash Recalculado
+                      </span>
+                      <span
+                        className={`text-xs font-mono break-all leading-tight ${selectedLog.hash_recalculated === selectedLog.hash_sha256 ? 'text-emerald-700' : 'text-rose-700'}`}
+                      >
+                        {selectedLog.hash_recalculated}
+                      </span>
+                    </div>
+                  )}
                   <div className="bg-slate-800 p-3 rounded-lg border border-slate-700">
                     <span className="text-[10px] font-bold text-slate-400 uppercase block mb-0.5">
                       Hash Anterior
