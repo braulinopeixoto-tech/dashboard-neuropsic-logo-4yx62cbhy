@@ -42,7 +42,41 @@ export function AdminAlertsBell() {
     loadAlerts()
   }, [user])
 
-  useRealtime('admin_alerts', () => {
+  const playAlertSound = () => {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
+      const oscillator = audioCtx.createOscillator()
+      const gainNode = audioCtx.createGain()
+
+      oscillator.connect(gainNode)
+      gainNode.connect(audioCtx.destination)
+
+      oscillator.type = 'square'
+      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime)
+      oscillator.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.1)
+
+      gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime)
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5)
+
+      oscillator.start()
+      oscillator.stop(audioCtx.currentTime + 0.5)
+    } catch (e) {
+      console.error('Audio play failed', e)
+    }
+  }
+
+  useRealtime('admin_alerts', (e) => {
+    if (e.action === 'create' && e.record.usuario_id === user?.id) {
+      if (e.record.tipo_alerta === 'corrupted') {
+        playAlertSound()
+        toast({
+          title: 'ALERTA CRÍTICO',
+          description: 'ALERTA: Log corrompido detectado',
+          variant: 'destructive',
+          duration: 10000,
+        })
+      }
+    }
     loadAlerts()
   })
 
