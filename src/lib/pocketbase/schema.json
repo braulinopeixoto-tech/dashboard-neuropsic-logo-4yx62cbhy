@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T13:23:07.346Z",
+  "generatedAt": "2026-05-03T13:29:03.362Z",
   "collections": [
     {
       "name": "users",
@@ -2099,6 +2099,74 @@
           "type": "bool",
           "required": false,
           "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "chain_breaks",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && @request.auth.tipo = 'neuropsicólogo'",
+        "view": "@request.auth.id != '' && @request.auth.tipo = 'neuropsicólogo'",
+        "create": null,
+        "update": "@request.auth.id != '' && @request.auth.tipo = 'neuropsicólogo'",
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "first_corrupted_log_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "audit_logs"
+        },
+        {
+          "name": "last_corrupted_log_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "audit_logs"
+        },
+        {
+          "name": "affected_logs_count",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "detected_at",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["detected", "investigating", "resolved"]
         },
         {
           "name": "created",

@@ -27,6 +27,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { fetchCockpitData, recalcularProtocolo } from '@/services/cockpit'
 import { InterveneNowModal } from '@/components/InterveneNowModal'
 import { cn } from '@/lib/utils'
+import pb from '@/lib/pocketbase/client'
 
 function CockpitSkeleton() {
   return (
@@ -54,6 +55,7 @@ export default function CommandCenter() {
   const [error, setError] = useState(false)
   const [interveningRisk, setInterveningRisk] = useState<any>(null)
   const [recalculating, setRecalculating] = useState<string | null>(null)
+  const [activeBreaks, setActiveBreaks] = useState<any[]>([])
 
   const loadData = async () => {
     try {
@@ -67,12 +69,28 @@ export default function CommandCenter() {
     }
   }
 
+  const loadChainBreaks = async () => {
+    if (user?.tipo !== 'neuropsicólogo') return
+    try {
+      const records = await pb.collection('chain_breaks').getFullList({
+        filter: 'status = "detected" || status = "investigating"',
+      })
+      setActiveBreaks(records)
+    } catch (err) {
+      console.error('Failed to load chain breaks', err)
+    }
+  }
+
   useEffect(() => {
     loadData()
-  }, [])
+    loadChainBreaks()
+  }, [user])
 
   useRealtime('risk_score', () => {
     loadData()
+  })
+  useRealtime('chain_breaks', () => {
+    loadChainBreaks()
   })
   useRealtime('dnda_schema', () => {
     loadData()
@@ -226,6 +244,31 @@ export default function CommandCenter() {
 
   return (
     <div className="flex flex-col gap-6 animate-fade-in-up pb-10">
+      {activeBreaks.length > 0 && (
+        <div className="bg-red-600 text-white p-4 rounded-lg flex flex-col md:flex-row items-start md:items-center justify-between shadow-md gap-4">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="h-6 w-6 shrink-0 text-red-200" />
+            <div>
+              <h3 className="font-bold text-lg leading-tight">
+                ⚠️ Quebra de integridade detectada na cadeia de logs
+              </h3>
+              <p className="text-red-100 text-sm mt-1">
+                {activeBreaks.reduce((acc, curr) => acc + (curr.affected_logs_count || 0), 0)}{' '}
+                registros afetados em {activeBreaks.length} quebra(s).
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            asChild
+            className="text-red-900 font-semibold bg-white hover:bg-red-50 border-0 shrink-0"
+          >
+            <Link to="/auditoria">Revisar Compliance</Link>
+          </Button>
+        </div>
+      )}
+
       <div>
         <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
           Command Center — Cockpit Clínico
