@@ -26,6 +26,7 @@ import { toast } from 'sonner'
 import { useAuth } from '@/hooks/use-auth'
 import { fetchCockpitData, recalcularProtocolo } from '@/services/cockpit'
 import { InterveneNowModal } from '@/components/InterveneNowModal'
+import { AuditRecoveryModal } from '@/components/AuditRecoveryModal'
 import { cn } from '@/lib/utils'
 import pb from '@/lib/pocketbase/client'
 
@@ -56,6 +57,8 @@ export default function CommandCenter() {
   const [interveningRisk, setInterveningRisk] = useState<any>(null)
   const [recalculating, setRecalculating] = useState<string | null>(null)
   const [activeBreaks, setActiveBreaks] = useState<any[]>([])
+  const [recoveryModalOpen, setRecoveryModalOpen] = useState(false)
+  const [selectedBreak, setSelectedBreak] = useState<any>(null)
 
   const loadData = async () => {
     try {
@@ -74,6 +77,7 @@ export default function CommandCenter() {
     try {
       const records = await pb.collection('chain_breaks').getFullList({
         filter: 'status = "detected" || status = "investigating"',
+        expand: 'first_corrupted_log_id.usuario_id,last_corrupted_log_id.usuario_id',
       })
       setActiveBreaks(records)
     } catch (err) {
@@ -261,10 +265,13 @@ export default function CommandCenter() {
           <Button
             variant="secondary"
             size="sm"
-            asChild
+            onClick={() => {
+              setSelectedBreak(activeBreaks[0])
+              setRecoveryModalOpen(true)
+            }}
             className="text-red-900 font-semibold bg-white hover:bg-red-50 border-0 shrink-0"
           >
-            <Link to="/auditoria">Revisar Compliance</Link>
+            Iniciar Recuperação
           </Button>
         </div>
       )}
@@ -475,6 +482,13 @@ export default function CommandCenter() {
         open={!!interveningRisk}
         onOpenChange={(v: boolean) => !v && setInterveningRisk(null)}
         onSuccess={loadData}
+      />
+
+      <AuditRecoveryModal
+        open={recoveryModalOpen}
+        onOpenChange={setRecoveryModalOpen}
+        chainBreak={selectedBreak}
+        onSuccess={loadChainBreaks}
       />
     </div>
   )

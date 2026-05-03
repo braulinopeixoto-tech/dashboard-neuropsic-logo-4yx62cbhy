@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T13:29:03.362Z",
+  "generatedAt": "2026-05-03T13:32:38.467Z",
   "collections": [
     {
       "name": "users",
@@ -2162,11 +2162,78 @@
           "system": false
         },
         {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
           "name": "status",
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["detected", "investigating", "resolved"]
+          "selectValues": ["detected", "investigating", "resolved", "investigated"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "recovery_reports",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && @request.auth.tipo = 'neuropsicólogo'",
+        "view": "@request.auth.id != '' && @request.auth.tipo = 'neuropsicólogo'",
+        "create": "@request.auth.id != '' && @request.auth.tipo = 'neuropsicólogo'",
+        "update": "@request.auth.id != '' && @request.auth.tipo = 'neuropsicólogo'",
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "chain_break_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "chain_breaks"
+        },
+        {
+          "name": "acao_tomada",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["restauracao", "investigacao", "delecao"]
+        },
+        {
+          "name": "logs_afetados",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "notas_investigacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "timestamp_resolucao",
+          "type": "date",
+          "required": true,
+          "system": false
         },
         {
           "name": "created",

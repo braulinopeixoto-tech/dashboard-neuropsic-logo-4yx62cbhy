@@ -37,8 +37,10 @@ import {
   ShieldAlert,
   FileDown,
 } from 'lucide-react'
+import pb from '@/lib/pocketbase/client'
 import { ExportPdfModal } from '@/components/ExportPdfModal'
 import { ExportCsvModal } from '@/components/ExportCsvModal'
+import { AuditRecoveryModal } from '@/components/AuditRecoveryModal'
 
 const ITEMS_PER_PAGE = 20
 
@@ -90,6 +92,27 @@ export default function Auditoria() {
   const [verifyStatus, setVerifyStatus] = useState<'success' | 'error' | null>(null)
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false)
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false)
+
+  const [activeBreaks, setActiveBreaks] = useState<any[]>([])
+  const [recoveryModalOpen, setRecoveryModalOpen] = useState(false)
+  const [selectedBreak, setSelectedBreak] = useState<any>(null)
+
+  const fetchBreaks = async () => {
+    if (user?.tipo !== 'neuropsicólogo') return
+    try {
+      const records = await pb.collection('chain_breaks').getFullList({
+        filter: 'status = "detected" || status = "investigating"',
+        expand: 'first_corrupted_log_id.usuario_id,last_corrupted_log_id.usuario_id',
+      })
+      setActiveBreaks(records)
+    } catch (err) {
+      console.error('Failed to load chain breaks', err)
+    }
+  }
+
+  useEffect(() => {
+    fetchBreaks()
+  }, [user])
 
   const fetchLogs = async () => {
     setIsLoading(true)
@@ -215,6 +238,33 @@ export default function Auditoria() {
 
   return (
     <div className="max-w-7xl mx-auto pb-12 animate-fade-in-up">
+      {activeBreaks.length > 0 && (
+        <div className="mb-6 bg-red-600 text-white p-4 rounded-lg flex flex-col md:flex-row items-start md:items-center justify-between shadow-md gap-4">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="h-6 w-6 shrink-0 text-red-200" />
+            <div>
+              <h3 className="font-bold text-lg leading-tight">
+                ⚠️ Quebra de integridade detectada na cadeia de logs
+              </h3>
+              <p className="text-red-100 text-sm mt-1">
+                Ação de recuperação necessária para restabelecer o compliance.
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              setSelectedBreak(activeBreaks[0])
+              setRecoveryModalOpen(true)
+            }}
+            className="text-red-900 font-semibold bg-white hover:bg-red-50 border-0 shrink-0"
+          >
+            Iniciar Recuperação
+          </Button>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
@@ -631,6 +681,16 @@ export default function Auditoria() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AuditRecoveryModal
+        open={recoveryModalOpen}
+        onOpenChange={setRecoveryModalOpen}
+        chainBreak={selectedBreak}
+        onSuccess={() => {
+          fetchBreaks()
+          fetchLogs()
+        }}
+      />
     </div>
   )
 }

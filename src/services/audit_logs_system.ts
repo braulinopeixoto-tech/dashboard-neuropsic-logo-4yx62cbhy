@@ -8,6 +8,19 @@ export const verifyAuditLogIntegrity = async (logId: string) => {
   })
 }
 
+export const recoverAuditChain = async (
+  breakId: string,
+  action: string,
+  notes: string,
+  backupDate?: string,
+) => {
+  return await pb.send('/backend/v1/audit/recover', {
+    method: 'POST',
+    body: JSON.stringify({ break_id: breakId, action, notes, backup_date: backupDate }),
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
 export const getAuditLogsSystemList = async (
   page: number,
   perPage: number,
