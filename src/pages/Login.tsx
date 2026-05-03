@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAuth } from '@/hooks/use-auth'
 import { Navigate, useNavigate, Link } from 'react-router-dom'
+import pb from '@/lib/pocketbase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -397,14 +398,41 @@ export default function Login() {
   const onLoginSubmit = async (data: LoginForm) => {
     setLoading(true)
     const { error } = await signIn(data.email, data.password)
-    setLoading(false)
+
     if (error) {
+      setLoading(false)
       toast({
         title: 'Erro de autenticação',
         description: 'Credenciais incorretas ou usuário não encontrado.',
         variant: 'destructive',
       })
     } else {
+      try {
+        const userRecord = pb.authStore.record
+        if (userRecord) {
+          await pb.send('/backend/v1/seal_audit_log', {
+            method: 'POST',
+            body: {
+              user_id: userRecord.id,
+              event_type: 'login',
+              action_description: `Usuario ${userRecord.name || 'Desconhecido'} fez login com sucesso`,
+              payload: {
+                email: userRecord.email,
+                timestamp: new Date().toISOString(),
+                user_agent: navigator.userAgent,
+                ip_address: '',
+              },
+            },
+          })
+          toast({
+            description: 'Login registrado em auditoria',
+          })
+        }
+      } catch (err) {
+        console.error('Erro ao registrar login em auditoria:', err)
+      }
+
+      setLoading(false)
       navigate('/')
     }
   }
