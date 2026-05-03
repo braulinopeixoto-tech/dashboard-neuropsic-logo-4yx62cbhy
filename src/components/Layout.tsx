@@ -28,6 +28,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
 import { NotificationBell } from './NotificationBell'
+import { AdminAlertsBell } from './AdminAlertsBell'
 
 const menuItems = [
   { title: 'Command Center', icon: ShieldAlert, path: '/' },
@@ -111,7 +112,12 @@ export default function Layout() {
         <header className="flex h-16 items-center border-b border-slate-200 px-4 md:px-6 gap-4 bg-white shrink-0 sticky top-0 z-10">
           <SidebarTrigger className="text-slate-500 hover:bg-slate-100" />
           <div className="flex-1" />
-          {user?.tipo === 'neuropsicólogo' && <NotificationBell />}
+          {user?.tipo === 'neuropsicólogo' && (
+            <div className="flex items-center gap-2">
+              <AdminAlertsBell />
+              <NotificationBell />
+            </div>
+          )}
           <div className="flex items-center gap-3 md:hidden">
             <Avatar className="h-8 w-8">
               <AvatarImage

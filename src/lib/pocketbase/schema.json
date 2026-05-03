@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T13:08:02.724Z",
+  "generatedAt": "2026-05-03T13:14:50.894Z",
   "collections": [
     {
       "name": "users",
@@ -2036,6 +2036,67 @@
         {
           "name": "verified_at",
           "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "admin_alerts",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "view": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && usuario_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "log_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "audit_logs"
+        },
+        {
+          "name": "tipo_alerta",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["corrupted", "suspicious"]
+        },
+        {
+          "name": "mensagem",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "lido",
+          "type": "bool",
           "required": false,
           "system": false
         },
