@@ -24,10 +24,12 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts'
 import { Download, ShieldCheck, CheckCircle2, Stethoscope, ArrowDown, ArrowUp } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 import { useToast } from '@/hooks/use-toast'
+import { ExportPdfModal } from '@/components/ExportPdfModal'
 
 export default function RelatorioConformidade() {
   const { toast } = useToast()
 
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false)
   const [filters, setFilters] = useState({
     startDate: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
     endDate: format(new Date(), 'yyyy-MM-dd'),
@@ -100,16 +102,7 @@ export default function RelatorioConformidade() {
   }
 
   const handleExport = () => {
-    toast({
-      title: 'Exportando Relatorio',
-      description: 'Gerando PDF assinado digitalmente. Isso pode levar alguns segundos...',
-    })
-    setTimeout(() => {
-      toast({
-        title: 'Exportacao Concluida',
-        description: 'O download do PDF assinado iniciou automaticamente.',
-      })
-    }, 2500)
+    setIsPdfModalOpen(true)
   }
 
   const handleSort = (col: string) => {
@@ -495,6 +488,26 @@ export default function RelatorioConformidade() {
               </CardContent>
             </Card>
           </div>
+
+          <ExportPdfModal
+            open={isPdfModalOpen}
+            onOpenChange={setIsPdfModalOpen}
+            logs={logs}
+            filters={{
+              startDate: filters.startDate,
+              endDate: filters.endDate,
+              eventType: filters.eventType === 'all' ? 'Todos' : filters.eventType,
+              userFilter:
+                filters.userId === 'all'
+                  ? 'Todos'
+                  : availableUsers.find((u) => u.id === filters.userId)?.name || 'Todos',
+            }}
+            kpis={{
+              total: kpis.totalEvents,
+              integrityRate: kpis.integrityRate,
+              alerts: kpis.corruptedCount,
+            }}
+          />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>

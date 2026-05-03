@@ -35,7 +35,9 @@ import {
   Hash,
   User,
   ShieldAlert,
+  FileDown,
 } from 'lucide-react'
+import { ExportPdfModal } from '@/components/ExportPdfModal'
 
 const ITEMS_PER_PAGE = 20
 
@@ -85,6 +87,7 @@ export default function Auditoria() {
   const [selectedLog, setSelectedLog] = useState<any | null>(null)
   const [verifying, setVerifying] = useState(false)
   const [verifyStatus, setVerifyStatus] = useState<'success' | 'error' | null>(null)
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false)
 
   const fetchLogs = async () => {
     setIsLoading(true)
@@ -210,14 +213,40 @@ export default function Auditoria() {
 
   return (
     <div className="max-w-7xl mx-auto pb-12 animate-fade-in-up">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
-          <ShieldAlert className="h-8 w-8 text-primary" /> Auditoria de Logs
-        </h1>
-        <p className="text-slate-500 mt-1">
-          Monitoramento de integridade e histórico de eventos do sistema.
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
+            <ShieldAlert className="h-8 w-8 text-primary" /> Auditoria de Logs
+          </h1>
+          <p className="text-slate-500 mt-1">
+            Monitoramento de integridade e histórico de eventos do sistema.
+          </p>
+        </div>
+        <Button onClick={() => setIsPdfModalOpen(true)} className="gap-2">
+          <FileDown className="w-4 h-4" />
+          Exportar PDF
+        </Button>
       </div>
+
+      <ExportPdfModal
+        open={isPdfModalOpen}
+        onOpenChange={setIsPdfModalOpen}
+        logs={logs}
+        filters={{
+          startDate: activeFilters.startDate,
+          endDate: activeFilters.endDate,
+          eventType: activeFilters.eventType,
+          userFilter: activeFilters.userFilter,
+        }}
+        kpis={{
+          total: totalItems,
+          integrityRate:
+            logs.length > 0
+              ? (logs.filter((l) => l.integrity_status === 'valid').length / logs.length) * 100
+              : 0,
+          alerts: logs.filter((l) => l.integrity_status === 'corrupted').length,
+        }}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6 p-5 bg-white rounded-xl shadow-sm border border-slate-200">
         <div className="space-y-1.5">
