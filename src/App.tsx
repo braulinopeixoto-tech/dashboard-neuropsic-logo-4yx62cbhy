@@ -15,6 +15,7 @@ import Alertas from './pages/Alertas'
 import Relatorios from './pages/Relatorios'
 import Configuracoes from './pages/Configuracoes'
 import Auditoria from './pages/Auditoria'
+import Compliance from './pages/Compliance'
 import Login from './pages/Login'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="/alertas" element={<Alertas />} />
             <Route path="/relatorios" element={<Relatorios />} />
             <Route path="/auditoria" element={<Auditoria />} />
+            <Route path="/compliance" element={<Compliance />} />
             <Route path="/configuracoes" element={<Configuracoes />} />
           </Route>
           <Route path="*" element={<NotFound />} />

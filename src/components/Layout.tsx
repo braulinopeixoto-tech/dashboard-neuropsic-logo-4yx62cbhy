@@ -22,6 +22,7 @@ import {
   BarChart3,
   ShieldCheck,
   ShieldAlert,
+  Shield,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -36,6 +37,7 @@ const menuItems = [
   { title: 'Alertas', icon: Bell, path: '/alertas' },
   { title: 'Relatórios', icon: BarChart3, path: '/relatorios' },
   { title: 'Auditoria', icon: ShieldCheck, path: '/auditoria', roles: ['neuropsicólogo'] },
+  { title: 'Compliance', icon: Shield, path: '/compliance', roles: ['neuropsicólogo'] },
   { title: 'Configurações', icon: Settings, path: '/configuracoes' },
 ]
 
