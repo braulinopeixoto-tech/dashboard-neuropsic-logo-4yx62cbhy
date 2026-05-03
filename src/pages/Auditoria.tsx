@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react'
-import { format, parseISO, startOfDay, endOfDay } from 'date-fns'
+import { useState, useEffect } from 'react'
+import { format } from 'date-fns'
 import { useAuth } from '@/hooks/use-auth'
-import { auditLogsData, AuditRecord } from '@/data/mock'
+import { getAuditLogsSystemList } from '@/services/audit_logs_system'
 import {
   Select,
   SelectContent,
@@ -39,43 +39,77 @@ import {
 
 const ITEMS_PER_PAGE = 20
 
+const eventTypeLabel = (type: string) => {
+  switch (type) {
+    case 'login':
+      return 'Login'
+    case 'vital_score':
+      return 'Vital Score'
+    case 'acesso_prontuario':
+      return 'Acesso Prontuário'
+    default:
+      return type
+  }
+}
+
 export default function Auditoria() {
   const { user } = useAuth()
+  const isAdmin = user?.tipo === 'neuropsicólogo'
 
-  // App logic
-  const isProfessional = user?.tipo === 'neuropsicólogo'
-  const defaultUserFilter = isProfessional ? 'Ana Silva' : 'Todos' // Ana Silva acts as the professional mock
-  const USERS_LIST = ['Todos', 'Ana Silva', 'Carlos Oliveira', 'Mariana Santos']
+  const [usersList] = useState<string[]>([
+    'Todos',
+    'Ana Silva',
+    'Carlos Oliveira',
+    'Mariana Santos',
+  ])
 
   const [isLoading, setIsLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
 
-  // Temp filters (bound to UI inputs)
   const [tempEventType, setTempEventType] = useState('Todos')
-  const [tempUserFilter, setTempUserFilter] = useState(defaultUserFilter)
+  const [tempUserFilter, setTempUserFilter] = useState('Todos')
   const [tempStartDate, setTempStartDate] = useState('')
   const [tempEndDate, setTempEndDate] = useState('')
 
-  // Active filters (applied to list)
   const [activeFilters, setActiveFilters] = useState({
     eventType: 'Todos',
-    userFilter: defaultUserFilter,
+    userFilter: 'Todos',
     startDate: '',
     endDate: '',
   })
 
-  const [selectedLog, setSelectedLog] = useState<AuditRecord | null>(null)
+  const [logs, setLogs] = useState<any[]>([])
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+
+  const [selectedLog, setSelectedLog] = useState<any | null>(null)
   const [verifying, setVerifying] = useState(false)
   const [verifyStatus, setVerifyStatus] = useState<'success' | 'error' | null>(null)
 
+  const fetchLogs = async () => {
+    setIsLoading(true)
+    try {
+      const result = await getAuditLogsSystemList(currentPage, ITEMS_PER_PAGE, {
+        event_type: activeFilters.eventType,
+        userName: activeFilters.userFilter,
+        startDate: activeFilters.startDate,
+        endDate: activeFilters.endDate,
+      })
+      setLogs(result.items)
+      setTotalPages(result.totalPages)
+      setTotalItems(result.totalItems)
+    } catch (error) {
+      console.error('Failed to fetch audit logs:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   useEffect(() => {
-    // Initial artificial load
-    const timer = setTimeout(() => setIsLoading(false), 800)
-    return () => clearTimeout(timer)
-  }, [])
+    fetchLogs()
+  }, [currentPage, activeFilters])
 
   const applyFilters = () => {
-    setIsLoading(true)
     setActiveFilters({
       eventType: tempEventType,
       userFilter: tempUserFilter,
@@ -83,54 +117,28 @@ export default function Auditoria() {
       endDate: tempEndDate,
     })
     setCurrentPage(1)
-    setTimeout(() => setIsLoading(false), 600)
   }
 
   const clearFilters = () => {
-    setIsLoading(true)
     setTempEventType('Todos')
-    setTempUserFilter(defaultUserFilter)
+    setTempUserFilter('Todos')
     setTempStartDate('')
     setTempEndDate('')
     setActiveFilters({
       eventType: 'Todos',
-      userFilter: defaultUserFilter,
+      userFilter: 'Todos',
       startDate: '',
       endDate: '',
     })
     setCurrentPage(1)
-    setTimeout(() => setIsLoading(false), 600)
   }
-
-  const filteredLogs = useMemo(() => {
-    return auditLogsData.filter((log) => {
-      if (activeFilters.eventType !== 'Todos' && log.event !== activeFilters.eventType) return false
-      if (activeFilters.userFilter !== 'Todos' && log.user !== activeFilters.userFilter)
-        return false
-
-      if (activeFilters.startDate || activeFilters.endDate) {
-        const logDate = new Date(log.timestamp)
-        if (activeFilters.startDate && logDate < startOfDay(parseISO(activeFilters.startDate)))
-          return false
-        if (activeFilters.endDate && logDate > endOfDay(parseISO(activeFilters.endDate)))
-          return false
-      }
-      return true
-    })
-  }, [activeFilters])
-
-  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / ITEMS_PER_PAGE))
-  const paginatedLogs = filteredLogs.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE,
-  )
 
   const handleVerify = () => {
     setVerifying(true)
     setVerifyStatus(null)
     setTimeout(() => {
       setVerifying(false)
-      setVerifyStatus(selectedLog?.status === 'Corrompido' ? 'error' : 'success')
+      setVerifyStatus(selectedLog?.integrity_status === 'corrupted' ? 'error' : 'success')
     }, 1000)
   }
 
@@ -143,29 +151,33 @@ export default function Auditoria() {
 
   const getStatusConfig = (status: string) => {
     switch (status) {
-      case 'Íntegro':
+      case 'valid':
         return {
           icon: <CheckCircle2 className="h-4 w-4" />,
           color: 'text-emerald-600',
           bg: 'bg-emerald-50 border-emerald-200',
+          label: 'Íntegro',
         }
-      case 'Pendente':
+      case 'pending':
         return {
           icon: <AlertTriangle className="h-4 w-4" />,
           color: 'text-amber-600',
           bg: 'bg-amber-50 border-amber-200',
+          label: 'Pendente',
         }
-      case 'Corrompido':
+      case 'corrupted':
         return {
           icon: <XCircle className="h-4 w-4" />,
           color: 'text-rose-600',
           bg: 'bg-rose-50 border-rose-200',
+          label: 'Corrompido',
         }
       default:
         return {
           icon: <ShieldCheck className="h-4 w-4" />,
           color: 'text-slate-600',
           bg: 'bg-slate-50 border-slate-200',
+          label: 'Desconhecido',
         }
     }
   }
@@ -192,9 +204,9 @@ export default function Auditoria() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="Todos">Todos</SelectItem>
-              <SelectItem value="Login">Login</SelectItem>
-              <SelectItem value="Vital Score">Vital Score</SelectItem>
-              <SelectItem value="Acesso Prontuário">Acesso Prontuário</SelectItem>
+              <SelectItem value="login">Login</SelectItem>
+              <SelectItem value="vital_score">Vital Score</SelectItem>
+              <SelectItem value="acesso_prontuario">Acesso Prontuário</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -202,16 +214,12 @@ export default function Auditoria() {
           <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
             Usuário
           </label>
-          <Select
-            value={tempUserFilter}
-            onValueChange={setTempUserFilter}
-            disabled={isProfessional}
-          >
+          <Select value={tempUserFilter} onValueChange={setTempUserFilter} disabled={!isAdmin}>
             <SelectTrigger>
               <SelectValue placeholder="Selecione..." />
             </SelectTrigger>
             <SelectContent>
-              {USERS_LIST.map((u) => (
+              {usersList.map((u) => (
                 <SelectItem key={u} value={u}>
                   {u}
                 </SelectItem>
@@ -251,7 +259,7 @@ export default function Auditoria() {
             <Skeleton key={i} className="h-12 w-full rounded-lg" />
           ))}
         </div>
-      ) : filteredLogs.length === 0 ? (
+      ) : logs.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 px-4 bg-white rounded-xl border border-slate-200 shadow-sm text-center">
           <div className="bg-slate-50 p-4 rounded-full mb-4">
             <ClipboardList className="h-8 w-8 text-slate-400" />
@@ -278,8 +286,8 @@ export default function Auditoria() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedLogs.map((log) => {
-                  const conf = getStatusConfig(log.status)
+                {logs.map((log) => {
+                  const conf = getStatusConfig(log.integrity_status)
                   return (
                     <TableRow
                       key={log.id}
@@ -289,24 +297,28 @@ export default function Auditoria() {
                       <TableCell className="text-sm text-slate-600 font-medium whitespace-nowrap">
                         {format(new Date(log.timestamp), 'dd/MM/yyyy HH:mm')}
                       </TableCell>
-                      <TableCell className="font-medium text-slate-900">{log.user}</TableCell>
+                      <TableCell className="font-medium text-slate-900">
+                        {log.expand?.usuario_id?.name || 'Desconhecido'}
+                      </TableCell>
                       <TableCell>
                         <Badge
                           variant="secondary"
                           className="font-medium bg-slate-100 text-slate-700"
                         >
-                          {log.event}
+                          {eventTypeLabel(log.event_type)}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-slate-600">{log.action}</TableCell>
+                      <TableCell className="text-sm text-slate-600">
+                        {log.action_description}
+                      </TableCell>
                       <TableCell className="font-mono text-xs text-slate-400">
-                        {log.hash.substring(0, 16)}...
+                        {log.hash_sha256?.substring(0, 16)}...
                       </TableCell>
                       <TableCell className="text-right">
                         <div
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold ${conf.bg} ${conf.color}`}
                         >
-                          {conf.icon} {log.status}
+                          {conf.icon} {conf.label}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -317,8 +329,8 @@ export default function Auditoria() {
           </div>
 
           <div className="md:hidden space-y-3 mb-4">
-            {paginatedLogs.map((log) => {
-              const conf = getStatusConfig(log.status)
+            {logs.map((log) => {
+              const conf = getStatusConfig(log.integrity_status)
               return (
                 <div
                   key={log.id}
@@ -333,18 +345,20 @@ export default function Auditoria() {
                     <div
                       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${conf.bg} ${conf.color}`}
                     >
-                      {conf.icon} {log.status}
+                      {conf.icon} {conf.label}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 mb-2">
                     <User className="h-4 w-4 text-slate-400" />
-                    <p className="font-semibold text-slate-900 text-sm">{log.user}</p>
+                    <p className="font-semibold text-slate-900 text-sm">
+                      {log.expand?.usuario_id?.name || 'Desconhecido'}
+                    </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 mt-3">
                     <Badge variant="secondary" className="font-medium">
-                      {log.event}
+                      {eventTypeLabel(log.event_type)}
                     </Badge>
-                    <span className="text-sm text-slate-600">{log.action}</span>
+                    <span className="text-sm text-slate-600">{log.action_description}</span>
                   </div>
                 </div>
               )
@@ -353,7 +367,7 @@ export default function Auditoria() {
 
           <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
             <span className="text-sm font-medium text-slate-500">
-              Total: {filteredLogs.length} registros
+              Total: {totalItems} registros
             </span>
             <div className="flex items-center gap-3">
               <Button
@@ -365,12 +379,12 @@ export default function Auditoria() {
                 Anterior
               </Button>
               <span className="text-sm font-semibold text-slate-700">
-                Página {currentPage} de {totalPages}
+                Página {currentPage} de {totalPages || 1}
               </span>
               <Button
                 variant="outline"
                 size="sm"
-                disabled={currentPage === totalPages}
+                disabled={currentPage === totalPages || totalPages === 0}
                 onClick={() => setCurrentPage((p) => p + 1)}
               >
                 Próxima
@@ -404,7 +418,8 @@ export default function Auditoria() {
                     Usuário
                   </span>
                   <span className="text-sm font-medium text-slate-900">
-                    {selectedLog.user} (ID: {selectedLog.userId})
+                    {selectedLog.expand?.usuario_id?.name || 'Desconhecido'} (ID:{' '}
+                    {selectedLog.usuario_id})
                   </span>
                 </div>
                 <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 col-span-2">
@@ -412,7 +427,7 @@ export default function Auditoria() {
                     Evento e Ação
                   </span>
                   <span className="text-sm font-medium text-slate-900">
-                    {selectedLog.event} &rarr; {selectedLog.action}
+                    {eventTypeLabel(selectedLog.event_type)} &rarr; {selectedLog.action_description}
                   </span>
                 </div>
               </div>
@@ -427,7 +442,7 @@ export default function Auditoria() {
                       Hash Atual (SHA-256)
                     </span>
                     <span className="text-xs font-mono text-emerald-400 break-all leading-tight">
-                      {selectedLog.hash}
+                      {selectedLog.hash_sha256}
                     </span>
                   </div>
                   <div className="bg-slate-800 p-3 rounded-lg border border-slate-700">
@@ -435,7 +450,7 @@ export default function Auditoria() {
                       Hash Anterior
                     </span>
                     <span className="text-xs font-mono text-slate-300 break-all leading-tight">
-                      {selectedLog.prevHash}
+                      {selectedLog.previous_hash}
                     </span>
                   </div>
                 </div>
@@ -458,7 +473,7 @@ export default function Auditoria() {
                   disabled={verifying}
                   className="w-full md:w-auto font-semibold"
                   variant={
-                    selectedLog.status === 'Corrompido' && !verifying && verifyStatus
+                    selectedLog.integrity_status === 'corrupted' && !verifying && verifyStatus
                       ? 'destructive'
                       : 'default'
                   }

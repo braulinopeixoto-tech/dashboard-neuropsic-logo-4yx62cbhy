@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T12:22:05.093Z",
+  "generatedAt": "2026-05-03T12:29:05.010Z",
   "collections": [
     {
       "name": "users",
@@ -1893,6 +1893,144 @@
           "name": "versao",
           "type": "number",
           "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "audit_logs",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (usuario_id = @request.auth.id || @request.auth.tipo = 'neuropsicólogo')",
+        "view": "@request.auth.id != '' && (usuario_id = @request.auth.id || @request.auth.tipo = 'neuropsicólogo')",
+        "create": null,
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "event_type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["login", "vital_score", "acesso_prontuario"]
+        },
+        {
+          "name": "action_description",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "payload",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "timestamp",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "hash_sha256",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "previous_hash",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "integrity_status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["valid", "pending", "corrupted"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "hash_chain",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": null,
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "log_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "audit_logs"
+        },
+        {
+          "name": "current_hash",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "previous_hash",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "chain_position",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "verified_at",
+          "type": "date",
+          "required": false,
           "system": false
         },
         {
