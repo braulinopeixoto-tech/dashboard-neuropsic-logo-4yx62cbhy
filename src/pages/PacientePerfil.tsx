@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { useAuth } from '@/hooks/use-auth'
+import { sealAuditLog } from '@/services/audit_log'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -20,6 +22,49 @@ import { VitalScoreDialog } from '@/components/paciente/VitalScoreDialog'
 export default function PacientePerfil() {
   const { id } = useParams<{ id: string }>()
   const { toast } = useToast()
+  const { user } = useAuth()
+
+  const auditDataRef = useRef({
+    startTime: null as number | null,
+    patient: null as { id: string; nome: string } | null,
+    sections: new Set<string>(['protocolo']),
+    user: user,
+  })
+
+  useEffect(() => {
+    if (user) {
+      auditDataRef.current.user = user
+    }
+  }, [user])
+
+  useEffect(() => {
+    return () => {
+      const { startTime, patient, sections, user: currentUser } = auditDataRef.current
+      if (startTime && patient && currentUser) {
+        const duration = Math.floor((Date.now() - startTime) / 1000)
+        const payload = {
+          paciente_id: patient.id,
+          paciente_nome: patient.nome,
+          tempo_visualizacao: duration,
+          secoes_acessadas: Array.from(sections),
+          timestamp: new Date().toISOString(),
+        }
+
+        sealAuditLog({
+          user_id: currentUser.id,
+          event_type: 'acesso_prontuario',
+          action_description: `Prontuario do paciente ${patient.nome} foi acessado`,
+          payload,
+        })
+          .then(() => {
+            toast({ description: 'Acesso registrado' })
+          })
+          .catch((err) => {
+            console.error(`Erro ao registrar acesso em auditoria: ${err.message || err}`)
+          })
+      }
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [paciente, setPaciente] = useState<any>(null)
   const [protocolos, setProtocolos] = useState<any[]>([])
@@ -40,6 +85,10 @@ export default function PacientePerfil() {
         getDndasByPaciente(id),
       ])
       setPaciente(pt)
+      if (pt && !auditDataRef.current.patient) {
+        auditDataRef.current.startTime = Date.now()
+        auditDataRef.current.patient = { id: pt.id, nome: pt.nome }
+      }
       setProtocolos(prots)
       setSessoes(sess)
       setIntervencoes(intervs)
@@ -96,7 +145,10 @@ export default function PacientePerfil() {
           <Button
             variant="outline"
             className="shadow-sm border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
-            onClick={() => setVitalScoreModalOpen(true)}
+            onClick={() => {
+              setVitalScoreModalOpen(true)
+              auditDataRef.current.sections.add('vital_scores')
+            }}
             disabled={!protocolos.length}
           >
             <Activity className="h-4 w-4 mr-2" /> Vital Score
@@ -127,7 +179,11 @@ export default function PacientePerfil() {
         />
       )}
 
-      <Tabs defaultValue="protocolo" className="w-full">
+      <Tabs
+        defaultValue="protocolo"
+        className="w-full"
+        onValueChange={(value) => auditDataRef.current.sections.add(value)}
+      >
         <TabsList className="w-full sm:w-auto flex-col sm:flex-row h-auto p-1 bg-slate-100 mb-8 border border-border rounded-lg">
           <TabsTrigger
             value="protocolo"
