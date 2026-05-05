@@ -92,7 +92,14 @@ export default function NovoPaciente() {
       'unidade',
       'documento',
     ])
-    if (ok) setStep(2)
+    if (!ok) {
+      const errors = form.formState.errors
+      if (errors.nome || errors.endereco || errors.documento) {
+        toast.error('Os campos Nome, Endereço e Documento são obrigatórios.')
+      }
+    } else {
+      setStep(2)
+    }
   }
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,6 +113,12 @@ export default function NovoPaciente() {
   }
 
   const onSubmit = async (data: FormValues) => {
+    if (!data.nome || !data.endereco || !data.documento) {
+      return toast.error('Os campos Nome, Endereço e Documento são obrigatórios.')
+    }
+    if (!user?.id) {
+      return toast.error('Usuário não autenticado.')
+    }
     if (files.length > 0 && !data.examesConfirmados)
       return toast.error('Confirme a anexação dos exames.')
     try {
@@ -124,16 +137,22 @@ export default function NovoPaciente() {
         }
       })
       fd.append('ativo', 'true')
-      if (user?.id) fd.append('usuario_id', user.id)
+      fd.append('usuario_id', user.id)
       files.forEach((f) => fd.append('exames', f))
 
-      const record = await pb.collection('pacientes').create(fd)
-      toast.success('Paciente cadastrado!', {
+      await pb.collection('pacientes').create(fd)
+      toast.success('Paciente cadastrado com sucesso!', {
         icon: <CheckCircle className="w-5 h-5 text-success" />,
       })
-      nav(`/pacientes/${record.id}`)
+      nav('/pacientes')
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao cadastrar paciente')
+      if (err.status === 400) {
+        toast.error(
+          'Erro ao cadastrar paciente. Verifique se todos os campos obrigatórios foram preenchidos corretamente.',
+        )
+      } else {
+        toast.error(err.message || 'Erro ao cadastrar paciente')
+      }
     }
   }
 
