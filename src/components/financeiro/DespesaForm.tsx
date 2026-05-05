@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { createDespesa } from '@/services/financeiro'
+import { createDespesa, getCategoriasDespesas } from '@/services/financeiro'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Select,
   SelectContent,
@@ -31,44 +32,73 @@ const schema = z.object({
     .min(1, 'Obrigatório')
     .transform((s) => s.trim()),
   valor: z.coerce.number().positive('Deve ser maior que zero'),
-  categoria: z.string().min(1, 'Obrigatório'),
   tipo: z.enum(['Fixo', 'Variável'], { required_error: 'Obrigatório' }),
 })
 
 type FormData = z.infer<typeof schema>
 
 export function DespesaForm({
-  categorias,
+  categorias: _unusedCategorias,
   onSuccess,
 }: {
-  categorias: any[]
+  categorias?: any[]
   onSuccess: () => void
 }) {
   const { user } = useAuth()
   const { toast } = useToast()
+
   const [loading, setLoading] = useState(false)
+  const [fetchingCats, setFetchingCats] = useState(true)
+  const [fetchError, setFetchError] = useState(false)
+  const [dbCategorias, setDbCategorias] = useState<any[]>([])
+
+  const [categoria, setCategoria] = useState<string>('')
+
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { data: today, valor: 0, descricao: '', categoria: '' },
+    defaultValues: { data: today, valor: 0, descricao: '' },
   })
 
-  const selectedCategoria = form.watch('categoria')
+  const loadCategorias = useCallback(async () => {
+    setFetchingCats(true)
+    setFetchError(false)
+    try {
+      const data = await getCategoriasDespesas()
+      setDbCategorias(data)
+    } catch (e) {
+      setFetchError(true)
+    } finally {
+      setFetchingCats(false)
+    }
+  }, [])
 
   useEffect(() => {
-    if (selectedCategoria) {
-      const cat = categorias.find((c) => c.nome === selectedCategoria)
-      if (cat) {
-        form.setValue('tipo', cat.tipo)
-      }
+    loadCategorias()
+  }, [loadCategorias])
+
+  const handleCategoriaChange = (val: string) => {
+    setCategoria(val)
+    const cat = dbCategorias.find((c) => c.id === val)
+    if (cat) {
+      form.setValue('tipo', cat.tipo)
     }
-  }, [selectedCategoria, categorias, form])
+  }
 
   const onSubmit = async (d: FormData) => {
+    if (!categoria) {
+      toast({ variant: 'destructive', description: 'Selecione uma categoria' })
+      return
+    }
+
+    const cat = dbCategorias.find((c) => c.id === categoria)
+    const categoriaNome = cat ? cat.nome : categoria
+
     setLoading(true)
     try {
-      await createDespesa({ ...d, usuario_id: user.id })
+      await createDespesa({ ...d, categoria: categoriaNome, usuario_id: user.id })
       toast({ description: 'Despesa registrada!' })
-      form.reset({ data: today, valor: 0, descricao: '', categoria: '' })
+      form.reset({ data: today, valor: 0, descricao: '' })
+      setCategoria('')
       onSuccess()
     } catch (e) {
       toast({ variant: 'destructive', description: 'Erro ao adicionar despesa.' })
@@ -98,26 +128,34 @@ export function DespesaForm({
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Categoria</Label>
-          <Controller
-            name="categoria"
-            control={form.control}
-            render={({ field }) => (
-              <Select onValueChange={field.onChange} value={field.value}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categorias.map((c) => (
-                    <SelectItem key={c.id} value={c.nome}>
-                      {c.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-          {form.formState.errors.categoria && (
-            <p className="text-sm text-destructive">{form.formState.errors.categoria.message}</p>
+          {fetchingCats ? (
+            <Skeleton className="h-10 w-full" />
+          ) : fetchError ? (
+            <div className="flex items-center justify-between text-sm text-destructive border border-destructive/20 rounded-md p-2 h-10 bg-destructive/10">
+              <span>Erro ao carregar categorias</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={loadCategorias}
+                className="h-6 px-2 text-xs"
+              >
+                Tentar novamente
+              </Button>
+            </div>
+          ) : (
+            <Select value={categoria} onValueChange={handleCategoriaChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                {dbCategorias.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
         </div>
         <div className="space-y-2">
