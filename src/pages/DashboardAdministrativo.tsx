@@ -253,9 +253,12 @@ export default function DashboardAdministrativo() {
                 <PlusCircle className="mr-2 h-4 w-4" /> Receita
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent aria-describedby="dialog-description">
               <DialogHeader>
                 <DialogTitle>Registrar Receita</DialogTitle>
+                <p id="dialog-description" className="sr-only">
+                  Formulário para registrar uma nova receita financeira.
+                </p>
               </DialogHeader>
               <ReceitaForm
                 categorias={categoriasReceitas}
@@ -272,9 +275,12 @@ export default function DashboardAdministrativo() {
                 <PlusCircle className="mr-2 h-4 w-4" /> Despesa
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent aria-describedby="dialog-description">
               <DialogHeader>
                 <DialogTitle>Registrar Despesa</DialogTitle>
+                <p id="dialog-description" className="sr-only">
+                  Formulário para registrar uma nova despesa financeira.
+                </p>
               </DialogHeader>
               <DespesaForm categorias={categorias} onSuccess={() => setDespesaOpen(false)} />
             </DialogContent>

@@ -60,7 +60,7 @@ export function ReceitaForm({
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { data: today, valor: 0, descricao: '' },
+    defaultValues: { data: today, valor: 0, descricao: '', tipo: '' as any, local: '' as any },
   })
 
   const loadCategorias = useCallback(async () => {
@@ -125,7 +125,7 @@ export function ReceitaForm({
             name="tipo"
             control={form.control}
             render={({ field }) => (
-              <Select onValueChange={field.onChange} value={field.value}>
+              <Select onValueChange={field.onChange} value={field.value || ''}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
@@ -147,7 +147,7 @@ export function ReceitaForm({
             name="local"
             control={form.control}
             render={({ field }) => (
-              <Select onValueChange={field.onChange} value={field.value}>
+              <Select onValueChange={field.onChange} value={field.value || ''}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
@@ -184,18 +184,18 @@ export function ReceitaForm({
             </Button>
           </div>
         ) : (
-          <Select value={categoria_receita} onValueChange={setCategoriaReceita}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione a categoria" />
-            </SelectTrigger>
-            <SelectContent>
-              {dbCategorias.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <select
+            className="flex h-10 w-full items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            value={categoria_receita}
+            onChange={(e) => setCategoriaReceita(e.target.value)}
+          >
+            <option value="">Selecione uma categoria</option>
+            {dbCategorias.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nome}
+              </option>
+            ))}
+          </select>
         )}
       </div>
       <div className="space-y-2">

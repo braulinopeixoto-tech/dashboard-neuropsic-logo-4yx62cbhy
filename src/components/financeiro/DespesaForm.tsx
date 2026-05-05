@@ -56,7 +56,7 @@ export function DespesaForm({
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { data: today, valor: 0, descricao: '' },
+    defaultValues: { data: today, valor: 0, descricao: '', tipo: '' as any },
   })
 
   const loadCategorias = useCallback(async () => {
@@ -144,18 +144,18 @@ export function DespesaForm({
               </Button>
             </div>
           ) : (
-            <Select value={categoria} onValueChange={handleCategoriaChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione" />
-              </SelectTrigger>
-              <SelectContent>
-                {dbCategorias.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <select
+              className="flex h-10 w-full items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              value={categoria}
+              onChange={(e) => handleCategoriaChange(e.target.value)}
+            >
+              <option value="">Selecione uma categoria</option>
+              {dbCategorias.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nome}
+                </option>
+              ))}
+            </select>
           )}
         </div>
         <div className="space-y-2">
@@ -164,7 +164,7 @@ export function DespesaForm({
             name="tipo"
             control={form.control}
             render={({ field }) => (
-              <Select onValueChange={field.onChange} value={field.value} disabled>
+              <Select onValueChange={field.onChange} value={field.value || ''} disabled>
                 <SelectTrigger className="bg-slate-50">
                   <SelectValue placeholder="Auto" />
                 </SelectTrigger>
