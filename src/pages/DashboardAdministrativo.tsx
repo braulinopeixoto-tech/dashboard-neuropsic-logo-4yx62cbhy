@@ -257,7 +257,7 @@ export default function DashboardAdministrativo() {
               <DialogHeader>
                 <DialogTitle>Registrar Receita</DialogTitle>
                 <p id="dialog-description" className="sr-only">
-                  Formulário para registrar uma nova receita financeira.
+                  Descrição do formulário de receita
                 </p>
               </DialogHeader>
               <ReceitaForm
@@ -275,11 +275,11 @@ export default function DashboardAdministrativo() {
                 <PlusCircle className="mr-2 h-4 w-4" /> Despesa
               </Button>
             </DialogTrigger>
-            <DialogContent aria-describedby="dialog-description">
+            <DialogContent aria-describedby="dialog-description-despesa">
               <DialogHeader>
                 <DialogTitle>Registrar Despesa</DialogTitle>
-                <p id="dialog-description" className="sr-only">
-                  Formulário para registrar uma nova despesa financeira.
+                <p id="dialog-description-despesa" className="sr-only">
+                  Descrição do formulário de despesa
                 </p>
               </DialogHeader>
               <DespesaForm categorias={categorias} onSuccess={() => setDespesaOpen(false)} />

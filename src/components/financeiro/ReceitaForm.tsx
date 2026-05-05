@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
+import { toast as sonnerToast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 
 const today = new Date().toISOString().split('T')[0]
@@ -82,7 +83,7 @@ export function ReceitaForm({
 
   const onSubmit = async (d: FormData) => {
     if (!categoria_receita) {
-      toast({ variant: 'destructive', description: 'Selecione uma categoria' })
+      sonnerToast.error('Selecione uma categoria')
       return
     }
 
@@ -186,7 +187,7 @@ export function ReceitaForm({
         ) : (
           <select
             className="flex h-10 w-full items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            value={categoria_receita}
+            value={categoria_receita ?? ''}
             onChange={(e) => setCategoriaReceita(e.target.value)}
           >
             <option value="">Selecione uma categoria</option>
