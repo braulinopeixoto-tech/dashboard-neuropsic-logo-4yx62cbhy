@@ -1,11 +1,4 @@
 import { useState, useEffect } from 'react'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
@@ -36,102 +29,20 @@ import {
   RefreshCcw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/hooks/use-auth'
+import { useRealtime } from '@/hooks/use-realtime'
+import { getReceitas, getDespesas, getCategoriasDespesas } from '@/services/financeiro'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { ReceitaForm } from '@/components/financeiro/ReceitaForm'
+import { DespesaForm } from '@/components/financeiro/DespesaForm'
 
-const mockRevenueData = [
-  { location: 'Salvador', revenue: 15000, fill: 'hsl(var(--chart-1))' },
-  { location: 'Seabra', revenue: 8500, fill: 'hsl(var(--chart-2))' },
-  { location: 'Irecê', revenue: 6200, fill: 'hsl(var(--chart-3))' },
-  { location: 'Consultas Online', revenue: 4300, fill: 'hsl(var(--chart-4))' },
-  { location: 'Extras', revenue: 2100, fill: 'hsl(var(--chart-5))' },
-]
-
-const mockExpenseData = [
-  { category: 'Despesas Fixas', amount: 12500, fill: 'hsl(var(--chart-1))' },
-  { category: 'Despesas Voláteis', amount: 8750, fill: 'hsl(var(--chart-2))' },
-]
-
-const mockTransactions = [
-  {
-    id: '1',
-    type: 'Receita',
-    description: 'Atendimento Online - João S.',
-    value: 250,
-    date: '25/10/2023',
-    category: 'Consultas Online',
-  },
-  {
-    id: '2',
-    type: 'Despesa',
-    description: 'Aluguel Unidade Salvador',
-    value: 3500,
-    date: '24/10/2023',
-    category: 'Despesas Fixas',
-  },
-  {
-    id: '3',
-    type: 'Receita',
-    description: 'Pacote 10 Sessões - Maria F.',
-    value: 1500,
-    date: '23/10/2023',
-    category: 'Salvador',
-  },
-  {
-    id: '4',
-    type: 'Despesa',
-    description: 'Conta de Energia - Seabra',
-    value: 450,
-    date: '22/10/2023',
-    category: 'Despesas Voláteis',
-  },
-  {
-    id: '5',
-    type: 'Receita',
-    description: 'Avaliação Neuro - Pedro A.',
-    value: 800,
-    date: '21/10/2023',
-    category: 'Irecê',
-  },
-  {
-    id: '6',
-    type: 'Receita',
-    description: 'Palestra Corporativa',
-    value: 2100,
-    date: '20/10/2023',
-    category: 'Extras',
-  },
-  {
-    id: '7',
-    type: 'Despesa',
-    description: 'Materiais de Escritório',
-    value: 320,
-    date: '19/10/2023',
-    category: 'Despesas Voláteis',
-  },
-  {
-    id: '8',
-    type: 'Receita',
-    description: 'Consulta Avulsa - Ana C.',
-    value: 300,
-    date: '18/10/2023',
-    category: 'Seabra',
-  },
-  {
-    id: '9',
-    type: 'Despesa',
-    description: 'Internet e Telefonia',
-    value: 250,
-    date: '17/10/2023',
-    category: 'Despesas Fixas',
-  },
-  {
-    id: '10',
-    type: 'Receita',
-    description: 'Supervisão Clínica',
-    value: 600,
-    date: '16/10/2023',
-    category: 'Consultas Online',
-  },
-]
+type UIState = 'LOADING' | 'EMPTY' | 'ERROR' | 'SUCCESS'
 
 const revenueChartConfig = {
   revenue: { label: 'Receita' },
@@ -143,60 +54,146 @@ const expenseChartConfig = {
   'Despesas Voláteis': { label: 'Despesas Voláteis', color: 'hsl(var(--chart-2))' },
 }
 
-type UIState = 'LOADING' | 'EMPTY' | 'ERROR' | 'SUCCESS'
-
 export default function DashboardAdministrativo() {
+  const { user } = useAuth()
   const [uiState, setUiState] = useState<UIState>('LOADING')
+  const [receitas, setReceitas] = useState<any[]>([])
+  const [despesas, setDespesas] = useState<any[]>([])
+  const [categorias, setCategorias] = useState<any[]>([])
+  const [receitaOpen, setReceitaOpen] = useState(false)
+  const [despesaOpen, setDespesaOpen] = useState(false)
+
+  const loadData = async () => {
+    if (!user) return
+    try {
+      const [rec, des, cat] = await Promise.all([
+        getReceitas(),
+        getDespesas(),
+        getCategoriasDespesas(),
+      ])
+      setReceitas(rec)
+      setDespesas(des)
+      setCategorias(cat)
+      setUiState(rec.length || des.length ? 'SUCCESS' : 'EMPTY')
+    } catch (e) {
+      setUiState('ERROR')
+    }
+  }
 
   useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>
-    if (uiState === 'LOADING') {
-      timer = setTimeout(() => setUiState('SUCCESS'), 1000)
-    }
-    return () => clearTimeout(timer)
-  }, [uiState])
+    loadData()
+  }, [user])
+
+  useRealtime(
+    'receitas',
+    () => {
+      if (user) loadData()
+    },
+    !!user,
+  )
+  useRealtime(
+    'despesas',
+    () => {
+      if (user) loadData()
+    },
+    !!user,
+  )
 
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
 
+  const receitaTotal = receitas.reduce((a, r) => a + r.valor, 0)
+  const despesaTotal = despesas.reduce((a, d) => a + d.valor, 0)
+  const saldoLiquido = receitaTotal - despesaTotal
+  const margem = receitaTotal > 0 ? (saldoLiquido / receitaTotal) * 100 : 0
+
+  const revByLocal = receitas.reduce(
+    (acc, r) => {
+      acc[r.local] = (acc[r.local] || 0) + r.valor
+      return acc
+    },
+    {} as Record<string, number>,
+  )
+
+  const revenueData = Object.entries(revByLocal).map(([local, revenue], i) => ({
+    local,
+    revenue,
+    fill: `hsl(var(--chart-${(i % 5) + 1}))`,
+  }))
+
+  const expByTipo = despesas.reduce(
+    (acc, d) => {
+      acc[d.tipo] = (acc[d.tipo] || 0) + d.valor
+      return acc
+    },
+    {} as Record<string, number>,
+  )
+
+  const expenseData = [
+    { category: 'Despesas Fixas', amount: expByTipo['Fixo'] || 0, fill: 'hsl(var(--chart-1))' },
+    {
+      category: 'Despesas Voláteis',
+      amount: expByTipo['Variável'] || 0,
+      fill: 'hsl(var(--chart-2))',
+    },
+  ].filter((d) => d.amount > 0)
+
+  const allTransactions = [
+    ...receitas.map((r) => ({
+      id: r.id,
+      type: 'Receita',
+      description: r.descricao,
+      value: r.valor,
+      date: new Date(r.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' }),
+      category: r.local,
+      rawDate: new Date(r.data).getTime(),
+    })),
+    ...despesas.map((d) => ({
+      id: d.id,
+      type: 'Despesa',
+      description: d.descricao,
+      value: d.valor,
+      date: new Date(d.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' }),
+      category: d.categoria,
+      rawDate: new Date(d.data).getTime(),
+    })),
+  ]
+    .sort((a, b) => b.rawDate - a.rawDate)
+    .slice(0, 10)
+
   const renderHeader = () => (
     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-      <div className="flex items-center gap-3">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          Dashboard Administrativo
-        </h1>
-        <Select value={uiState} onValueChange={(val: UIState) => setUiState(val)}>
-          <SelectTrigger className="w-[120px] h-8 text-xs bg-white text-muted-foreground border-dashed focus:ring-0 focus:ring-offset-0">
-            <SelectValue placeholder="Estado UI" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="LOADING">Carregando</SelectItem>
-            <SelectItem value="SUCCESS">Sucesso</SelectItem>
-            <SelectItem value="EMPTY">Vazio</SelectItem>
-            <SelectItem value="ERROR">Erro</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <h1 className="text-2xl font-bold tracking-tight text-slate-900">Dashboard Financeiro</h1>
       <div className="flex items-center gap-2">
-        <Select defaultValue="10">
-          <SelectTrigger className="w-[120px] bg-white">
-            <SelectValue placeholder="Mês" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="09">Setembro</SelectItem>
-            <SelectItem value="10">Outubro</SelectItem>
-            <SelectItem value="11">Novembro</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select defaultValue="2023">
-          <SelectTrigger className="w-[100px] bg-white">
-            <SelectValue placeholder="Ano" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="2022">2022</SelectItem>
-            <SelectItem value="2023">2023</SelectItem>
-          </SelectContent>
-        </Select>
+        <Dialog open={receitaOpen} onOpenChange={setReceitaOpen}>
+          <DialogTrigger asChild>
+            <Button
+              variant="outline"
+              className="text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+            >
+              <PlusCircle className="mr-2 h-4 w-4" /> Receita
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Adicionar Receita</DialogTitle>
+            </DialogHeader>
+            <ReceitaForm onSuccess={() => setReceitaOpen(false)} />
+          </DialogContent>
+        </Dialog>
+        <Dialog open={despesaOpen} onOpenChange={setDespesaOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" className="text-rose-600 border-rose-200 hover:bg-rose-50">
+              <PlusCircle className="mr-2 h-4 w-4" /> Despesa
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Adicionar Despesa</DialogTitle>
+            </DialogHeader>
+            <DespesaForm categorias={categorias} onSuccess={() => setDespesaOpen(false)} />
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )
@@ -223,12 +220,10 @@ export default function DashboardAdministrativo() {
     return (
       <div>
         {renderHeader()}
-        <div className="flex flex-col items-center justify-center py-32 text-center space-y-4 animate-fade-in bg-white rounded-xl border border-slate-200 shadow-sm">
+        <div className="flex flex-col items-center justify-center py-32 text-center space-y-4 bg-white rounded-xl border shadow-sm">
           <AlertCircle className="h-16 w-16 text-rose-500" />
-          <h2 className="text-2xl font-semibold text-slate-800">
-            Erro ao carregar dados. Tente novamente.
-          </h2>
-          <Button onClick={() => setUiState('LOADING')} variant="outline" className="mt-4">
+          <h2 className="text-2xl font-semibold text-slate-800">Erro ao carregar dados.</h2>
+          <Button onClick={loadData} variant="outline">
             <RefreshCcw className="mr-2 h-4 w-4" /> Tentar Novamente
           </Button>
         </div>
@@ -240,15 +235,10 @@ export default function DashboardAdministrativo() {
     return (
       <div>
         {renderHeader()}
-        <div className="flex flex-col items-center justify-center py-32 text-center space-y-4 animate-fade-in bg-white rounded-xl border border-slate-200 shadow-sm">
+        <div className="flex flex-col items-center justify-center py-32 text-center space-y-4 bg-white rounded-xl border shadow-sm">
           <Inbox className="h-16 w-16 text-slate-300" />
           <h2 className="text-2xl font-semibold text-slate-600">Nenhuma transação registrada</h2>
-          <p className="text-slate-500 mb-4">
-            Ainda não há dados financeiros para o período selecionado.
-          </p>
-          <Button>
-            <PlusCircle className="mr-2 h-4 w-4" /> Adicionar receita
-          </Button>
+          <p className="text-slate-500 mb-4">Adicione uma receita ou despesa para começar.</p>
         </div>
       </div>
     )
@@ -262,7 +252,7 @@ export default function DashboardAdministrativo() {
         {[
           {
             title: 'Receita Total',
-            value: 36100,
+            value: receitaTotal,
             icon: ArrowUpRight,
             color: 'text-emerald-500',
             bg: 'bg-emerald-50',
@@ -271,7 +261,7 @@ export default function DashboardAdministrativo() {
           },
           {
             title: 'Despesas Totais',
-            value: 21250,
+            value: despesaTotal,
             icon: ArrowDownRight,
             color: 'text-rose-500',
             bg: 'bg-rose-50',
@@ -280,7 +270,7 @@ export default function DashboardAdministrativo() {
           },
           {
             title: 'Saldo Líquido',
-            value: 14850,
+            value: saldoLiquido,
             icon: Wallet,
             color: 'text-blue-500',
             bg: 'bg-blue-50',
@@ -289,7 +279,7 @@ export default function DashboardAdministrativo() {
           },
           {
             title: 'Margem %',
-            value: 41.1,
+            value: margem.toFixed(1),
             icon: PieChartIcon,
             color: 'text-purple-500',
             bg: 'bg-purple-50',
@@ -307,7 +297,9 @@ export default function DashboardAdministrativo() {
             </CardHeader>
             <CardContent>
               <div className={`text-2xl font-bold ${stat.valColor}`}>
-                {stat.isCurrency ? formatCurrency(stat.value) : `${stat.value}${stat.suffix}`}
+                {stat.isCurrency
+                  ? formatCurrency(stat.value as number)
+                  : `${stat.value}${stat.suffix}`}
               </div>
             </CardContent>
           </Card>
@@ -323,28 +315,36 @@ export default function DashboardAdministrativo() {
             <CardTitle className="text-lg text-slate-800">Receita por Unidade</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={revenueChartConfig} className="h-[280px] w-full">
-              <BarChart
-                data={mockRevenueData}
-                layout="vertical"
-                margin={{ left: 10, right: 10, top: 0, bottom: 0 }}
-              >
-                <XAxis type="number" hide />
-                <YAxis
-                  dataKey="location"
-                  type="category"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#64748b', fontSize: 12 }}
-                  width={120}
-                />
-                <ChartTooltip
-                  cursor={{ fill: 'rgba(0,0,0,0.04)' }}
-                  content={<ChartTooltipContent formatter={(val) => formatCurrency(Number(val))} />}
-                />
-                <Bar dataKey="revenue" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ChartContainer>
+            {revenueData.length > 0 ? (
+              <ChartContainer config={revenueChartConfig} className="h-[280px] w-full">
+                <BarChart
+                  data={revenueData}
+                  layout="vertical"
+                  margin={{ left: 10, right: 10, top: 0, bottom: 0 }}
+                >
+                  <XAxis type="number" hide />
+                  <YAxis
+                    dataKey="local"
+                    type="category"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#64748b', fontSize: 12 }}
+                    width={120}
+                  />
+                  <ChartTooltip
+                    cursor={{ fill: 'rgba(0,0,0,0.04)' }}
+                    content={
+                      <ChartTooltipContent formatter={(val) => formatCurrency(Number(val))} />
+                    }
+                  />
+                  <Bar dataKey="revenue" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ChartContainer>
+            ) : (
+              <div className="h-[280px] flex items-center justify-center text-slate-400">
+                Sem dados de receita
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -353,22 +353,30 @@ export default function DashboardAdministrativo() {
             <CardTitle className="text-lg text-slate-800">Despesas Fixas vs. Voláteis</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={expenseChartConfig} className="h-[280px] w-full">
-              <PieChart>
-                <ChartTooltip
-                  content={<ChartTooltipContent formatter={(val) => formatCurrency(Number(val))} />}
-                />
-                <Pie
-                  data={mockExpenseData}
-                  dataKey="amount"
-                  nameKey="category"
-                  innerRadius={60}
-                  strokeWidth={2}
-                  paddingAngle={2}
-                />
-                <ChartLegend content={<ChartLegendContent />} className="mt-4" />
-              </PieChart>
-            </ChartContainer>
+            {expenseData.length > 0 ? (
+              <ChartContainer config={expenseChartConfig} className="h-[280px] w-full">
+                <PieChart>
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent formatter={(val) => formatCurrency(Number(val))} />
+                    }
+                  />
+                  <Pie
+                    data={expenseData}
+                    dataKey="amount"
+                    nameKey="category"
+                    innerRadius={60}
+                    strokeWidth={2}
+                    paddingAngle={2}
+                  />
+                  <ChartLegend content={<ChartLegendContent />} className="mt-4" />
+                </PieChart>
+              </ChartContainer>
+            ) : (
+              <div className="h-[280px] flex items-center justify-center text-slate-400">
+                Sem dados de despesa
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -387,13 +395,13 @@ export default function DashboardAdministrativo() {
                 <TableRow>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Descrição</TableHead>
-                  <TableHead>Categoria</TableHead>
+                  <TableHead>Categoria/Local</TableHead>
                   <TableHead>Data</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockTransactions.map((tx) => (
+                {allTransactions.map((tx) => (
                   <TableRow key={tx.id}>
                     <TableCell>
                       <span

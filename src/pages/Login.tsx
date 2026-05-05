@@ -30,8 +30,6 @@ import {
 } from '@/components/ui/dialog'
 import { extractFieldErrors } from '@/lib/pocketbase/errors'
 
-const passwordRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/
-
 const loginSchema = z.object({
   email: z.string().min(1, 'Campo obrigatório').email('Email inválido'),
   password: z.string().min(1, 'Campo obrigatório'),
@@ -42,10 +40,7 @@ const signUpSchema = z
   .object({
     name: z.string().min(1, 'Campo obrigatório'),
     email: z.string().min(1, 'Campo obrigatório').email('Email inválido'),
-    password: z
-      .string()
-      .min(1, 'Campo obrigatório')
-      .regex(passwordRegex, 'Mínimo 8 caracteres, 1 maiúscula, 1 número'),
+    password: z.string().min(6, 'Mínimo 6 caracteres'),
     confirmPassword: z.string().min(1, 'Campo obrigatório'),
     tipo: z.enum(['neuropsicólogo', 'assistente_líder', 'neuromoduladora'], {
       required_error: 'Campo obrigatório',
