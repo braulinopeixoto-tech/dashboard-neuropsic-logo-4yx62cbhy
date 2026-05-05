@@ -388,7 +388,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<string>('login')
 
-  if (user) return <Navigate to="/" replace />
+  if (user) return <Navigate to="/administrativo" replace />
 
   const onLoginSubmit = async (data: LoginForm) => {
     setLoading(true)
@@ -428,7 +428,7 @@ export default function Login() {
       }
 
       setLoading(false)
-      navigate('/')
+      navigate('/administrativo')
     }
   }
 
@@ -463,7 +463,7 @@ export default function Login() {
         title: 'Conta criada com sucesso!',
         description: 'Seja bem-vindo(a) ao NeuroDash.',
       })
-      navigate('/')
+      navigate('/administrativo')
     }
   }
 

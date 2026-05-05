@@ -17,13 +17,20 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { Loader2 } from 'lucide-react'
 
+const today = new Date().toISOString().split('T')[0]
+
 const schema = z.object({
-  data: z.string().min(1, 'Obrigatório'),
+  data: z
+    .string()
+    .min(1, 'Obrigatório')
+    .refine((val) => val <= today, {
+      message: 'Data não pode ser no futuro',
+    }),
   descricao: z
     .string()
     .min(1, 'Obrigatório')
     .transform((s) => s.trim()),
-  valor: z.coerce.number().min(0.01, 'Valor inválido'),
+  valor: z.coerce.number().positive('Deve ser maior que zero'),
   categoria: z.string().min(1, 'Obrigatório'),
   tipo: z.enum(['Fixo', 'Variável'], { required_error: 'Obrigatório' }),
 })
@@ -42,7 +49,7 @@ export function DespesaForm({
   const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { data: new Date().toISOString().split('T')[0], valor: 0, descricao: '' },
+    defaultValues: { data: today, valor: 0, descricao: '', categoria: '' },
   })
 
   const selectedCategoria = form.watch('categoria')
@@ -60,7 +67,8 @@ export function DespesaForm({
     setLoading(true)
     try {
       await createDespesa({ ...d, usuario_id: user.id })
-      toast({ description: 'Despesa adicionada com sucesso.' })
+      toast({ description: 'Despesa registrada!' })
+      form.reset({ data: today, valor: 0, descricao: '', categoria: '' })
       onSuccess()
     } catch (e) {
       toast({ variant: 'destructive', description: 'Erro ao adicionar despesa.' })
@@ -74,7 +82,7 @@ export function DespesaForm({
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Data</Label>
-          <Input type="date" {...form.register('data')} />
+          <Input type="date" max={today} {...form.register('data')} />
           {form.formState.errors.data && (
             <p className="text-sm text-destructive">{form.formState.errors.data.message}</p>
           )}
@@ -87,50 +95,52 @@ export function DespesaForm({
           )}
         </div>
       </div>
-      <div className="space-y-2">
-        <Label>Categoria</Label>
-        <Controller
-          name="categoria"
-          control={form.control}
-          render={({ field }) => (
-            <Select onValueChange={field.onChange} value={field.value}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione" />
-              </SelectTrigger>
-              <SelectContent>
-                {categorias.map((c) => (
-                  <SelectItem key={c.id} value={c.nome}>
-                    {c.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Categoria</Label>
+          <Controller
+            name="categoria"
+            control={form.control}
+            render={({ field }) => (
+              <Select onValueChange={field.onChange} value={field.value}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categorias.map((c) => (
+                    <SelectItem key={c.id} value={c.nome}>
+                      {c.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+          {form.formState.errors.categoria && (
+            <p className="text-sm text-destructive">{form.formState.errors.categoria.message}</p>
           )}
-        />
-        {form.formState.errors.categoria && (
-          <p className="text-sm text-destructive">{form.formState.errors.categoria.message}</p>
-        )}
-      </div>
-      <div className="space-y-2">
-        <Label>Tipo</Label>
-        <Controller
-          name="tipo"
-          control={form.control}
-          render={({ field }) => (
-            <Select onValueChange={field.onChange} value={field.value}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Fixo">Fixo</SelectItem>
-                <SelectItem value="Variável">Variável</SelectItem>
-              </SelectContent>
-            </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Tipo</Label>
+          <Controller
+            name="tipo"
+            control={form.control}
+            render={({ field }) => (
+              <Select onValueChange={field.onChange} value={field.value} disabled>
+                <SelectTrigger className="bg-slate-50">
+                  <SelectValue placeholder="Auto" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Fixo">Fixo</SelectItem>
+                  <SelectItem value="Variável">Variável</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          />
+          {form.formState.errors.tipo && (
+            <p className="text-sm text-destructive">{form.formState.errors.tipo.message}</p>
           )}
-        />
-        {form.formState.errors.tipo && (
-          <p className="text-sm text-destructive">{form.formState.errors.tipo.message}</p>
-        )}
+        </div>
       </div>
       <div className="space-y-2">
         <Label>Descrição</Label>

@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -17,13 +18,21 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { Loader2 } from 'lucide-react'
 
+const today = new Date().toISOString().split('T')[0]
+
 const schema = z.object({
-  data: z.string().min(1, 'Obrigatório'),
+  data: z
+    .string()
+    .min(1, 'Obrigatório')
+    .refine((val) => val <= today, {
+      message: 'Data não pode ser no futuro',
+    }),
   tipo: z.enum(['PIX', 'Dinheiro', 'Cartão'], { required_error: 'Obrigatório' }),
-  valor: z.coerce.number().min(0.01, 'Valor inválido'),
+  valor: z.coerce.number().positive('Deve ser maior que zero'),
   local: z.enum(['Salvador', 'Seabra', 'Irecê', 'Consultas Online', 'Extras'], {
     required_error: 'Obrigatório',
   }),
+  categoria_receita: z.string().min(1, 'Obrigatório'),
   descricao: z
     .string()
     .min(1, 'Obrigatório')
@@ -32,20 +41,27 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>
 
-export function ReceitaForm({ onSuccess }: { onSuccess: () => void }) {
+export function ReceitaForm({
+  categorias,
+  onSuccess,
+}: {
+  categorias: any[]
+  onSuccess: () => void
+}) {
   const { user } = useAuth()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { data: new Date().toISOString().split('T')[0], valor: 0, descricao: '' },
+    defaultValues: { data: today, valor: 0, descricao: '', categoria_receita: '' },
   })
 
   const onSubmit = async (d: FormData) => {
     setLoading(true)
     try {
       await createReceita({ ...d, usuario_id: user.id })
-      toast({ description: 'Receita adicionada com sucesso.' })
+      toast({ description: 'Receita registrada!' })
+      form.reset({ data: today, valor: 0, descricao: '', categoria_receita: '' })
       onSuccess()
     } catch (e) {
       toast({ variant: 'destructive', description: 'Erro ao adicionar receita.' })
@@ -59,7 +75,7 @@ export function ReceitaForm({ onSuccess }: { onSuccess: () => void }) {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Data</Label>
-          <Input type="date" {...form.register('data')} />
+          <Input type="date" max={today} {...form.register('data')} />
           {form.formState.errors.data && (
             <p className="text-sm text-destructive">{form.formState.errors.data.message}</p>
           )}
@@ -121,8 +137,38 @@ export function ReceitaForm({ onSuccess }: { onSuccess: () => void }) {
         </div>
       </div>
       <div className="space-y-2">
+        <Label>Categoria</Label>
+        <Controller
+          name="categoria_receita"
+          control={form.control}
+          render={({ field }) => (
+            <Select onValueChange={field.onChange} value={field.value}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                {categorias.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+        {form.formState.errors.categoria_receita && (
+          <p className="text-sm text-destructive">
+            {form.formState.errors.categoria_receita.message}
+          </p>
+        )}
+      </div>
+      <div className="space-y-2">
         <Label>Descrição</Label>
-        <Input {...form.register('descricao')} placeholder="Ex: Consulta João S." />
+        <Textarea
+          {...form.register('descricao')}
+          placeholder="Ex: Consulta João S."
+          className="resize-none"
+        />
         {form.formState.errors.descricao && (
           <p className="text-sm text-destructive">{form.formState.errors.descricao.message}</p>
         )}

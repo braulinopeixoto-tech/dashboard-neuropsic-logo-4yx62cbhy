@@ -1,7 +1,7 @@
 import pb from '@/lib/pocketbase/client'
 
 export const getReceitas = async () => {
-  return pb.collection('receitas').getFullList({ sort: '-data' })
+  return pb.collection('receitas').getFullList({ sort: '-data', expand: 'categoria_receita' })
 }
 
 export const getDespesas = async () => {
@@ -10,6 +10,10 @@ export const getDespesas = async () => {
 
 export const getCategoriasDespesas = async () => {
   return pb.collection('categorias_despesas').getFullList({ sort: 'nome' })
+}
+
+export const getCategoriasReceitas = async () => {
+  return pb.collection('categorias_receitas').getFullList({ sort: 'nome' })
 }
 
 export const createReceita = async (data: any) => {
