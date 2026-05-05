@@ -24,6 +24,7 @@ import CommandCenter from './pages/CommandCenter'
 import RelatorioFinal from './pages/RelatorioFinal'
 import ResumoProntuario from './pages/ResumoProntuario'
 import RelatorioConformidade from './pages/RelatorioConformidade'
+import DashboardAdministrativo from './pages/DashboardAdministrativo'
 
 const App = () => (
   <AuthProvider>
@@ -51,6 +52,7 @@ const App = () => (
             <Route path="/alertas" element={<Alertas />} />
             <Route path="/relatorios" element={<Relatorios />} />
             <Route path="/relatorio-conformidade" element={<RelatorioConformidade />} />
+            <Route path="/administrativo" element={<DashboardAdministrativo />} />
             <Route path="/auditoria" element={<Auditoria />} />
             <Route path="/compliance" element={<Compliance />} />
             <Route path="/configuracoes" element={<Configuracoes />} />
