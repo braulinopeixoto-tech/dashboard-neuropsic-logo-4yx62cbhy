@@ -202,7 +202,8 @@ function SignUpFormView({
       email: '',
       password: '',
       confirmPassword: '',
-      unidade: '',
+      tipo: 'neuropsicólogo',
+      unidade: 'Unidade Centro',
       terms: false as unknown as true,
     },
   })
@@ -300,10 +301,10 @@ function SignUpFormView({
                 <SelectValue placeholder="Selecione a unidade" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Cidade A">Unidade Cidade A</SelectItem>
-                <SelectItem value="Cidade B">Unidade Cidade B</SelectItem>
-                <SelectItem value="Cidade C">Unidade Cidade C</SelectItem>
-                <SelectItem value="Cidade D">Unidade Cidade D</SelectItem>
+                <SelectItem value="Unidade Centro">Unidade Centro</SelectItem>
+                <SelectItem value="Unidade Sul">Unidade Sul</SelectItem>
+                <SelectItem value="Unidade Norte">Unidade Norte</SelectItem>
+                <SelectItem value="Unidade Leste">Unidade Leste</SelectItem>
               </SelectContent>
             </Select>
           )}
@@ -388,7 +389,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<string>('login')
 
-  if (user) return <Navigate to="/administrativo" replace />
+  if (user) return <Navigate to="/" replace />
 
   const onLoginSubmit = async (data: LoginForm) => {
     setLoading(true)
@@ -428,7 +429,7 @@ export default function Login() {
       }
 
       setLoading(false)
-      navigate('/administrativo')
+      navigate('/')
     }
   }
 
@@ -463,7 +464,7 @@ export default function Login() {
         title: 'Conta criada com sucesso!',
         description: 'Seja bem-vindo(a) ao NeuroDash.',
       })
-      navigate('/administrativo')
+      navigate('/')
     }
   }
 

@@ -1,34 +1,22 @@
 import { useEffect, useState, useMemo } from 'react'
-import { Link } from 'react-router-dom'
 import { useRealtime } from '@/hooks/use-realtime'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter,
-} from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   AlertTriangle,
   CalendarClock,
-  AlertOctagon,
-  BarChart2,
-  ActivitySquare,
-  RefreshCw,
+  Users,
+  Activity,
   CheckCircle2,
+  TrendingUp,
 } from 'lucide-react'
-import { toast } from 'sonner'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid } from 'recharts'
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { useAuth } from '@/hooks/use-auth'
-import { fetchCockpitData, recalcularProtocolo } from '@/services/cockpit'
-import { InterveneNowModal } from '@/components/InterveneNowModal'
-import { AuditRecoveryModal } from '@/components/AuditRecoveryModal'
-import { cn } from '@/lib/utils'
 import pb from '@/lib/pocketbase/client'
+import { cn } from '@/lib/utils'
 
 function CockpitSkeleton() {
   return (
@@ -36,460 +24,256 @@ function CockpitSkeleton() {
       <Skeleton className="h-12 w-64" />
       <div className="grid gap-4 md:grid-cols-5">
         {[1, 2, 3, 4, 5].map((i) => (
-          <Skeleton key={i} className="h-40" />
+          <Skeleton key={i} className="h-32" />
         ))}
       </div>
-      <div className="grid gap-4 md:grid-cols-3">
-        {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-24" />
-        ))}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Skeleton className="h-64" />
+        <Skeleton className="h-64" />
       </div>
-      <Skeleton className="h-64" />
     </div>
   )
+}
+
+const chartConfig = {
+  energia: { label: 'Energia Neurofuncional', color: 'hsl(var(--primary))' },
 }
 
 export default function CommandCenter() {
   const { user } = useAuth()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
-  const [interveningRisk, setInterveningRisk] = useState<any>(null)
-  const [recalculating, setRecalculating] = useState<string | null>(null)
-  const [activeBreaks, setActiveBreaks] = useState<any[]>([])
-  const [recoveryModalOpen, setRecoveryModalOpen] = useState(false)
-  const [selectedBreak, setSelectedBreak] = useState<any>(null)
 
   const loadData = async () => {
     try {
-      setError(false)
-      const res = await fetchCockpitData()
-      setData(res)
-    } catch {
-      setError(true)
+      const [pacientes, protocolos, sessoes, alertas, dndas] = await Promise.all([
+        pb.collection('pacientes').getFullList({ filter: 'ativo=true' }),
+        pb
+          .collection('protocolos')
+          .getFullList({ expand: 'paciente_id', filter: 'status="ativo" || status="pausado"' }),
+        pb.collection('sessoes').getFullList({ expand: 'paciente_id,protocolo_id' }),
+        pb.collection('alertas').getFullList({ expand: 'paciente_id', filter: 'lido=false' }),
+        pb.collection('dnda_schema').getFullList({ sort: 'created' }),
+      ])
+      setData({ pacientes, protocolos, sessoes, alertas, dndas })
+    } catch (err) {
+      console.error(err)
     } finally {
       setLoading(false)
     }
   }
 
-  const loadChainBreaks = async () => {
-    if (user?.tipo !== 'neuropsicólogo') return
-    try {
-      const records = await pb.collection('chain_breaks').getFullList({
-        filter: 'status = "detected" || status = "investigating"',
-        expand: 'first_corrupted_log_id.usuario_id,last_corrupted_log_id.usuario_id',
-      })
-      setActiveBreaks(records)
-    } catch (err) {
-      console.error('Failed to load chain breaks', err)
-    }
-  }
-
   useEffect(() => {
     loadData()
-    loadChainBreaks()
   }, [user])
 
-  useRealtime('risk_score', () => {
-    loadData()
-  })
-  useRealtime('chain_breaks', () => {
-    loadChainBreaks()
-  })
-  useRealtime('dnda_schema', () => {
-    loadData()
-  })
-  useRealtime('sessoes', () => {
-    loadData()
-  })
+  useRealtime('sessoes', loadData)
+  useRealtime('alertas', loadData)
+  useRealtime('protocolos', loadData)
 
-  const topRisks = useMemo(() => {
-    if (!data?.riskScores) return []
-    const RISK_WEIGHT = { crítico: 4, alto: 3, moderado: 2, baixo: 1 }
-    return [...data.riskScores]
-      .sort((a, b) => {
-        const wA = RISK_WEIGHT[a.alert_level as keyof typeof RISK_WEIGHT] || 0
-        const wB = RISK_WEIGHT[b.alert_level as keyof typeof RISK_WEIGHT] || 0
-        if (wA !== wB) return wB - wA
-        return (b.abandonment_risk || 0) - (a.abandonment_risk || 0)
-      })
-      .slice(0, 5)
-  }, [data])
+  const kpis = useMemo(() => {
+    if (!data) return null
+    const hoje = new Date().toISOString().split('T')[0]
+    const sessoesHoje = data.sessoes.filter((s: any) => s.data_agendada?.startsWith(hoje))
 
-  const insights = useMemo(() => {
-    if (!data) return []
-    const list = []
-
-    const avgAdherence = data.riskScores.length
-      ? Math.round(
-          data.riskScores.reduce((acc: number, curr: any) => acc + (curr.adherence_score || 0), 0) /
-            data.riskScores.length,
-        )
+    let totalAdherence = 0
+    data.protocolos.forEach((p: any) => {
+      totalAdherence += (p.sessoes_concluidas || 0) / (p.total_sessoes || 1)
+    })
+    const avgAdherence = data.protocolos.length
+      ? Math.round((totalAdherence / data.protocolos.length) * 100)
       : 0
-    list.push({
-      title: 'Aderência Geral',
-      desc: `Taxa de aderência média: ${avgAdherence}%`,
-      icon: BarChart2,
-      color: 'text-blue-500 bg-blue-50',
-    })
 
-    data.riskScores
-      .filter((rs: any) => rs.abandonment_risk > 60)
-      .slice(0, 2)
-      .forEach((rs: any) => {
-        list.push({
-          title: 'Risco de Abandono',
-          desc: `Paciente ${rs.expand?.paciente_id?.nome} com risco de abandono ${rs.abandonment_risk}%`,
-          icon: AlertOctagon,
-          color: 'text-red-500 bg-red-50',
-        })
-      })
+    return {
+      activePatients: data.pacientes.length,
+      sessionsToday: sessoesHoje,
+      ongoingProtocols: data.protocolos.length,
+      riskAlerts: data.alertas,
+      avgAdherence,
+    }
+  }, [data])
 
-    const latestDndas = new Map()
+  const chartData = useMemo(() => {
+    if (!data?.dndas) return []
+    const grouped: Record<string, number[]> = {}
     data.dndas.forEach((d: any) => {
-      if (!latestDndas.has(d.paciente_id)) latestDndas.set(d.paciente_id, d)
+      const month = new Date(d.created).toLocaleString('pt-BR', { month: 'short' })
+      if (!grouped[month]) grouped[month] = []
+      if (d.neuro_energy) grouped[month].push(d.neuro_energy)
     })
-    Array.from(latestDndas.values())
-      .filter((d: any) => d.integration_status === 'hiperacoplado')
-      .slice(0, 2)
-      .forEach((d: any) => {
-        list.push({
-          title: 'Achado Clínico',
-          desc: `Rede salience hiperativa detectada em ${d.expand?.paciente_id?.nome}`,
-          icon: ActivitySquare,
-          color: 'text-orange-500 bg-orange-50',
-        })
-      })
-
-    const now = new Date()
-    data.sessoesAgendadas
-      .filter((s: any) => s.data_agendada && new Date(s.data_agendada) < now)
-      .slice(0, 2)
-      .forEach((s: any) => {
-        list.push({
-          title: 'Intervalo Fora do Ideal',
-          desc: `Sessão atrasada em ${s.expand?.paciente_id?.nome || 'Paciente'}`,
-          icon: CalendarClock,
-          color: 'text-yellow-600 bg-yellow-50',
-        })
-      })
-
-    return list.slice(0, 6)
+    return Object.keys(grouped).map((k) => ({
+      name: k,
+      energia: grouped[k].length ? grouped[k].reduce((a, b) => a + b, 0) / grouped[k].length : 0,
+    }))
   }, [data])
 
-  const deviatedProtocols = useMemo(() => {
-    if (!data) return []
-    const now = new Date()
-    return data.protocolos
-      .map((p: any) => {
-        const sessoesPendentes = data.sessoesAgendadas.filter((s: any) => s.protocolo_id === p.id)
-        const nextSession = sessoesPendentes[0]
-        let status = 'em dia'
-        if (nextSession && nextSession.data_agendada) {
-          const nextDate = new Date(nextSession.data_agendada)
-          const diffDays = (now.getTime() - nextDate.getTime()) / (1000 * 3600 * 24)
-          if (diffDays > 3) status = 'crítico'
-          else if (diffDays > 0) status = 'atrasado'
-        } else if (!nextSession && p.sessoes_concluidas < p.total_sessoes) {
-          status = 'atrasado'
-        }
-        return {
-          ...p,
-          status,
-          nextSessionDate: nextSession?.data_agendada,
-          progress: Math.round((p.sessoes_concluidas / p.total_sessoes) * 100) || 0,
-        }
-      })
-      .filter((p: any) => p.status !== 'em dia')
-      .sort((a: any, b: any) => {
-        if (a.status === 'crítico' && b.status !== 'crítico') return -1
-        if (b.status === 'crítico' && a.status !== 'crítico') return 1
-        return 0
-      })
-  }, [data])
-
-  const handleRecalculate = async (id: string) => {
-    try {
-      setRecalculating(id)
-      await recalcularProtocolo(id, user.id)
-      toast.success('Protocolo recalculado com sucesso!')
-      loadData()
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao recalcular protocolo')
-    } finally {
-      setRecalculating(null)
-    }
-  }
-
-  const getRiskColor = (level: string) => {
-    switch (level) {
-      case 'crítico':
-        return 'bg-red-500 text-white'
-      case 'alto':
-        return 'bg-orange-500 text-white'
-      case 'moderado':
-        return 'bg-yellow-500 text-white'
-      case 'baixo':
-        return 'bg-green-500 text-white'
-      default:
-        return 'bg-slate-200 text-slate-800'
-    }
-  }
-
-  if (loading && !data) return <CockpitSkeleton />
-  if (error)
-    return (
-      <div className="py-20 text-center animate-fade-in-up">
-        <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-        <h2 className="text-xl font-bold mb-2">Erro ao carregar alertas. Tente novamente.</h2>
-        <Button onClick={loadData}>Tentar Novamente</Button>
-      </div>
-    )
+  if (loading || !kpis) return <CockpitSkeleton />
 
   return (
     <div className="flex flex-col gap-6 animate-fade-in-up pb-10">
-      {activeBreaks.length > 0 && (
-        <div className="bg-red-600 text-white p-4 rounded-lg flex flex-col md:flex-row items-start md:items-center justify-between shadow-md gap-4">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="h-6 w-6 shrink-0 text-red-200" />
-            <div>
-              <h3 className="font-bold text-lg leading-tight">
-                ⚠️ Quebra de integridade detectada na cadeia de logs
-              </h3>
-              <p className="text-red-100 text-sm mt-1">
-                {activeBreaks.reduce((acc, curr) => acc + (curr.affected_logs_count || 0), 0)}{' '}
-                registros afetados em {activeBreaks.length} quebra(s).
-              </p>
-            </div>
-          </div>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => {
-              setSelectedBreak(activeBreaks[0])
-              setRecoveryModalOpen(true)
-            }}
-            className="text-red-900 font-semibold bg-white hover:bg-red-50 border-0 shrink-0"
-          >
-            Iniciar Recuperação
-          </Button>
-        </div>
-      )}
-
       <div>
-        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
-          Command Center — Cockpit Clínico
-        </h1>
+        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Command Center Clínico</h1>
         <p className="text-slate-500 mt-1">
-          Monitoramento em tempo real de pacientes de alto risco e desvios de protocolo.
+          Monitoramento em tempo real do estado clínico e operacional.
         </p>
       </div>
 
-      {/* Critical Alerts */}
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-5">
-        {topRisks.map((risk: any) => (
-          <Card key={risk.id} className="relative overflow-hidden flex flex-col">
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-start">
-                <CardTitle className="text-base truncate" title={risk.expand?.paciente_id?.nome}>
-                  <Link to={`/pacientes/${risk.paciente_id}`} className="hover:underline">
-                    {risk.expand?.paciente_id?.nome || 'Paciente'}
-                  </Link>
-                </CardTitle>
+        <Card className="shadow-subtle hover:shadow-elevation transition-all">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-slate-600">Pacientes Ativos</CardTitle>
+            <Users className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-slate-800">{kpis.activePatients}</div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-subtle hover:shadow-elevation transition-all">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-slate-600">
+              Protocolos em Andamento
+            </CardTitle>
+            <Activity className="h-4 w-4 text-emerald-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-slate-800">{kpis.ongoingProtocols}</div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-subtle hover:shadow-elevation transition-all">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-slate-600">Sessões Hoje</CardTitle>
+            <CalendarClock className="h-4 w-4 text-purple-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-slate-800">{kpis.sessionsToday.length}</div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-subtle hover:shadow-elevation transition-all">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-slate-600">Adesão Média</CardTitle>
+            <CheckCircle2 className="h-4 w-4 text-cyan-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-slate-800">{kpis.avgAdherence}%</div>
+            <Progress value={kpis.avgAdherence} className="h-2 mt-2 bg-slate-100" />
+          </CardContent>
+        </Card>
+        <Card className="shadow-subtle hover:shadow-elevation transition-all">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-slate-600">Alertas de Risco</CardTitle>
+            <AlertTriangle
+              className={cn(
+                'h-4 w-4',
+                kpis.riskAlerts.length > 0 ? 'text-red-500' : 'text-slate-300',
+              )}
+            />
+          </CardHeader>
+          <CardContent>
+            <div
+              className={cn(
+                'text-2xl font-bold',
+                kpis.riskAlerts.length > 0 ? 'text-red-600' : 'text-slate-800',
+              )}
+            >
+              {kpis.riskAlerts.length}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+        <Card className="flex flex-col shadow-subtle">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-indigo-500" />
+              Evolução Clínica Recente
+            </CardTitle>
+            <CardDescription>
+              Média de energia neurofuncional (DNDA) nos últimos meses
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex-1 min-h-[300px]">
+            {chartData.length > 0 ? (
+              <ChartContainer config={chartConfig} className="h-full w-full min-h-[250px]">
+                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorEnergia" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--color-energia)" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="var(--color-energia)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis
+                    dataKey="name"
+                    axisLine={false}
+                    tickLine={false}
+                    tickMargin={8}
+                    tick={{ fontSize: 12, fill: '#64748b' }}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tickMargin={8}
+                    tick={{ fontSize: 12, fill: '#64748b' }}
+                  />
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                  <Area
+                    type="monotone"
+                    dataKey="energia"
+                    stroke="var(--color-energia)"
+                    fillOpacity={1}
+                    fill="url(#colorEnergia)"
+                  />
+                </AreaChart>
+              </ChartContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center text-slate-400">
+                Dados insuficientes
               </div>
-              <CardDescription className="flex items-center gap-2 mt-1">
-                <Badge className={cn('capitalize font-semibold', getRiskColor(risk.alert_level))}>
-                  {risk.alert_level}
-                </Badge>
-                <span className="text-xs font-medium text-slate-500">
-                  {risk.abandonment_risk}% Risco
-                </span>
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pb-2 flex-1">
-              <p className="text-sm text-slate-600 line-clamp-2" title={risk.alert_message}>
-                {risk.alert_message || 'Nenhum alerta específico.'}
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Button
-                variant="default"
-                size="sm"
-                className="w-full bg-slate-900 hover:bg-slate-800"
-                onClick={() => setInterveningRisk(risk)}
-              >
-                <AlertTriangle className="h-4 w-4 mr-2" />
-                Intervir agora
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
-        {topRisks.length === 0 && (
-          <div className="col-span-full py-8 text-center bg-white border rounded-lg border-dashed">
-            <CheckCircle2 className="h-8 w-8 text-green-500 mx-auto mb-2" />
-            <p className="text-slate-600 font-medium">Nenhum alerta crítico no momento.</p>
-          </div>
-        )}
-      </div>
-
-      {/* Automatic Insights */}
-      <h2 className="text-xl font-bold text-slate-900 mt-2">Insights Clínicos</h2>
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        {insights.map((insight, idx) => (
-          <Card key={idx} className="flex flex-row items-center gap-4 p-4">
-            <div className={cn('p-3 rounded-full shrink-0', insight.color)}>
-              <insight.icon className="h-6 w-6" />
-            </div>
-            <div className="min-w-0">
-              <h4 className="font-semibold text-slate-900 text-sm">{insight.title}</h4>
-              <p className="text-sm text-slate-500 truncate">{insight.desc}</p>
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      {/* Deviated Protocols */}
-      <h2 className="text-xl font-bold text-slate-900 mt-2">Protocolos Desviados</h2>
-      <div className="rounded-md border bg-white overflow-hidden hidden md:block">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-slate-50 border-b">
-            <tr>
-              <th className="px-4 py-3 font-medium text-slate-500">Paciente</th>
-              <th className="px-4 py-3 font-medium text-slate-500">Protocolo</th>
-              <th className="px-4 py-3 font-medium text-slate-500">Progresso</th>
-              <th className="px-4 py-3 font-medium text-slate-500">Status</th>
-              <th className="px-4 py-3 font-medium text-slate-500">Próx. Sessão</th>
-              <th className="px-4 py-3 font-medium text-slate-500 text-right">Ações</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {deviatedProtocols.map((p: any) => (
-              <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
-                <td className="px-4 py-3 font-medium text-slate-900">
-                  {p.expand?.paciente_id?.nome}
-                </td>
-                <td className="px-4 py-3 text-slate-600">{p.tipo}</td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <Progress value={p.progress} className="h-2 w-20" />
-                    <span className="text-xs text-slate-500">{p.progress}%</span>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <Badge
-                    variant={p.status === 'crítico' ? 'destructive' : 'secondary'}
-                    className={
-                      p.status === 'atrasado'
-                        ? 'bg-orange-100 text-orange-700 hover:bg-orange-100 border-orange-200'
-                        : ''
-                    }
-                  >
-                    {p.status}
-                  </Badge>
-                </td>
-                <td className="px-4 py-3 text-slate-600">
-                  {p.nextSessionDate
-                    ? new Date(p.nextSessionDate).toLocaleDateString('pt-BR')
-                    : 'Não agendada'}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleRecalculate(p.id)}
-                    disabled={recalculating === p.id}
-                  >
-                    {recalculating === p.id ? (
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                    ) : (
-                      'Recalcular'
-                    )}
-                  </Button>
-                </td>
-              </tr>
-            ))}
-            {deviatedProtocols.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
-                  Nenhum protocolo atrasado ou crítico.
-                </td>
-              </tr>
             )}
-          </tbody>
-        </table>
+          </CardContent>
+        </Card>
+
+        <Card className="flex flex-col shadow-subtle">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Alertas Prioritários
+            </CardTitle>
+            <CardDescription>Pacientes necessitando de intervenção imediata</CardDescription>
+          </CardHeader>
+          <CardContent className="flex-1">
+            {kpis.riskAlerts.length > 0 ? (
+              <div className="space-y-4">
+                {kpis.riskAlerts.slice(0, 5).map((alerta: any) => (
+                  <div
+                    key={alerta.id}
+                    className="flex items-start justify-between p-3 rounded-lg border border-slate-100 bg-slate-50 transition-all hover:bg-slate-100"
+                  >
+                    <div>
+                      <p className="font-medium text-slate-900">
+                        {alerta.expand?.paciente_id?.nome}
+                      </p>
+                      <p className="text-sm text-slate-600">{alerta.mensagem}</p>
+                    </div>
+                    <Badge
+                      variant={alerta.tipo === 'risco_desistência' ? 'destructive' : 'secondary'}
+                      className="capitalize"
+                    >
+                      {alerta.tipo.replace('_', ' ')}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex h-full flex-col items-center justify-center text-slate-400 gap-2">
+                <CheckCircle2 className="h-8 w-8 text-emerald-400" />
+                <p>Nenhum alerta pendente</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
-
-      {/* Mobile view for Deviated Protocols */}
-      <div className="grid gap-4 md:hidden">
-        {deviatedProtocols.map((p: any) => (
-          <Card key={p.id}>
-            <CardContent className="p-4 flex flex-col gap-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="font-medium text-slate-900">{p.expand?.paciente_id?.nome}</p>
-                  <p className="text-sm text-slate-500">Protocolo: {p.tipo}</p>
-                </div>
-                <Badge
-                  variant={p.status === 'crítico' ? 'destructive' : 'secondary'}
-                  className={
-                    p.status === 'atrasado'
-                      ? 'bg-orange-100 text-orange-700 hover:bg-orange-100 border-orange-200'
-                      : ''
-                  }
-                >
-                  {p.status}
-                </Badge>
-              </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs text-slate-500">
-                  <span>Progresso</span>
-                  <span>{p.progress}%</span>
-                </div>
-                <Progress value={p.progress} className="h-2" />
-              </div>
-              <div className="text-sm text-slate-600 flex items-center gap-2">
-                <CalendarClock className="h-4 w-4" />
-                {p.nextSessionDate
-                  ? new Date(p.nextSessionDate).toLocaleDateString('pt-BR')
-                  : 'Não agendada'}
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="w-full mt-1"
-                onClick={() => handleRecalculate(p.id)}
-                disabled={recalculating === p.id}
-              >
-                {recalculating === p.id ? (
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                )}
-                Recalcular Protocolo
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
-        {deviatedProtocols.length === 0 && (
-          <div className="py-8 text-center text-slate-500 bg-white border rounded-lg border-dashed">
-            Nenhum protocolo atrasado ou crítico.
-          </div>
-        )}
-      </div>
-
-      <InterveneNowModal
-        riskScore={interveningRisk}
-        open={!!interveningRisk}
-        onOpenChange={(v: boolean) => !v && setInterveningRisk(null)}
-        onSuccess={loadData}
-      />
-
-      <AuditRecoveryModal
-        open={recoveryModalOpen}
-        onOpenChange={setRecoveryModalOpen}
-        chainBreak={selectedBreak}
-        onSuccess={loadChainBreaks}
-      />
     </div>
   )
 }

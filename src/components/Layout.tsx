@@ -24,6 +24,8 @@ import {
   ShieldCheck,
   ShieldAlert,
   Shield,
+  CalendarClock,
+  FileText,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -33,17 +35,19 @@ import { AdminAlertsBell } from './AdminAlertsBell'
 
 const menuItems = [
   { title: 'Command Center', icon: ShieldAlert, path: '/' },
-  { title: 'Minhas Sessões', icon: Activity, path: '/minhas-sessoes' },
-  { title: 'Prescrever', icon: PlusCircle, path: '/prescrever-protocolo' },
-  { title: 'Pacientes', icon: Users, path: '/pacientes' },
-  { title: 'Alertas', icon: Bell, path: '/alertas' },
-  { title: 'Relatórios', icon: BarChart3, path: '/relatorios' },
   {
-    title: 'Administrativo',
-    icon: Wallet,
-    path: '/administrativo',
+    title: 'Gestão Clínica',
+    icon: Activity,
+    path: '/gestao-clinica',
     roles: ['neuropsicólogo', 'assistente_líder'],
   },
+  { title: 'Pacientes', icon: Users, path: '/pacientes' },
+  { title: 'Novo Paciente', icon: PlusCircle, path: '/pacientes/novo' },
+  { title: 'Quick Report', icon: FileText, path: '/quick-report' },
+  { title: 'Sessões', icon: CalendarClock, path: '/minhas-sessoes' },
+  { title: 'Prescrever', icon: PlusCircle, path: '/prescrever-protocolo' },
+  { title: 'Alertas', icon: Bell, path: '/alertas' },
+  { title: 'Relatórios', icon: BarChart3, path: '/relatorios' },
   { title: 'Auditoria', icon: ShieldCheck, path: '/auditoria', roles: ['neuropsicólogo'] },
   { title: 'Compliance', icon: Shield, path: '/compliance', roles: ['neuropsicólogo'] },
   { title: 'Configurações', icon: Settings, path: '/configuracoes' },
