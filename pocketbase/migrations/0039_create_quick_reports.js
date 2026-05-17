@@ -4,14 +4,14 @@ migrate(
     try {
       collection = app.findCollectionByNameOrId('quick_reports')
     } catch (_) {
-      try {
-        collection = app.findCollectionByNameOrId('Quick_reports')
-      } catch (_) {
-        collection = new Collection({
-          name: 'quick_reports',
-          type: 'base',
-        })
-      }
+      collection = new Collection({
+        name: 'quick_reports',
+        type: 'base',
+        fields: [
+          { name: 'created', type: 'autodate', onCreate: true, onUpdate: false },
+          { name: 'updated', type: 'autodate', onCreate: true, onUpdate: true },
+        ],
+      })
     }
 
     collection.listRule = "@request.auth.id != '' && usuario_id = @request.auth.id"

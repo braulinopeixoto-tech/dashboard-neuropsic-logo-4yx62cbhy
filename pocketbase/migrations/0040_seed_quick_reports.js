@@ -1,10 +1,15 @@
 migrate(
   (app) => {
-    const quickReports = app.findCollectionByNameOrId('quick_reports')
+    let quickReports
+    try {
+      quickReports = app.findCollectionByNameOrId('quick_reports')
+    } catch (_) {
+      return
+    }
 
     let adminId
     try {
-      const admin = app.findAuthRecordByEmail('users', 'braulinopeixoto@gmail.com')
+      const admin = app.findAuthRecordByEmail('_pb_users_auth_', 'braulinopeixoto@gmail.com')
       adminId = admin.id
     } catch (_) {
       return
