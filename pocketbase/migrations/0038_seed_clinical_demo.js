@@ -5,7 +5,10 @@ migrate(
     const protocolos = app.findCollectionByNameOrId('protocolos')
     const sessoes = app.findCollectionByNameOrId('sessoes')
     const alertas = app.findCollectionByNameOrId('alertas')
-    const quickReports = app.findCollectionByNameOrId('quick_reports')
+    let quickReports
+    try {
+      quickReports = app.findCollectionByNameOrId('quick_reports')
+    } catch (_) {}
 
     let adminId
     try {
@@ -215,18 +218,20 @@ migrate(
       }
     }
 
-    try {
-      app.findFirstRecordByData('quick_reports', 'titulo', 'Evolução Positiva TDAH')
-    } catch (_) {
-      const record = new Record(quickReports)
-      record.set('usuario_id', adminId)
-      record.set('paciente_id', pacienteIds['33344455566'])
-      record.set('titulo', 'Evolução Positiva TDAH')
-      record.set(
-        'conteudo',
-        'Paciente relatou melhora significativa no foco durante o trabalho após a segunda sessão de tACS.',
-      )
-      app.save(record)
+    if (quickReports) {
+      try {
+        app.findFirstRecordByData('quick_reports', 'titulo', 'Evolução Positiva TDAH')
+      } catch (_) {
+        const record = new Record(quickReports)
+        record.set('usuario_id', adminId)
+        record.set('paciente_id', pacienteIds['33344455566'])
+        record.set('titulo', 'Evolução Positiva TDAH')
+        record.set(
+          'conteudo',
+          'Paciente relatou melhora significativa no foco durante o trabalho após a segunda sessão de tACS.',
+        )
+        app.save(record)
+      }
     }
   },
   (app) => {
