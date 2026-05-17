@@ -33,6 +33,9 @@ migrate(
     }
   },
   (app) => {
-    // down
+    try {
+      const record = app.findFirstRecordByData('quick_reports', 'titulo', 'Evolução Positiva TDAH')
+      app.delete(record)
+    } catch (_) {}
   },
 )

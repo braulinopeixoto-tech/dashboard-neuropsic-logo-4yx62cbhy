@@ -34,7 +34,9 @@ migrate(
     app.save(collection)
   },
   (app) => {
-    const col = app.findCollectionByNameOrId('quick_reports')
-    app.delete(col)
+    try {
+      const col = app.findCollectionByNameOrId('quick_reports')
+      app.delete(col)
+    } catch (_) {}
   },
 )
