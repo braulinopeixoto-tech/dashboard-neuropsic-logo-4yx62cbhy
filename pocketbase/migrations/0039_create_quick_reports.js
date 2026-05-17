@@ -3,9 +3,9 @@ migrate(
     const collection = new Collection({
       name: 'quick_reports',
       type: 'base',
-      listRule: "@request.auth.id != ''",
-      viewRule: "@request.auth.id != ''",
-      createRule: "@request.auth.id != ''",
+      listRule: "@request.auth.id != '' && usuario_id = @request.auth.id",
+      viewRule: "@request.auth.id != '' && usuario_id = @request.auth.id",
+      createRule: "@request.auth.id != '' && @request.auth.tipo = 'neuropsicólogo'",
       updateRule: "@request.auth.id != '' && usuario_id = @request.auth.id",
       deleteRule: "@request.auth.id != '' && usuario_id = @request.auth.id",
       fields: [
