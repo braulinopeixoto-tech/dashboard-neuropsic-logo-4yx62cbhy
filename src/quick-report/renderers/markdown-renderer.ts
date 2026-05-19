@@ -1,4 +1,4 @@
-import type { NormalizedQuickReportInput, QuickReportOutput } from '../types'
+import type { NormalizedQuickReportInput, QEEGStructuredMarker, QuickReportOutput } from '../types'
 
 const brainEnergyLabels = {
   hypoactive: 'hipoativa',
@@ -30,9 +30,33 @@ function numberedTitle(index: number, title: string): string {
   return `## ${index}. ${title}`
 }
 
+function renderQeegMarkers(markers?: QEEGStructuredMarker[]): string {
+  if (!markers?.length) return 'Nao informado.'
+
+  return markers
+    .map((marker, index) => {
+      return [
+        `### Marcador qEEG ${index + 1}`,
+        `- Banda: ${marker.band}`,
+        `- Frequencia: ${marker.frequencyHz ? `${marker.frequencyHz} Hz` : 'nao informada'}`,
+        `- Localizacao 10-20: ${marker.location10_20?.join(', ') || 'nao informada'}`,
+        `- Regiao provavel: ${marker.region?.join(', ') || 'nao inferida'}`,
+        `- Rede provavel: ${marker.probableNetwork?.join(', ') || 'nao inferida'}`,
+        `- Funcao provavel: ${marker.probableFunction?.join(', ') || 'nao inferida'}`,
+        `- Impacto na energia cerebral: ${marker.energyImpact}`,
+        `- Impacto na organizacao: ${marker.organizationImpact}`,
+        `- Evidencias: ${marker.evidence.join(' | ') || 'nao informadas'}`,
+        `- Confianca: ${Math.round(marker.confidence * 100)}%`,
+        `- Limitacoes: ${marker.limitations.join(' | ')}`,
+      ].join('\n')
+    })
+    .join('\n\n')
+}
+
 export function renderReport(input: NormalizedQuickReportInput, output: Omit<QuickReportOutput, 'reportMarkdown'>): string {
   const state = output.neurofunctionalState
   const audit = output.auditTrace
+  const qeegStructuredMarkers = output.structuredFindings.domainMapping.qeegStructuredMarkers
 
   return [
     '# Quick Report Neurofuncional',
@@ -54,12 +78,12 @@ export function renderReport(input: NormalizedQuickReportInput, output: Omit<Qui
     list([...(input.behavioralFindings || []), ...(input.psychometricFindings || [])]),
     '',
     numberedTitle(5, 'Achados neurofuncionais'),
+    renderQeegMarkers(qeegStructuredMarkers),
+    '',
     list([
-      ...(input.qeeg?.findings || []),
-      ...(input.qeeg?.bands?.map((band) => `Banda observada: ${band}`) || []),
       ...(input.sourceLocalization?.regions?.map((region) => `Regiao de fonte: ${region}`) || []),
       ...(input.sourceLocalization?.brodmannAreas?.map((area) => `Area de Brodmann: ${area}`) || []),
-    ]),
+    ], 'Sem achados de localizacao de fonte informados.'),
     '',
     numberedTitle(6, 'Convergencia neurofuncional'),
     `Energia cerebral: ${brainEnergyLabels[state.brainEnergy]}.`,
