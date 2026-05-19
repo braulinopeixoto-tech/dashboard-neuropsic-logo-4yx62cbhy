@@ -1,39 +1,29 @@
 import { generateAuditTrace } from './audit'
+import {
+  calculateFunctionalRisk,
+  generateInterventionPhases,
+  mapClinicalSignalsToRDoC,
+  mapSignalsToFunctions,
+  mapSignalsToNetworks,
+} from './maps'
 import { renderReport } from './renderers/markdown-renderer'
 import type {
   BrainEnergy,
   ClinicalSignal,
   DomainMapping,
   FunctionalHypothesis,
-  InterventionPlan,
   NetworkIntegration,
+  NeurofunctionalContext,
   NormalizedQuickReportInput,
   Organization,
+  QEEGMarker,
   QuickReportInput,
   QuickReportOutput,
-  RiskLevel,
 } from './types'
-
-const MEDICAL_REFERRAL_TERMS = [
-  'cefaleia',
-  'tontura',
-  'enjoo',
-  'convulsao',
-  'convulsões',
-  'regressao',
-  'regressão',
-  'alteracao subita',
-  'alteração súbita',
-  'sinal neurologico',
-  'sinal neurológico',
-]
 
 const HYPERAROUSAL_TERMS = ['ansiedade', 'agitação', 'irritabilidade', 'insônia', 'hiperatividade', 'impulsividade']
 const HYPOACTIVE_TERMS = ['lentificacao', 'lentidão', 'fadiga', 'apatia', 'sonolencia', 'sonolência', 'baixo engajamento']
 const INSTABILITY_TERMS = ['oscilacao', 'oscilação', 'instabilidade', 'variabilidade', 'desregulacao', 'desregulação']
-const EXECUTIVE_TERMS = ['atencao', 'atenção', 'planejamento', 'inibição', 'controle inibitorio', 'funcoes executivas']
-const SOCIAL_TERMS = ['social', 'reciprocidade', 'comunicacao', 'comunicação', 'interacao', 'interação']
-const NEGATIVE_VALENCE_TERMS = ['medo', 'evitacao', 'evitação', 'ansiedade', 'ameaca', 'ameaça', 'trauma']
 
 function compactList(items?: string[]): string[] {
   return (items || []).map((item) => item.trim()).filter(Boolean)
@@ -95,7 +85,11 @@ export function normalizeInput(input: QuickReportInput): NormalizedQuickReportIn
 
 export function extractClinicalSignals(input: NormalizedQuickReportInput): ClinicalSignal[] {
   const signals: ClinicalSignal[] = []
-  const addSignals = (source: ClinicalSignal['source'], findings?: string[], interpretation = 'Achado clinico relevante para convergencia funcional.') => {
+  const addSignals = (
+    source: ClinicalSignal['source'],
+    findings?: string[],
+    interpretation = 'Achado clinico relevante para convergencia funcional.',
+  ) => {
     findings?.forEach((finding) => {
       signals.push({ source, finding, interpretation, confidenceImpact: 0.05 })
     })
@@ -113,34 +107,29 @@ export function extractClinicalSignals(input: NormalizedQuickReportInput): Clini
   return signals
 }
 
-export function mapToDomains(input: NormalizedQuickReportInput): DomainMapping {
-  const text = input.allFindings.join(' ').toLowerCase()
-  const rdocDomains = new Set<string>()
-  const networks = new Set<string>()
-  const cognitiveFunctions = new Set<string>()
+export function extractQeegMarkers(input: NormalizedQuickReportInput): QEEGMarker[] {
+  return (input.qeeg?.findings || []).map((finding, index) => ({
+    finding,
+    band: input.qeeg?.bands?.[index],
+    frequencyHz: input.qeeg?.frequencyHz?.[index],
+    location10_20: input.qeeg?.location10_20?.[index],
+    amplitude: input.qeeg?.amplitude?.[index],
+    interpretation: input.qeeg?.interpretation,
+  }))
+}
 
-  if (includesAny(text, NEGATIVE_VALENCE_TERMS)) rdocDomains.add('Valencia negativa')
-  if (includesAny(text, ['prazer', 'motivacao', 'motivação', 'recompensa'])) rdocDomains.add('Valencia positiva')
-  if (includesAny(text, EXECUTIVE_TERMS)) rdocDomains.add('Sistemas cognitivos')
-  if (includesAny(text, SOCIAL_TERMS)) rdocDomains.add('Processos sociais')
-  if (includesAny(text, ['sono', 'vigilia', 'vigilancia', 'vigilância', 'arousal'])) rdocDomains.add('Arousal e regulacao')
-  if (includesAny(text, ['motor', 'sensoriomotor', 'coordenação', 'coordenacao'])) rdocDomains.add('Sistemas sensoriomotores')
-
-  if (includesAny(text, EXECUTIVE_TERMS)) networks.add('Rede executiva frontoparietal')
-  if (includesAny(text, ['ruminacao', 'ruminação', 'autorreferencia', 'memoria autobiografica'])) networks.add('Default Mode Network')
-  if (includesAny(text, ['alerta', 'saliencia', 'saliência', 'ameaca', 'ameaça'])) networks.add('Rede de saliencia')
-  if (includesAny(text, SOCIAL_TERMS)) networks.add('Rede socioemocional')
-
-  if (includesAny(text, ['atencao', 'atenção'])) cognitiveFunctions.add('Atencao')
-  if (includesAny(text, ['memoria', 'memória'])) cognitiveFunctions.add('Memoria')
-  if (includesAny(text, ['inibição', 'controle inibitorio', 'impulsividade'])) cognitiveFunctions.add('Controle inibitorio')
-  if (includesAny(text, ['flexibilidade', 'rigidez'])) cognitiveFunctions.add('Flexibilidade cognitiva')
-  if (includesAny(text, ['emocional', 'ansiedade', 'irritabilidade'])) cognitiveFunctions.add('Regulacao emocional')
+export function mapToDomains(context: Pick<NeurofunctionalContext, 'signals' | 'qeegMarkers'>): DomainMapping {
+  const rdocMappings = mapClinicalSignalsToRDoC(context.signals)
+  const networkMappings = mapSignalsToNetworks(context.signals, context.qeegMarkers)
+  const functionalMappings = mapSignalsToFunctions(context.signals)
 
   return {
-    rdocDomains: [...rdocDomains],
-    networks: [...networks],
-    cognitiveFunctions: [...cognitiveFunctions],
+    rdocDomains: rdocMappings.map((item) => item.domain),
+    networks: networkMappings.map((item) => item.network),
+    cognitiveFunctions: functionalMappings.map((item) => item.functionName),
+    rdocMappings,
+    networkMappings,
+    functionalMappings,
   }
 }
 
@@ -223,64 +212,51 @@ export function calculateConfidence(input: NormalizedQuickReportInput): number {
   return Math.min(0.95, Math.max(0.15, availableSignals / 8))
 }
 
-export function calculateRiskLevel(input: NormalizedQuickReportInput): RiskLevel {
-  const text = input.allFindings.join(' ').toLowerCase()
-  if (input.flags?.requireMedicalReferral || MEDICAL_REFERRAL_TERMS.some((term) => text.includes(term))) return 'high'
-  if (includesAny(text, ['risco', 'autoagressao', 'autoagressão', 'ideacao', 'ideação', 'agressividade intensa'])) return 'high'
-  if (includesAny(text, ['prejuizo', 'prejuízo', 'queda de rendimento', 'isolamento', 'faltas frequentes'])) return 'moderate'
-  return 'low'
-}
-
-export function generateInterventionPlan(params: {
-  input: NormalizedQuickReportInput
-  state: QuickReportOutput['neurofunctionalState']
-}): InterventionPlan {
-  const avoidEarlyStimulation = params.state.brainEnergy === 'hypoactive'
-
-  return {
-    phase1: [
-      'Estabilizar sono, rotina, carga sensorial e marcadores de seguranca clinica.',
-      'Reduzir variaveis de estresse antes de intensificar demandas cognitivas.',
-      ...(avoidEarlyStimulation ? ['Evitar estimulacao precoce sem base regulatoria e acompanhamento clinico.'] : []),
-    ],
-    phase2: [
-      'Promover integracao gradual entre regulacao emocional, atencao e funcionamento executivo.',
-      'Monitorar sinais de sobrecarga, fadiga, irritabilidade ou piora funcional.',
-    ],
-    phase3: [
-      'Especializar intervencoes para funcoes preservadas e deficits prioritarios.',
-      'Consolidar vetores adaptativos e estrategias compensatorias em contexto real.',
-    ],
-  }
-}
-
 export function generateQuickReport(input: QuickReportInput): QuickReportOutput {
   const normalized = normalizeInput(input)
   const clinicalSignals = extractClinicalSignals(normalized)
-  const domainMapping = mapToDomains(normalized)
+  const qeegMarkers = extractQeegMarkers(normalized)
   const neurofunctionalState = classifyNeurofunctionalState(normalized)
+  const partialContext = { signals: clinicalSignals, qeegMarkers }
+  const domainMapping = mapToDomains(partialContext)
+  const context: NeurofunctionalContext = {
+    input: normalized,
+    signals: clinicalSignals,
+    qeegMarkers,
+    rdocMappings: domainMapping.rdocMappings || [],
+    networkMappings: domainMapping.networkMappings || [],
+    functionalMappings: domainMapping.functionalMappings || [],
+    neurofunctionalState,
+  }
   const hypotheses = generateHypotheses({ input: normalized, domains: domainMapping, state: neurofunctionalState })
   const confidenceLevel = calculateConfidence(normalized)
-  const riskLevel = calculateRiskLevel(normalized)
-  const interventionPlan = generateInterventionPlan({ input: normalized, state: neurofunctionalState })
+  const riskAssessment = calculateFunctionalRisk(context)
+  const interventionPlan = generateInterventionPhases(context)
   const inferenceTrace = [
     'Entrada clinica bruta normalizada semanticamente.',
     'Sinais clinicos extraidos sem conclusao direta por sintoma isolado.',
-    'Achados mapeados para dominios RDoC, redes provaveis e funcoes cognitivas/emocionais.',
+    'Achados mapeados por modulos dedicados de RDoC, redes funcionais e funcoes neuropsicologicas.',
     'Estado neurofuncional classificado por convergencia de marcadores.',
-    'Hipoteses dimensionais, risco, intervencao e confianca calculados com trilha auditavel.',
+    'Risco funcional e intervencao por fases calculados por mapas clinicos separados.',
+    'Hipoteses dimensionais e confianca calculadas com trilha auditavel.',
   ]
-  const auditTrace = generateAuditTrace({ input: normalized, confidenceLevel, riskLevel, inferenceTrace })
+  const auditTrace = generateAuditTrace({
+    input: normalized,
+    confidenceLevel,
+    riskLevel: riskAssessment.level,
+    inferenceTrace,
+  })
 
   const outputWithoutMarkdown: Omit<QuickReportOutput, 'reportMarkdown'> = {
     structuredFindings: {
       nqlBlocks: {
         PatientContext: [normalized.patient],
         ClinicalSignal: clinicalSignals,
-        RDoCDomain: domainMapping.rdocDomains,
-        NetworkState: domainMapping.networks,
+        QEEGMarker: qeegMarkers,
+        RDoCDomain: context.rdocMappings,
+        NetworkState: context.networkMappings,
         FunctionalHypothesis: hypotheses.functionalHypotheses,
-        RiskVector: [riskLevel],
+        RiskVector: [riskAssessment],
         InterventionPhase: [interventionPlan],
         AuditTrace: [auditTrace],
       },
@@ -291,7 +267,7 @@ export function generateQuickReport(input: QuickReportInput): QuickReportOutput 
     neurofunctionalState,
     dominantHypothesis: hypotheses.dominantHypothesis,
     differentialHypotheses: hypotheses.differentialHypotheses,
-    riskLevel,
+    riskLevel: riskAssessment.level,
     interventionPlan,
     auditTrace,
   }
