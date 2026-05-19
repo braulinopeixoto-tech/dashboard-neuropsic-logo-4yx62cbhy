@@ -126,8 +126,8 @@ export default function NovoPaciente() {
         try {
           if (await pb.collection('pacientes').getFirstListItem(`email="${data.email}"`))
             return toast.error('Email já cadastrado')
-        } catch {
-          /* intentionally ignored */
+        } catch (e: any) {
+          if (e.status === 0 || e.message === 'Failed to fetch') throw e
         }
       }
       const fd = new FormData()
@@ -146,12 +146,14 @@ export default function NovoPaciente() {
       })
       nav('/pacientes')
     } catch (err: any) {
-      if (err.status === 400) {
+      if (err.status === 0 || err.message === 'Failed to fetch' || err.isAbort) {
+        toast.error('Falha na conexão com o servidor. Verifique sua internet e tente novamente.')
+      } else if (err.status === 400) {
         toast.error(
           'Erro ao cadastrar paciente. Verifique se todos os campos obrigatórios foram preenchidos corretamente.',
         )
       } else {
-        toast.error(err.message || 'Erro ao cadastrar paciente')
+        toast.error('Erro ao salvar os dados do paciente. Tente novamente mais tarde.')
       }
     }
   }
