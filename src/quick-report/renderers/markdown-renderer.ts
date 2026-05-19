@@ -1,5 +1,6 @@
 import type { MetaAnalyticEvidence } from '../evidence'
 import type {
+  ClinicalConfidenceScore,
   NormalizedQuickReportInput,
   QEEGStructuredMarker,
   QuickReportOutput,
@@ -114,12 +115,31 @@ function renderMetaAnalyticEvidence(items?: MetaAnalyticEvidence[]): string {
     .join('\n\n')
 }
 
+function renderClinicalConfidence(score: ClinicalConfidenceScore): string {
+  return [
+    `- Escore: ${score.score}/100`,
+    `- Nivel: ${score.tier}`,
+    '- Fatores que aumentaram a confianca:',
+    list(score.convergenceDrivers, 'Nenhum fator multimodal suficiente identificado.'),
+    '- Fatores que reduziram a confianca:',
+    list(score.divergenceDrivers, 'Nenhum fator redutor relevante identificado.'),
+    '- Dados ausentes:',
+    list(score.missingData, 'Nenhum dado essencial ausente identificado.'),
+    '- Alertas de cautela:',
+    list(score.cautionFlags, 'Nenhum alerta adicional de cautela identificado.'),
+    `- Interpretacao: ${score.interpretation}`,
+    '- Limitacoes:',
+    list(score.limitations),
+  ].join('\n')
+}
+
 export function renderReport(input: NormalizedQuickReportInput, output: Omit<QuickReportOutput, 'reportMarkdown'>): string {
   const state = output.neurofunctionalState
   const audit = output.auditTrace
   const qeegStructuredMarkers = output.structuredFindings.domainMapping.qeegStructuredMarkers
   const sourceLocalizationMarkers = output.structuredFindings.domainMapping.sourceLocalizationMarkers
   const metaAnalyticEvidence = output.structuredFindings.domainMapping.metaAnalyticEvidence
+  const clinicalConfidenceScore = output.clinicalConfidenceScore
 
   return [
     '# Quick Report Neurofuncional',
@@ -160,6 +180,9 @@ export function renderReport(input: NormalizedQuickReportInput, output: Omit<Qui
     '',
     '## Evidencia Meta-Analitica',
     renderMetaAnalyticEvidence(metaAnalyticEvidence),
+    '',
+    '## Grau de Convergencia Clinica',
+    renderClinicalConfidence(clinicalConfidenceScore),
     '',
     numberedTitle(7, 'Hipotese dominante'),
     output.dominantHypothesis,
