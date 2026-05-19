@@ -3,6 +3,7 @@ import {
   calculateFunctionalRisk,
   generateInterventionPhases,
   mapClinicalSignalsToRDoC,
+  mapQEEGMarkers,
   mapSignalsToFunctions,
   mapSignalsToNetworks,
 } from './maps'
@@ -14,9 +15,11 @@ import type {
   FunctionalHypothesis,
   NetworkIntegration,
   NeurofunctionalContext,
+  NeurofunctionalState,
   NormalizedQuickReportInput,
   Organization,
   QEEGMarker,
+  QEEGStructuredMarker,
   QuickReportInput,
   QuickReportOutput,
 } from './types'
@@ -35,6 +38,10 @@ function includesAny(text: string, terms: string[]): boolean {
 
 function countMatches(text: string, terms: string[]): number {
   return terms.reduce((total, term) => total + (text.includes(term) ? 1 : 0), 0)
+}
+
+function uniq(items: string[]): string[] {
+  return [...new Set(items.filter(Boolean))]
 }
 
 export function normalizeInput(input: QuickReportInput): NormalizedQuickReportInput {
@@ -118,22 +125,30 @@ export function extractQeegMarkers(input: NormalizedQuickReportInput): QEEGMarke
   }))
 }
 
-export function mapToDomains(context: Pick<NeurofunctionalContext, 'signals' | 'qeegMarkers'>): DomainMapping {
+export function mapToDomains(
+  context: Pick<NeurofunctionalContext, 'signals' | 'qeegMarkers' | 'qeegStructuredMarkers'>,
+): DomainMapping {
   const rdocMappings = mapClinicalSignalsToRDoC(context.signals)
   const networkMappings = mapSignalsToNetworks(context.signals, context.qeegMarkers)
   const functionalMappings = mapSignalsToFunctions(context.signals)
+  const qeegNetworks = context.qeegStructuredMarkers.flatMap((marker) => marker.probableNetwork || [])
+  const qeegFunctions = context.qeegStructuredMarkers.flatMap((marker) => marker.probableFunction || [])
 
   return {
     rdocDomains: rdocMappings.map((item) => item.domain),
-    networks: networkMappings.map((item) => item.network),
-    cognitiveFunctions: functionalMappings.map((item) => item.functionName),
+    networks: uniq([...networkMappings.map((item) => item.network), ...qeegNetworks]),
+    cognitiveFunctions: uniq([...functionalMappings.map((item) => item.functionName), ...qeegFunctions]),
     rdocMappings,
     networkMappings,
     functionalMappings,
+    qeegStructuredMarkers: context.qeegStructuredMarkers,
   }
 }
 
-export function classifyNeurofunctionalState(input: NormalizedQuickReportInput): QuickReportOutput['neurofunctionalState'] {
+export function classifyNeurofunctionalState(
+  input: NormalizedQuickReportInput,
+  qeegStructuredMarkers: QEEGStructuredMarker[] = [],
+): QuickReportOutput['neurofunctionalState'] {
   const text = input.allFindings.join(' ').toLowerCase()
   const hyperScore = countMatches(text, HYPERAROUSAL_TERMS)
   const hypoScore = countMatches(text, HYPOACTIVE_TERMS)
@@ -144,15 +159,22 @@ export function classifyNeurofunctionalState(input: NormalizedQuickReportInput):
   else if (hyperScore > hypoScore) brainEnergy = 'hyperactive'
   else if (hypoScore > hyperScore) brainEnergy = 'hypoactive'
 
+  const qEEGEnergy = qeegStructuredMarkers.find((marker) => marker.energyImpact !== 'uncertain')?.energyImpact
+  if (qEEGEnergy && qEEGEnergy !== 'uncertain') brainEnergy = qEEGEnergy
+
   let networkIntegration: NetworkIntegration = 'coupled'
   if (includesAny(text, ['fragmentacao', 'fragmentação', 'desorganizacao', 'desorganização'])) networkIntegration = 'fragmented'
   else if (includesAny(text, ['desacoplamento', 'isolamento funcional'])) networkIntegration = 'decoupled'
   else if (includesAny(text, ['hiperconectividade', 'hiperacoplamento', 'rigidez de rede'])) networkIntegration = 'overcoupled'
+  else if (qeegStructuredMarkers.some((marker) => marker.probableNetwork?.length)) networkIntegration = 'decoupled'
 
   let organization: Organization = 'coherent'
   if (includesAny(text, ['ruido', 'ruído', 'artefato', 'instavel', 'instável'])) organization = 'noisy'
   else if (includesAny(text, ['rigidez', 'perseveracao', 'perseveração'])) organization = 'rigid'
   else if (includesAny(text, ['difuso', 'desorganizado', 'desorganizacao', 'desorganização'])) organization = 'diffuse'
+
+  const qEEGOrganization = qeegStructuredMarkers.find((marker) => marker.organizationImpact !== 'uncertain')?.organizationImpact
+  if (qEEGOrganization && qEEGOrganization !== 'uncertain') organization = qEEGOrganization
 
   return { brainEnergy, networkIntegration, organization }
 }
@@ -216,13 +238,15 @@ export function generateQuickReport(input: QuickReportInput): QuickReportOutput 
   const normalized = normalizeInput(input)
   const clinicalSignals = extractClinicalSignals(normalized)
   const qeegMarkers = extractQeegMarkers(normalized)
-  const neurofunctionalState = classifyNeurofunctionalState(normalized)
-  const partialContext = { signals: clinicalSignals, qeegMarkers }
+  const qeegStructuredMarkers = mapQEEGMarkers(qeegMarkers)
+  const neurofunctionalState = classifyNeurofunctionalState(normalized, qeegStructuredMarkers)
+  const partialContext = { signals: clinicalSignals, qeegMarkers, qeegStructuredMarkers }
   const domainMapping = mapToDomains(partialContext)
   const context: NeurofunctionalContext = {
     input: normalized,
     signals: clinicalSignals,
     qeegMarkers,
+    qeegStructuredMarkers,
     rdocMappings: domainMapping.rdocMappings || [],
     networkMappings: domainMapping.networkMappings || [],
     functionalMappings: domainMapping.functionalMappings || [],
@@ -235,8 +259,9 @@ export function generateQuickReport(input: QuickReportInput): QuickReportOutput 
   const inferenceTrace = [
     'Entrada clinica bruta normalizada semanticamente.',
     'Sinais clinicos extraidos sem conclusao direta por sintoma isolado.',
+    'Achados qEEG convertidos em marcadores estruturados com banda, topografia, rede, funcao, energia e limitacoes.',
     'Achados mapeados por modulos dedicados de RDoC, redes funcionais e funcoes neuropsicologicas.',
-    'Estado neurofuncional classificado por convergencia de marcadores.',
+    'Estado neurofuncional modulado por convergencia clinica e marcadores qEEG.',
     'Risco funcional e intervencao por fases calculados por mapas clinicos separados.',
     'Hipoteses dimensionais e confianca calculadas com trilha auditavel.',
   ]
@@ -252,7 +277,7 @@ export function generateQuickReport(input: QuickReportInput): QuickReportOutput 
       nqlBlocks: {
         PatientContext: [normalized.patient],
         ClinicalSignal: clinicalSignals,
-        QEEGMarker: qeegMarkers,
+        QEEGMarker: qeegStructuredMarkers,
         RDoCDomain: context.rdocMappings,
         NetworkState: context.networkMappings,
         FunctionalHypothesis: hypotheses.functionalHypotheses,
