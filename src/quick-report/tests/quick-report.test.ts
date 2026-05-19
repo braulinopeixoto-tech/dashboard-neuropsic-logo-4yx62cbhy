@@ -1,7 +1,8 @@
 import { generateQuickReport } from '../engine'
 import { mapQEEGMarkers } from '../maps/qeeg-marker-map'
 import { mapSourceLocalization } from '../maps/source-localization-map'
-import type { QuickReportInput } from '../types'
+import { runReportSafetyGuard } from '../safety'
+import type { NeurofunctionalContext, QuickReportInput } from '../types'
 
 function assert(condition: unknown, message: string): void {
   if (!condition) throw new Error(message)
@@ -12,6 +13,27 @@ const baseInput: QuickReportInput = {
   complaint: ['dificuldade de atencao sustentada', 'ansiedade e irritabilidade'],
   behavioralFindings: ['distratibilidade e impulsividade em contexto escolar'],
   psychometricFindings: ['prejuizo em memoria operacional e controle inibitorio'],
+  requestedPurpose: 'clinical_summary',
+}
+
+const dangerousLanguageInput: QuickReportInput = {
+  patient: { name: 'Paciente Seguranca', age: '10 anos' },
+  complaint: [
+    'diagnostico confirmado com promessa de cura e garantia de resultado',
+    'probabilidade diagnostica elevada e espectro do TDAH',
+  ],
+  behavioralFindings: ['tratamento definitivo para normalizar o cerebro'],
+  qeeg: {
+    findings: ['high beta elevado associado a lesao cerebral causada por disfuncao eletrica'],
+    frequencyHz: [34],
+    location10_20: ['F3'],
+    amplitude: ['elevado'],
+  },
+  sourceLocalization: {
+    method: 'sLORETA',
+    regions: ['pre-frontal dorsolateral'],
+    brodmannAreas: ['BA46'],
+  },
   requestedPurpose: 'clinical_summary',
 }
 
@@ -161,6 +183,25 @@ function outputText(report: ReturnType<typeof generateQuickReport>): string {
   return JSON.stringify(report).toLowerCase()
 }
 
+function highRiskContextWithoutReferral(): NeurofunctionalContext {
+  return {
+    input: {
+      ...highRiskNoReferralInput,
+      normalizedAt: new Date().toISOString(),
+      allFindings: [...highRiskNoReferralInput.complaint, ...(highRiskNoReferralInput.behavioralFindings || [])],
+    },
+    signals: [],
+    qeegMarkers: [],
+    qeegStructuredMarkers: [],
+    sourceLocalizationMarkers: [],
+    rdocMappings: [],
+    networkMappings: [],
+    functionalMappings: [],
+    riskAssessment: { level: 'high', alerts: ['ideacao suicida'], evidence: ['ideacao suicida'], confidence: 0.85 },
+    neurofunctionalState: { brainEnergy: 'unstable', networkIntegration: 'fragmented', organization: 'noisy' },
+  }
+}
+
 export function runQuickReportSmokeTests(): void {
   const report = generateQuickReport(baseInput)
   assert(report.reportMarkdown.includes('## 15. Trilha de auditoria'), 'Relatorio deve manter as 15 secoes e auditoria.')
@@ -299,4 +340,31 @@ export function runQuickReportSmokeTests(): void {
     assert(!text.includes('probabilidade diagnostica'), 'Output nao deve usar probabilidade diagnostica.')
     assert(!text.includes('probabilidade diagnóstica'), 'Output nao deve usar probabilidade diagnostica acentuada.')
   })
+
+  const dangerousReport = generateQuickReport(dangerousLanguageInput)
+  const dangerousText = dangerousReport.reportMarkdown.toLowerCase()
+  assert(dangerousReport.reportMarkdown.includes('Verificacao de Seguranca Clinica'), 'Markdown final deve mostrar verificacao de seguranca clinica.')
+  assert(dangerousReport.safetyGuard.findings.some((finding) => finding.code === 'diagnostic-confirmed'), 'Safety Guard deve bloquear diagnostico confirmado.')
+  assert(dangerousReport.safetyGuard.findings.some((finding) => finding.code === 'cure-promise'), 'Safety Guard deve substituir cura.')
+  assert(dangerousReport.safetyGuard.findings.some((finding) => finding.code === 'diagnostic-probability'), 'Safety Guard deve substituir probabilidade diagnostica.')
+  assert(dangerousReport.safetyGuard.findings.some((finding) => finding.code === 'adhd-spectrum'), 'Safety Guard deve bloquear espectro do TDAH.')
+  assert(dangerousReport.safetyGuard.findings.some((finding) => finding.code === 'brain-lesion-functional-only'), 'qEEG/source nao podem sustentar lesao cerebral.')
+  assert(!dangerousText.includes('diagnostico confirmado'), 'Markdown final deve usar versao sanitizada para diagnostico confirmado.')
+  assert(!dangerousText.includes('cura'), 'Markdown final deve substituir cura.')
+  assert(!dangerousText.includes('probabilidade diagnostica'), 'Markdown final deve substituir probabilidade diagnostica.')
+  assert(!dangerousText.includes('espectro do tdah'), 'Markdown final deve substituir espectro do TDAH.')
+  assert(!dangerousText.includes('lesao cerebral'), 'Markdown final deve substituir lesao cerebral quando vier de qEEG/source.')
+  assert(dangerousText.includes('alteracao funcional sugerida'), 'Markdown final deve conter substituicao segura para lesao cerebral.')
+  assert(dangerousReport.auditTrace.safetyFindingsCount > 0, 'AuditTrace deve registrar achados do Safety Guard.')
+  assert(dangerousReport.auditTrace.criticalFindingsCount > 0, 'AuditTrace deve registrar achados criticos do Safety Guard.')
+  assert(dangerousReport.auditTrace.sanitizedTerms.includes('cura'), 'AuditTrace deve registrar termos sanitizados.')
+
+  const missingReferralSafety = runReportSafetyGuard('Relatorio clinico sem encaminhamento explicito.', highRiskContextWithoutReferral())
+  assert(
+    missingReferralSafety.findings.some((finding) => finding.code === 'missing-medical-referral' && finding.severity === 'critical'),
+    'Risco alto sem encaminhamento deve gerar finding critico.',
+  )
+
+  assert(report.safetyGuard.findings.filter((finding) => finding.severity === 'critical').length === 0, 'Relatorio valido deve passar sem critical.')
+  assert(report.auditTrace.safetyGuardPassed, 'AuditTrace deve registrar Safety Guard em relatorio valido.')
 }
