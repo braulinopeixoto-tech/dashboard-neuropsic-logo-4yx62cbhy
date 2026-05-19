@@ -6,10 +6,35 @@ export type RequestedPurpose =
   | 'clinical_summary'
 
 export type BrainEnergy = 'hypoactive' | 'hyperactive' | 'unstable' | 'mixed'
+export type BrainEnergyImpact = BrainEnergy | 'uncertain'
 export type NetworkIntegration = 'coupled' | 'decoupled' | 'overcoupled' | 'fragmented'
 export type NetworkState = NetworkIntegration | 'uncertain'
 export type Organization = 'coherent' | 'diffuse' | 'rigid' | 'noisy'
+export type OrganizationImpact = Organization | 'uncertain'
 export type RiskLevel = 'low' | 'moderate' | 'high'
+
+export type EEGLocation10_20 =
+  | 'Fp1'
+  | 'Fp2'
+  | 'F3'
+  | 'F4'
+  | 'F7'
+  | 'F8'
+  | 'C3'
+  | 'C4'
+  | 'Cz'
+  | 'P3'
+  | 'P4'
+  | 'Pz'
+  | 'T3'
+  | 'T4'
+  | 'T5'
+  | 'T6'
+  | 'O1'
+  | 'O2'
+  | 'Fz'
+
+export type EEGFrequencyBand = 'delta' | 'theta' | 'alpha' | 'beta' | 'high_beta' | 'gamma' | 'unknown'
 
 export type NqlBlockType =
   | 'PatientContext'
@@ -88,6 +113,20 @@ export type QEEGMarker = {
   interpretation?: string
 }
 
+export type QEEGStructuredMarker = {
+  band: EEGFrequencyBand
+  frequencyHz?: number
+  location10_20?: EEGLocation10_20[]
+  region?: string[]
+  probableNetwork?: string[]
+  probableFunction?: string[]
+  energyImpact: BrainEnergyImpact
+  organizationImpact: OrganizationImpact
+  evidence: string[]
+  confidence: number
+  limitations: string[]
+}
+
 export type RDoCMapping = {
   domain: string
   construct?: string
@@ -115,6 +154,7 @@ export type DomainMapping = {
   rdocMappings?: RDoCMapping[]
   networkMappings?: NetworkMapping[]
   functionalMappings?: FunctionalMapping[]
+  qeegStructuredMarkers?: QEEGStructuredMarker[]
 }
 
 export type FunctionalHypothesis = {
@@ -153,6 +193,7 @@ export type NeurofunctionalContext = {
   input: NormalizedQuickReportInput
   signals: ClinicalSignal[]
   qeegMarkers: QEEGMarker[]
+  qeegStructuredMarkers: QEEGStructuredMarker[]
   rdocMappings: RDoCMapping[]
   networkMappings: NetworkMapping[]
   functionalMappings: FunctionalMapping[]
