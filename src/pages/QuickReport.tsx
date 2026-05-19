@@ -1,21 +1,100 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { FileText, PlusCircle } from 'lucide-react'
+import { toast } from 'sonner'
+import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
 import { Skeleton } from '@/components/ui/skeleton'
 
+const emptyForm = {
+  paciente_id: '',
+  titulo: '',
+  conteudo: '',
+}
+
 export default function QuickReport() {
+  const { user } = useAuth()
   const [reports, setReports] = useState<any[]>([])
+  const [patients, setPatients] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [openCreateDialog, setOpenCreateDialog] = useState(false)
+  const [form, setForm] = useState(emptyForm)
+
+  const loadData = useCallback(async (silent = false) => {
+    try {
+      if (!silent) setLoading(true)
+      const [reportsList, patientsList] = await Promise.all([
+        pb.collection('quick_reports').getFullList({ expand: 'paciente_id', sort: '-created' }),
+        pb.collection('pacientes').getFullList({ filter: 'ativo=true', sort: 'nome' }),
+      ])
+      setReports(reportsList)
+      setPatients(patientsList)
+    } catch (err) {
+      console.error(err)
+      toast.error('Erro ao carregar Quick Reports.')
+    } finally {
+      if (!silent) setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    pb.collection('quick_reports')
-      .getFullList({ expand: 'paciente_id', sort: '-created' })
-      .then(setReports)
-      .catch(console.error)
-      .finally(() => setLoading(false))
-  }, [])
+    loadData()
+  }, [loadData])
+
+  const updateForm = (field: keyof typeof emptyForm, value: string) => {
+    setForm((current) => ({ ...current, [field]: value }))
+  }
+
+  const handleCreateReport = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    if (!form.paciente_id || !form.titulo.trim() || !form.conteudo.trim()) {
+      toast.error('Preencha paciente, titulo e conteudo.')
+      return
+    }
+
+    try {
+      setSaving(true)
+      const payload: any = {
+        paciente_id: form.paciente_id,
+        titulo: form.titulo.trim(),
+        conteudo: form.conteudo.trim(),
+      }
+
+      if (user?.id) payload.usuario_id = user.id
+
+      await pb.collection('quick_reports').create(payload)
+      toast.success('Quick Report criado com sucesso.')
+      setOpenCreateDialog(false)
+      setForm(emptyForm)
+      await loadData(true)
+    } catch (err) {
+      console.error(err)
+      toast.error('Nao foi possivel criar o Quick Report. Verifique as permissoes da collection.')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -31,10 +110,10 @@ export default function QuickReport() {
         <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Quick Reports</h1>
           <p className="text-slate-500 mt-1">
-            Anotações clínicas rápidas e observações do tratamento.
+            Anotacoes clinicas rapidas e observacoes do tratamento.
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setOpenCreateDialog(true)}>
           <PlusCircle className="w-4 h-4 mr-2" /> Novo Report
         </Button>
       </div>
@@ -64,6 +143,81 @@ export default function QuickReport() {
           </div>
         )}
       </div>
+
+      <Dialog open={openCreateDialog} onOpenChange={setOpenCreateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Novo Quick Report</DialogTitle>
+            <DialogDescription>
+              Registre uma observacao clinica rapida vinculada a um paciente.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleCreateReport} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Paciente</Label>
+              <Select
+                value={form.paciente_id}
+                onValueChange={(value) => updateForm('paciente_id', value)}
+                disabled={patients.length === 0 || saving}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o paciente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {patients.map((patient) => (
+                    <SelectItem key={patient.id} value={patient.id}>
+                      {patient.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {patients.length === 0 && (
+                <p className="text-sm text-amber-600">
+                  Cadastre um paciente ativo antes de criar um Quick Report.
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="quick-report-title">Titulo</Label>
+              <Input
+                id="quick-report-title"
+                value={form.titulo}
+                onChange={(event) => updateForm('titulo', event.target.value)}
+                disabled={saving}
+                placeholder="Ex.: Observacao da sessao"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="quick-report-content">Conteudo</Label>
+              <Textarea
+                id="quick-report-content"
+                value={form.conteudo}
+                onChange={(event) => updateForm('conteudo', event.target.value)}
+                disabled={saving}
+                placeholder="Descreva a observacao clinica..."
+                className="min-h-[120px]"
+              />
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpenCreateDialog(false)}
+                disabled={saving}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={saving || patients.length === 0}>
+                {saving ? 'Salvando...' : 'Salvar Report'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
