@@ -281,7 +281,7 @@ export function generateQuickReport(input: QuickReportInput): QuickReportOutput 
     'Achados qEEG convertidos em marcadores estruturados com banda, topografia, rede, funcao, energia e limitacoes.',
     'Achados de localizacao de fonte convertidos em marcadores estruturados por regiao/Brodmann explicitos, sem inferir anatomia por coordenada isolada sem atlas.',
     'Evidencia meta-analitica offline gerada por InternalMap, sem chamada externa e sem funcao diagnostica.',
-    'Grau de convergencia clinica calculado como consistencia dimensional multimodal, nao como probabilidade diagnostica.',
+    'Grau de convergencia clinica calculado como consistencia dimensional multimodal, sem finalidade diagnostica automatica.',
     'Achados mapeados por modulos dedicados de RDoC, redes funcionais e funcoes neuropsicologicas.',
     'Estado neurofuncional modulado por convergencia clinica, marcadores qEEG e localizacao de fonte.',
     'Risco funcional e intervencao por fases calculados por mapas clinicos separados.',
