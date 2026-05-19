@@ -78,6 +78,17 @@ const sourceInput: QuickReportInput = {
   requestedPurpose: 'clinical_summary',
 }
 
+const pccSourceInput: QuickReportInput = {
+  patient: { name: 'Paciente PCC', age: '16 anos' },
+  complaint: ['oscilacao de autorreferencia e integracao interna'],
+  sourceLocalization: {
+    method: 'LORETA',
+    regions: ['Precuneus / PCC'],
+    brodmannAreas: ['BA31'],
+  },
+  requestedPurpose: 'clinical_summary',
+}
+
 const coordinateOnlyInput: QuickReportInput = {
   patient: { name: 'Paciente Coordenada', age: '15 anos' },
   complaint: ['queixa funcional inespecifica'],
@@ -152,7 +163,26 @@ export function runQuickReportSmokeTests(): void {
   assert(sourceReport.structuredFindings.domainMapping.networks.includes('Central Executive Network'), 'Source deve entrar nas redes do dominio.')
   assert(sourceReport.structuredFindings.domainMapping.rdocDomains.includes('Cognitive Systems'), 'Source deve entrar em RDoC.')
 
+  const ba46Evidence = sourceReport.structuredFindings.domainMapping.metaAnalyticEvidence?.[0]
+  assert(ba46Evidence?.associatedFunctions.includes('memoria operacional'), 'BA46 deve gerar evidencia para funcoes executivas.')
+  assert(ba46Evidence?.relatedNetworks.includes('Central Executive Network'), 'BA46 deve gerar evidencia para rede executiva.')
+
+  const pccReport = generateQuickReport(pccSourceInput)
+  const pccEvidence = pccReport.structuredFindings.domainMapping.metaAnalyticEvidence?.[0]
+  assert(pccEvidence?.relatedNetworks.includes('Default Mode Network'), 'PCC/Precuneus deve gerar evidencia para DMN.')
+  assert(pccEvidence?.associatedFunctions.includes('autorreferencia'), 'PCC/Precuneus deve gerar evidencia para autorreferencia.')
+
+  const coordinateEvidence = coordinateReport.structuredFindings.domainMapping.metaAnalyticEvidence?.[0]
+  assert(coordinateEvidence?.evidenceWeight === 'uncertain', 'Coordenada isolada deve gerar evidencia incerta.')
+  assert(
+    coordinateEvidence?.limitations.some((item) => item.includes('Coordenada isolada')),
+    'Coordenada isolada deve exigir anotacao anatomica antes de associacao meta-analitica.',
+  )
+
   const noSourceReport = generateQuickReport(baseInput)
   assert(noSourceReport.reportMarkdown.includes('Sem achados de localizacao de fonte'), 'Source ausente nao deve quebrar o relatorio.')
+  assert(noSourceReport.reportMarkdown.includes('Sem evidencias meta-analiticas'), 'Evidencia ausente nao deve quebrar o relatorio.')
+  assert(sourceReport.reportMarkdown.includes('Evidencia Meta-Analitica'), 'Markdown deve mostrar Evidencia Meta-Analitica.')
   assert(!sourceReport.dominantHypothesis.toLowerCase().includes('diagnostico fechado'), 'Source localization isolada nao deve gerar diagnostico fechado.')
+  assert(!sourceReport.reportMarkdown.toLowerCase().includes('diagnostico fechado'), 'Evidencia meta-analitica nao deve gerar diagnostico fechado.')
 }
