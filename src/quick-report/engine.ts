@@ -10,6 +10,7 @@ import {
   mapSourceLocalization,
 } from './maps'
 import { renderReport } from './renderers/markdown-renderer'
+import { calculateClinicalConfidenceScore } from './scoring'
 import type {
   BrainEnergy,
   ClinicalSignal,
@@ -204,7 +205,7 @@ export function generateHypotheses(params: {
   const networks = params.domains.networks.join(', ') || 'redes funcionais nao especificadas'
   const functions = params.domains.cognitiveFunctions.join(', ') || 'funcoes cognitivas/emocionais ainda pouco especificadas'
 
-  const dominantHypothesis = `Os achados sugerem uma hipotese dimensional de disfuncao neurofuncional envolvendo ${domains}, com participacao provavel de ${networks} e impacto em ${functions}. Achados de localizacao de fonte e evidencia meta-analitica, quando presentes, representam inferencia funcional aproximada e necessitam correlacao clinica e complementar.`
+  const dominantHypothesis = `Os achados sugerem uma hipotese dimensional de disfuncao neurofuncional envolvendo ${domains}, com participacao provavel de ${networks} e impacto em ${functions}. Achados de localizacao de fonte, evidencia meta-analitica e grau de convergencia clinica, quando presentes, representam sustentacao funcional aproximada e necessitam correlacao clinica e complementar.`
 
   const differentialHypotheses = [
     'Perfil atencional/executivo secundario a desregulacao emocional ou sono insuficiente.',
@@ -267,17 +268,20 @@ export function generateQuickReport(input: QuickReportInput): QuickReportOutput 
     neurofunctionalState,
   }
   const metaAnalyticEvidence = generateMetaAnalyticEvidence(context)
-  const enrichedDomainMapping: DomainMapping = { ...domainMapping, metaAnalyticEvidence }
-  const hypotheses = generateHypotheses({ input: normalized, domains: enrichedDomainMapping, state: neurofunctionalState })
-  const confidenceLevel = calculateConfidence(normalized)
   const riskAssessment = calculateFunctionalRisk(context)
   const interventionPlan = generateInterventionPhases(context)
+  const scoringContext: NeurofunctionalContext = { ...context, metaAnalyticEvidence, riskAssessment, interventionPlan }
+  const clinicalConfidenceScore = calculateClinicalConfidenceScore(scoringContext)
+  const enrichedDomainMapping: DomainMapping = { ...domainMapping, metaAnalyticEvidence, clinicalConfidenceScore }
+  const hypotheses = generateHypotheses({ input: normalized, domains: enrichedDomainMapping, state: neurofunctionalState })
+  const confidenceLevel = clinicalConfidenceScore.score / 100
   const inferenceTrace = [
     'Entrada clinica bruta normalizada semanticamente.',
     'Sinais clinicos extraidos sem conclusao direta por sintoma isolado.',
     'Achados qEEG convertidos em marcadores estruturados com banda, topografia, rede, funcao, energia e limitacoes.',
     'Achados de localizacao de fonte convertidos em marcadores estruturados por regiao/Brodmann explicitos, sem inferir anatomia por coordenada isolada sem atlas.',
     'Evidencia meta-analitica offline gerada por InternalMap, sem chamada externa e sem funcao diagnostica.',
+    'Grau de convergencia clinica calculado como consistencia dimensional multimodal, nao como probabilidade diagnostica.',
     'Achados mapeados por modulos dedicados de RDoC, redes funcionais e funcoes neuropsicologicas.',
     'Estado neurofuncional modulado por convergencia clinica, marcadores qEEG e localizacao de fonte.',
     'Risco funcional e intervencao por fases calculados por mapas clinicos separados.',
@@ -298,6 +302,7 @@ export function generateQuickReport(input: QuickReportInput): QuickReportOutput 
         QEEGMarker: qeegStructuredMarkers,
         SourceLocalization: sourceLocalizationMarkers,
         MetaAnalyticEvidence: metaAnalyticEvidence,
+        ClinicalConfidenceScore: [clinicalConfidenceScore],
         RDoCDomain: context.rdocMappings,
         NetworkState: context.networkMappings,
         FunctionalHypothesis: hypotheses.functionalHypotheses,
@@ -308,12 +313,14 @@ export function generateQuickReport(input: QuickReportInput): QuickReportOutput 
       clinicalSignals,
       domainMapping: enrichedDomainMapping,
       functionalHypotheses: hypotheses.functionalHypotheses,
+      clinicalConfidenceScore,
     },
     neurofunctionalState,
     dominantHypothesis: hypotheses.dominantHypothesis,
     differentialHypotheses: hypotheses.differentialHypotheses,
     riskLevel: riskAssessment.level,
     interventionPlan,
+    clinicalConfidenceScore,
     auditTrace,
   }
 
