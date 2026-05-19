@@ -1,5 +1,6 @@
 import { generateQuickReport } from '../engine'
 import { mapQEEGMarkers } from '../maps/qeeg-marker-map'
+import { mapSourceLocalization } from '../maps/source-localization-map'
 import type { QuickReportInput } from '../types'
 
 function assert(condition: unknown, message: string): void {
@@ -66,6 +67,27 @@ const highBetaInput: QuickReportInput = {
   requestedPurpose: 'clinical_summary',
 }
 
+const sourceInput: QuickReportInput = {
+  patient: { name: 'Paciente Fonte', age: '14 anos' },
+  complaint: ['dificuldade de planejamento'],
+  sourceLocalization: {
+    method: 'sLORETA',
+    regions: ['pre-frontal dorsolateral'],
+    brodmannAreas: ['BA46'],
+  },
+  requestedPurpose: 'clinical_summary',
+}
+
+const coordinateOnlyInput: QuickReportInput = {
+  patient: { name: 'Paciente Coordenada', age: '15 anos' },
+  complaint: ['queixa funcional inespecifica'],
+  sourceLocalization: {
+    method: 'eLORETA',
+    coordinates: [{ system: 'MNI', x: -32, y: 18, z: 42 }],
+  },
+  requestedPurpose: 'clinical_summary',
+}
+
 export function runQuickReportSmokeTests(): void {
   const report = generateQuickReport(baseInput)
   assert(report.reportMarkdown.includes('## 15. Trilha de auditoria'), 'Relatorio deve manter as 15 secoes e auditoria.')
@@ -108,4 +130,29 @@ export function runQuickReportSmokeTests(): void {
   const noQeegReport = generateQuickReport(baseInput)
   assert(noQeegReport.reportMarkdown.includes('Nao informado'), 'qEEG ausente nao deve quebrar o relatorio.')
   assert(!noQeegReport.dominantHypothesis.toLowerCase().includes('diagnostico fechado'), 'qEEG nao deve gerar diagnostico fechado.')
+
+  const ba46Markers = mapSourceLocalization({ method: 'sLORETA', brodmannAreas: ['BA46'] })
+  assert(ba46Markers[0].probableNetwork?.includes('Central Executive Network'), 'BA46 deve mapear para rede executiva.')
+
+  const ba32Markers = mapSourceLocalization({ method: 'eLORETA', brodmannAreas: ['BA32'] })
+  assert(ba32Markers[0].probableNetwork?.includes('Salience Network'), 'BA32 deve mapear para Salience Network.')
+  assert(ba32Markers[0].probableNetwork?.includes('Cingulo-opercular Network'), 'BA32 deve mapear para rede cingulo-opercular.')
+
+  const pccMarkers = mapSourceLocalization({ method: 'LORETA', regions: ['Precuneus / PCC'] })
+  assert(pccMarkers[0].probableNetwork?.includes('Default Mode Network'), 'Precuneus/PCC deve mapear para DMN.')
+
+  const coordinateReport = generateQuickReport(coordinateOnlyInput)
+  assert(
+    coordinateReport.structuredFindings.domainMapping.sourceLocalizationMarkers?.[0].limitations.some((item) => item.includes('atlas validado')),
+    'Coordenada sem regiao deve gerar limitacao de atlas.',
+  )
+
+  const sourceReport = generateQuickReport(sourceInput)
+  assert(sourceReport.reportMarkdown.includes('Localizacao de Fonte'), 'Markdown deve mostrar Localizacao de Fonte.')
+  assert(sourceReport.structuredFindings.domainMapping.networks.includes('Central Executive Network'), 'Source deve entrar nas redes do dominio.')
+  assert(sourceReport.structuredFindings.domainMapping.rdocDomains.includes('Cognitive Systems'), 'Source deve entrar em RDoC.')
+
+  const noSourceReport = generateQuickReport(baseInput)
+  assert(noSourceReport.reportMarkdown.includes('Sem achados de localizacao de fonte'), 'Source ausente nao deve quebrar o relatorio.')
+  assert(!sourceReport.dominantHypothesis.toLowerCase().includes('diagnostico fechado'), 'Source localization isolada nao deve gerar diagnostico fechado.')
 }
