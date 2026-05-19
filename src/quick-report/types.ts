@@ -15,12 +15,24 @@ export type Organization = 'coherent' | 'diffuse' | 'rigid' | 'noisy'
 export type OrganizationImpact = Organization | 'uncertain'
 export type RiskLevel = 'low' | 'moderate' | 'high'
 export type CoordinateSystem = 'MNI' | 'Talairach'
+export type ConfidenceTier = 'low' | 'moderate' | 'high' | 'insufficient'
 
 export type BrainCoordinate = {
   system: CoordinateSystem
   x: number
   y: number
   z: number
+}
+
+export type ClinicalConfidenceScore = {
+  score: number
+  tier: ConfidenceTier
+  convergenceDrivers: string[]
+  divergenceDrivers: string[]
+  missingData: string[]
+  cautionFlags: string[]
+  interpretation: string
+  limitations: string[]
 }
 
 export type EEGLocation10_20 =
@@ -54,6 +66,7 @@ export type NqlBlockType =
   | 'QEEGMarker'
   | 'SourceLocalization'
   | 'MetaAnalyticEvidence'
+  | 'ClinicalConfidenceScore'
   | 'NetworkState'
   | 'RDoCDomain'
   | 'FunctionalHypothesis'
@@ -179,6 +192,7 @@ export type DomainMapping = {
   qeegStructuredMarkers?: QEEGStructuredMarker[]
   sourceLocalizationMarkers?: SourceLocalizationMarker[]
   metaAnalyticEvidence?: MetaAnalyticEvidence[]
+  clinicalConfidenceScore?: ClinicalConfidenceScore
 }
 
 export type FunctionalHypothesis = {
@@ -219,6 +233,9 @@ export type NeurofunctionalContext = {
   qeegMarkers: QEEGMarker[]
   qeegStructuredMarkers: QEEGStructuredMarker[]
   sourceLocalizationMarkers: SourceLocalizationMarker[]
+  metaAnalyticEvidence?: MetaAnalyticEvidence[]
+  riskAssessment?: RiskAssessment
+  interventionPlan?: InterventionPlan
   rdocMappings: RDoCMapping[]
   networkMappings: NetworkMapping[]
   functionalMappings: FunctionalMapping[]
@@ -232,12 +249,14 @@ export type QuickReportOutput = {
     clinicalSignals: ClinicalSignal[]
     domainMapping: DomainMapping
     functionalHypotheses: FunctionalHypothesis[]
+    clinicalConfidenceScore: ClinicalConfidenceScore
   }
   neurofunctionalState: NeurofunctionalState
   dominantHypothesis: string
   differentialHypotheses: string[]
   riskLevel: RiskLevel
   interventionPlan: InterventionPlan
+  clinicalConfidenceScore: ClinicalConfidenceScore
   auditTrace: AuditTrace
 }
 
