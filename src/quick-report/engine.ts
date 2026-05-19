@@ -1,4 +1,5 @@
 import { generateAuditTrace } from './audit'
+import { generateMetaAnalyticEvidence } from './evidence'
 import {
   calculateFunctionalRisk,
   generateInterventionPhases,
@@ -203,7 +204,7 @@ export function generateHypotheses(params: {
   const networks = params.domains.networks.join(', ') || 'redes funcionais nao especificadas'
   const functions = params.domains.cognitiveFunctions.join(', ') || 'funcoes cognitivas/emocionais ainda pouco especificadas'
 
-  const dominantHypothesis = `Os achados sugerem uma hipotese dimensional de disfuncao neurofuncional envolvendo ${domains}, com participacao provavel de ${networks} e impacto em ${functions}. Achados de localizacao de fonte, quando presentes, representam inferencia funcional aproximada e necessitam correlacao clinica e complementar.`
+  const dominantHypothesis = `Os achados sugerem uma hipotese dimensional de disfuncao neurofuncional envolvendo ${domains}, com participacao provavel de ${networks} e impacto em ${functions}. Achados de localizacao de fonte e evidencia meta-analitica, quando presentes, representam inferencia funcional aproximada e necessitam correlacao clinica e complementar.`
 
   const differentialHypotheses = [
     'Perfil atencional/executivo secundario a desregulacao emocional ou sono insuficiente.',
@@ -265,7 +266,9 @@ export function generateQuickReport(input: QuickReportInput): QuickReportOutput 
     functionalMappings: domainMapping.functionalMappings || [],
     neurofunctionalState,
   }
-  const hypotheses = generateHypotheses({ input: normalized, domains: domainMapping, state: neurofunctionalState })
+  const metaAnalyticEvidence = generateMetaAnalyticEvidence(context)
+  const enrichedDomainMapping: DomainMapping = { ...domainMapping, metaAnalyticEvidence }
+  const hypotheses = generateHypotheses({ input: normalized, domains: enrichedDomainMapping, state: neurofunctionalState })
   const confidenceLevel = calculateConfidence(normalized)
   const riskAssessment = calculateFunctionalRisk(context)
   const interventionPlan = generateInterventionPhases(context)
@@ -274,6 +277,7 @@ export function generateQuickReport(input: QuickReportInput): QuickReportOutput 
     'Sinais clinicos extraidos sem conclusao direta por sintoma isolado.',
     'Achados qEEG convertidos em marcadores estruturados com banda, topografia, rede, funcao, energia e limitacoes.',
     'Achados de localizacao de fonte convertidos em marcadores estruturados por regiao/Brodmann explicitos, sem inferir anatomia por coordenada isolada sem atlas.',
+    'Evidencia meta-analitica offline gerada por InternalMap, sem chamada externa e sem funcao diagnostica.',
     'Achados mapeados por modulos dedicados de RDoC, redes funcionais e funcoes neuropsicologicas.',
     'Estado neurofuncional modulado por convergencia clinica, marcadores qEEG e localizacao de fonte.',
     'Risco funcional e intervencao por fases calculados por mapas clinicos separados.',
@@ -293,6 +297,7 @@ export function generateQuickReport(input: QuickReportInput): QuickReportOutput 
         ClinicalSignal: clinicalSignals,
         QEEGMarker: qeegStructuredMarkers,
         SourceLocalization: sourceLocalizationMarkers,
+        MetaAnalyticEvidence: metaAnalyticEvidence,
         RDoCDomain: context.rdocMappings,
         NetworkState: context.networkMappings,
         FunctionalHypothesis: hypotheses.functionalHypotheses,
@@ -301,7 +306,7 @@ export function generateQuickReport(input: QuickReportInput): QuickReportOutput 
         AuditTrace: [auditTrace],
       },
       clinicalSignals,
-      domainMapping,
+      domainMapping: enrichedDomainMapping,
       functionalHypotheses: hypotheses.functionalHypotheses,
     },
     neurofunctionalState,
