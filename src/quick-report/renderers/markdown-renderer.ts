@@ -1,4 +1,9 @@
-import type { NormalizedQuickReportInput, QEEGStructuredMarker, QuickReportOutput } from '../types'
+import type {
+  NormalizedQuickReportInput,
+  QEEGStructuredMarker,
+  QuickReportOutput,
+  SourceLocalizationMarker,
+} from '../types'
 
 const brainEnergyLabels = {
   hypoactive: 'hipoativa',
@@ -53,10 +58,44 @@ function renderQeegMarkers(markers?: QEEGStructuredMarker[]): string {
     .join('\n\n')
 }
 
+function renderCoordinate(marker: SourceLocalizationMarker): string {
+  if (!marker.coordinate) return 'nao informada'
+  return `${marker.coordinate.system}: x=${marker.coordinate.x}, y=${marker.coordinate.y}, z=${marker.coordinate.z}`
+}
+
+function renderSourceLocalization(markers?: SourceLocalizationMarker[]): string {
+  if (!markers?.length) return 'Sem achados de localizacao de fonte informados.'
+
+  return [
+    '### Localizacao de Fonte',
+    markers
+      .map((marker, index) =>
+        [
+          `#### Fonte ${index + 1}`,
+          `- Metodo: ${marker.method || 'nao informado'}`,
+          `- Sistema/coordenada: ${renderCoordinate(marker)}`,
+          `- Regiao: ${marker.region || 'nao inferida'}`,
+          `- Area de Brodmann: ${marker.brodmannArea || 'nao informada'}`,
+          `- Hemisferio: ${marker.hemisphere || 'uncertain'}`,
+          `- Rede provavel: ${marker.probableNetwork?.join(', ') || 'nao inferida'}`,
+          `- Funcao provavel: ${marker.probableFunction?.join(', ') || 'nao inferida'}`,
+          `- Dominio RDoC: ${marker.rdocDomain?.join(', ') || 'nao inferido'}`,
+          `- Impacto na energia cerebral: ${marker.energyImpact || 'uncertain'}`,
+          `- Impacto na organizacao: ${marker.organizationImpact || 'uncertain'}`,
+          `- Evidencias: ${marker.evidence.join(' | ') || 'nao informadas'}`,
+          `- Confianca: ${Math.round(marker.confidence * 100)}%`,
+          `- Limitacoes: ${marker.limitations.join(' | ')}`,
+        ].join('\n'),
+      )
+      .join('\n\n'),
+  ].join('\n')
+}
+
 export function renderReport(input: NormalizedQuickReportInput, output: Omit<QuickReportOutput, 'reportMarkdown'>): string {
   const state = output.neurofunctionalState
   const audit = output.auditTrace
   const qeegStructuredMarkers = output.structuredFindings.domainMapping.qeegStructuredMarkers
+  const sourceLocalizationMarkers = output.structuredFindings.domainMapping.sourceLocalizationMarkers
 
   return [
     '# Quick Report Neurofuncional',
@@ -80,10 +119,7 @@ export function renderReport(input: NormalizedQuickReportInput, output: Omit<Qui
     numberedTitle(5, 'Achados neurofuncionais'),
     renderQeegMarkers(qeegStructuredMarkers),
     '',
-    list([
-      ...(input.sourceLocalization?.regions?.map((region) => `Regiao de fonte: ${region}`) || []),
-      ...(input.sourceLocalization?.brodmannAreas?.map((area) => `Area de Brodmann: ${area}`) || []),
-    ], 'Sem achados de localizacao de fonte informados.'),
+    renderSourceLocalization(sourceLocalizationMarkers),
     '',
     numberedTitle(6, 'Convergencia neurofuncional'),
     `Energia cerebral: ${brainEnergyLabels[state.brainEnergy]}.`,
