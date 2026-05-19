@@ -7,6 +7,7 @@ export type RequestedPurpose =
 
 export type BrainEnergy = 'hypoactive' | 'hyperactive' | 'unstable' | 'mixed'
 export type NetworkIntegration = 'coupled' | 'decoupled' | 'overcoupled' | 'fragmented'
+export type NetworkState = NetworkIntegration | 'uncertain'
 export type Organization = 'coherent' | 'diffuse' | 'rigid' | 'noisy'
 export type RiskLevel = 'low' | 'moderate' | 'high'
 
@@ -78,10 +79,42 @@ export type ClinicalSignal = {
   confidenceImpact: number
 }
 
+export type QEEGMarker = {
+  finding: string
+  band?: string
+  frequencyHz?: number
+  location10_20?: string
+  amplitude?: string
+  interpretation?: string
+}
+
+export type RDoCMapping = {
+  domain: string
+  construct?: string
+  evidence: string[]
+  confidence: number
+}
+
+export type NetworkMapping = {
+  network: string
+  state: NetworkState
+  evidence: string[]
+  confidence: number
+}
+
+export type FunctionalMapping = {
+  functionName: string
+  evidence: string[]
+  confidence: number
+}
+
 export type DomainMapping = {
   rdocDomains: string[]
   networks: string[]
   cognitiveFunctions: string[]
+  rdocMappings?: RDoCMapping[]
+  networkMappings?: NetworkMapping[]
+  functionalMappings?: FunctionalMapping[]
 }
 
 export type FunctionalHypothesis = {
@@ -107,6 +140,23 @@ export type InterventionPlan = {
   phase1: string[]
   phase2: string[]
   phase3: string[]
+}
+
+export type RiskAssessment = {
+  level: RiskLevel
+  alerts: string[]
+  evidence: string[]
+  confidence: number
+}
+
+export type NeurofunctionalContext = {
+  input: NormalizedQuickReportInput
+  signals: ClinicalSignal[]
+  qeegMarkers: QEEGMarker[]
+  rdocMappings: RDoCMapping[]
+  networkMappings: NetworkMapping[]
+  functionalMappings: FunctionalMapping[]
+  neurofunctionalState: NeurofunctionalState
 }
 
 export type QuickReportOutput = {
