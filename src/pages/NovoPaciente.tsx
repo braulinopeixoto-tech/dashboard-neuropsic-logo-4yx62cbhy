@@ -25,6 +25,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
 import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
+import { extractFieldErrors } from '@/lib/pocketbase/errors'
 import {
   ChevronLeft,
   Upload,
@@ -122,14 +123,6 @@ export default function NovoPaciente() {
     if (files.length > 0 && !data.examesConfirmados)
       return toast.error('Confirme a anexação dos exames.')
     try {
-      if (data.email) {
-        try {
-          if (await pb.collection('pacientes').getFirstListItem(`email="${data.email}"`))
-            return toast.error('Email já cadastrado')
-        } catch (e: any) {
-          if (e.status === 0 || e.message === 'Failed to fetch') throw e
-        }
-      }
       const fd = new FormData()
       Object.entries(data).forEach(([k, v]) => {
         if (v !== undefined && v !== '' && k !== 'examesConfirmados') {
@@ -149,9 +142,37 @@ export default function NovoPaciente() {
       if (err.status === 0 || err.message === 'Failed to fetch' || err.isAbort) {
         toast.error('Falha na conexão com o servidor. Verifique sua internet e tente novamente.')
       } else if (err.status === 400) {
-        toast.error(
-          'Erro ao cadastrar paciente. Verifique se todos os campos obrigatórios foram preenchidos corretamente.',
-        )
+        const fieldErrors = extractFieldErrors(err)
+        let hasFieldErrors = false
+
+        Object.entries(fieldErrors).forEach(([field, message]) => {
+          let translatedMessage = message
+          if (field === 'email' && message.toLowerCase().includes('unique')) {
+            translatedMessage = 'Este e-mail já está em uso'
+          }
+          form.setError(field as any, { type: 'server', message: translatedMessage })
+          hasFieldErrors = true
+        })
+
+        if (hasFieldErrors) {
+          toast.error('Verifique os erros nos campos destacados.')
+          if (
+            step === 2 &&
+            (fieldErrors.nome ||
+              fieldErrors.email ||
+              fieldErrors.telefone ||
+              fieldErrors.data_nascimento ||
+              fieldErrors.documento ||
+              fieldErrors.unidade ||
+              fieldErrors.endereco)
+          ) {
+            setStep(1)
+          }
+        } else {
+          toast.error(
+            'Erro ao cadastrar paciente. Verifique se todos os campos obrigatórios foram preenchidos corretamente.',
+          )
+        }
       } else {
         toast.error('Erro ao salvar os dados do paciente. Tente novamente mais tarde.')
       }
