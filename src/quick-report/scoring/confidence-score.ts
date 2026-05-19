@@ -123,7 +123,7 @@ export function calculateClinicalConfidenceScore(context: NeurofunctionalContext
   const divergenceDrivers: string[] = []
   const cautionFlags: string[] = []
   const limitations: string[] = [
-    'O escore expressa confianca na convergencia dos achados, nao probabilidade diagnostica.',
+    'O escore expressa confianca na convergencia dos achados e nao deve ser interpretado como estimativa nosologica.',
     'A interpretacao exige correlacao clinica e revisao profissional.',
   ]
 
@@ -202,7 +202,7 @@ export function calculateClinicalConfidenceScore(context: NeurofunctionalContext
   const tier = tierFor(finalScore)
   const interpretation =
     tier === 'high'
-      ? 'Alto grau de convergencia neurofuncional multimodal para sustentar a hipotese dimensional, sem valor de probabilidade diagnostica.'
+      ? 'Alto grau de convergencia neurofuncional multimodal para sustentar a hipotese dimensional, sem valor de confirmacao nosologica.'
       : tier === 'moderate'
         ? 'Grau moderado de convergencia dos achados; a hipotese dimensional tem sustentacao multimodal parcial.'
         : tier === 'low'
