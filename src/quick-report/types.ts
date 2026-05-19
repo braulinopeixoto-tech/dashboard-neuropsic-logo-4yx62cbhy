@@ -1,3 +1,5 @@
+import type { MetaAnalyticEvidence } from './evidence/evidence-types'
+
 export type RequestedPurpose =
   | 'screening'
   | 'diagnostic_referral'
@@ -51,6 +53,7 @@ export type NqlBlockType =
   | 'PsychometricFinding'
   | 'QEEGMarker'
   | 'SourceLocalization'
+  | 'MetaAnalyticEvidence'
   | 'NetworkState'
   | 'RDoCDomain'
   | 'FunctionalHypothesis'
@@ -175,6 +178,7 @@ export type DomainMapping = {
   functionalMappings?: FunctionalMapping[]
   qeegStructuredMarkers?: QEEGStructuredMarker[]
   sourceLocalizationMarkers?: SourceLocalizationMarker[]
+  metaAnalyticEvidence?: MetaAnalyticEvidence[]
 }
 
 export type FunctionalHypothesis = {
