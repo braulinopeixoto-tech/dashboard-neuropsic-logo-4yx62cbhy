@@ -2,11 +2,14 @@ import type { InterventionPlan, NeurofunctionalContext } from '../types'
 
 export function generateInterventionPhases(context: NeurofunctionalContext): InterventionPlan {
   const state = context.neurofunctionalState
-  const hasMedicalAlert = context.input.flags?.requireMedicalReferral
+  const hasMedicalAlert = context.input.flags?.requireMedicalReferral || context.qeegStructuredMarkers.some((marker) => marker.band === 'delta')
   const shouldStabilizeFirst = state.brainEnergy === 'hypoactive' || state.brainEnergy === 'unstable'
-  const functions = context.functionalMappings.map((item) => item.functionName)
-  const hasExecutiveDemand = functions.some((item) => ['atencao sustentada', 'controle inibitorio', 'memoria operacional', 'planejamento'].includes(item))
-  const hasEmotionDemand = functions.includes('regulacao emocional') || functions.includes('tolerancia a frustracao')
+  const functions = [
+    ...context.functionalMappings.map((item) => item.functionName),
+    ...context.qeegStructuredMarkers.flatMap((marker) => marker.probableFunction || []),
+  ]
+  const hasExecutiveDemand = functions.some((item) => ['atencao sustentada', 'controle inibitorio', 'memoria operacional', 'planejamento', 'regulacao executiva'].includes(item))
+  const hasEmotionDemand = functions.includes('regulacao emocional') || functions.includes('tolerancia a frustracao') || functions.includes('hiperalerta')
 
   return {
     phase1: [
