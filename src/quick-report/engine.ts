@@ -6,6 +6,7 @@ import {
   mapQEEGMarkers,
   mapSignalsToFunctions,
   mapSignalsToNetworks,
+  mapSourceLocalization,
 } from './maps'
 import { renderReport } from './renderers/markdown-renderer'
 import type {
@@ -15,13 +16,13 @@ import type {
   FunctionalHypothesis,
   NetworkIntegration,
   NeurofunctionalContext,
-  NeurofunctionalState,
   NormalizedQuickReportInput,
   Organization,
   QEEGMarker,
   QEEGStructuredMarker,
   QuickReportInput,
   QuickReportOutput,
+  SourceLocalizationMarker,
 } from './types'
 
 const HYPERAROUSAL_TERMS = ['ansiedade', 'agitação', 'irritabilidade', 'insônia', 'hiperatividade', 'impulsividade']
@@ -110,6 +111,7 @@ export function extractClinicalSignals(input: NormalizedQuickReportInput): Clini
   addSignals('psychometricFindings', input.psychometricFindings, 'Achado psicometrico aumenta confianca quando correlacionado a clinica.')
   addSignals('qeeg', input.qeeg?.findings, 'Achado qEEG fortalece convergencia neurofuncional quando presente.')
   addSignals('sourceLocalization', input.sourceLocalization?.regions, 'Localizacao de fonte sugere rede/regiao provavel, exigindo correlacao clinica.')
+  addSignals('sourceLocalization', input.sourceLocalization?.brodmannAreas, 'Area de Brodmann informada sustenta inferencia funcional aproximada, sem causalidade isolada.')
 
   return signals
 }
@@ -126,28 +128,33 @@ export function extractQeegMarkers(input: NormalizedQuickReportInput): QEEGMarke
 }
 
 export function mapToDomains(
-  context: Pick<NeurofunctionalContext, 'signals' | 'qeegMarkers' | 'qeegStructuredMarkers'>,
+  context: Pick<NeurofunctionalContext, 'signals' | 'qeegMarkers' | 'qeegStructuredMarkers' | 'sourceLocalizationMarkers'>,
 ): DomainMapping {
   const rdocMappings = mapClinicalSignalsToRDoC(context.signals)
   const networkMappings = mapSignalsToNetworks(context.signals, context.qeegMarkers)
   const functionalMappings = mapSignalsToFunctions(context.signals)
   const qeegNetworks = context.qeegStructuredMarkers.flatMap((marker) => marker.probableNetwork || [])
   const qeegFunctions = context.qeegStructuredMarkers.flatMap((marker) => marker.probableFunction || [])
+  const sourceNetworks = context.sourceLocalizationMarkers.flatMap((marker) => marker.probableNetwork || [])
+  const sourceFunctions = context.sourceLocalizationMarkers.flatMap((marker) => marker.probableFunction || [])
+  const sourceRDoC = context.sourceLocalizationMarkers.flatMap((marker) => marker.rdocDomain || [])
 
   return {
-    rdocDomains: rdocMappings.map((item) => item.domain),
-    networks: uniq([...networkMappings.map((item) => item.network), ...qeegNetworks]),
-    cognitiveFunctions: uniq([...functionalMappings.map((item) => item.functionName), ...qeegFunctions]),
+    rdocDomains: uniq([...rdocMappings.map((item) => item.domain), ...sourceRDoC]),
+    networks: uniq([...networkMappings.map((item) => item.network), ...qeegNetworks, ...sourceNetworks]),
+    cognitiveFunctions: uniq([...functionalMappings.map((item) => item.functionName), ...qeegFunctions, ...sourceFunctions]),
     rdocMappings,
     networkMappings,
     functionalMappings,
     qeegStructuredMarkers: context.qeegStructuredMarkers,
+    sourceLocalizationMarkers: context.sourceLocalizationMarkers,
   }
 }
 
 export function classifyNeurofunctionalState(
   input: NormalizedQuickReportInput,
   qeegStructuredMarkers: QEEGStructuredMarker[] = [],
+  sourceLocalizationMarkers: SourceLocalizationMarker[] = [],
 ): QuickReportOutput['neurofunctionalState'] {
   const text = input.allFindings.join(' ').toLowerCase()
   const hyperScore = countMatches(text, HYPERAROUSAL_TERMS)
@@ -160,13 +167,15 @@ export function classifyNeurofunctionalState(
   else if (hypoScore > hyperScore) brainEnergy = 'hypoactive'
 
   const qEEGEnergy = qeegStructuredMarkers.find((marker) => marker.energyImpact !== 'uncertain')?.energyImpact
+  const sourceEnergy = sourceLocalizationMarkers.find((marker) => marker.energyImpact && marker.energyImpact !== 'uncertain')?.energyImpact
   if (qEEGEnergy && qEEGEnergy !== 'uncertain') brainEnergy = qEEGEnergy
+  else if (sourceEnergy && sourceEnergy !== 'uncertain') brainEnergy = sourceEnergy
 
   let networkIntegration: NetworkIntegration = 'coupled'
   if (includesAny(text, ['fragmentacao', 'fragmentação', 'desorganizacao', 'desorganização'])) networkIntegration = 'fragmented'
   else if (includesAny(text, ['desacoplamento', 'isolamento funcional'])) networkIntegration = 'decoupled'
   else if (includesAny(text, ['hiperconectividade', 'hiperacoplamento', 'rigidez de rede'])) networkIntegration = 'overcoupled'
-  else if (qeegStructuredMarkers.some((marker) => marker.probableNetwork?.length)) networkIntegration = 'decoupled'
+  else if (qeegStructuredMarkers.some((marker) => marker.probableNetwork?.length) || sourceLocalizationMarkers.some((marker) => marker.probableNetwork?.length)) networkIntegration = 'decoupled'
 
   let organization: Organization = 'coherent'
   if (includesAny(text, ['ruido', 'ruído', 'artefato', 'instavel', 'instável'])) organization = 'noisy'
@@ -174,7 +183,9 @@ export function classifyNeurofunctionalState(
   else if (includesAny(text, ['difuso', 'desorganizado', 'desorganizacao', 'desorganização'])) organization = 'diffuse'
 
   const qEEGOrganization = qeegStructuredMarkers.find((marker) => marker.organizationImpact !== 'uncertain')?.organizationImpact
+  const sourceOrganization = sourceLocalizationMarkers.find((marker) => marker.organizationImpact && marker.organizationImpact !== 'uncertain')?.organizationImpact
   if (qEEGOrganization && qEEGOrganization !== 'uncertain') organization = qEEGOrganization
+  else if (sourceOrganization && sourceOrganization !== 'uncertain') organization = sourceOrganization
 
   return { brainEnergy, networkIntegration, organization }
 }
@@ -192,7 +203,7 @@ export function generateHypotheses(params: {
   const networks = params.domains.networks.join(', ') || 'redes funcionais nao especificadas'
   const functions = params.domains.cognitiveFunctions.join(', ') || 'funcoes cognitivas/emocionais ainda pouco especificadas'
 
-  const dominantHypothesis = `Os achados sugerem uma hipotese dimensional de disfuncao neurofuncional envolvendo ${domains}, com participacao provavel de ${networks} e impacto em ${functions}. Necessita correlacao clinica e complementar.`
+  const dominantHypothesis = `Os achados sugerem uma hipotese dimensional de disfuncao neurofuncional envolvendo ${domains}, com participacao provavel de ${networks} e impacto em ${functions}. Achados de localizacao de fonte, quando presentes, representam inferencia funcional aproximada e necessitam correlacao clinica e complementar.`
 
   const differentialHypotheses = [
     'Perfil atencional/executivo secundario a desregulacao emocional ou sono insuficiente.',
@@ -228,7 +239,7 @@ export function calculateConfidence(input: NormalizedQuickReportInput): number {
     Boolean(input.behavioralFindings?.length),
     Boolean(input.psychometricFindings?.length),
     Boolean(input.qeeg?.findings?.length),
-    Boolean(input.sourceLocalization?.regions?.length || input.sourceLocalization?.coordinates?.length),
+    Boolean(input.sourceLocalization?.regions?.length || input.sourceLocalization?.brodmannAreas?.length || input.sourceLocalization?.coordinates?.length),
   ].filter(Boolean).length
 
   return Math.min(0.95, Math.max(0.15, availableSignals / 8))
@@ -239,14 +250,16 @@ export function generateQuickReport(input: QuickReportInput): QuickReportOutput 
   const clinicalSignals = extractClinicalSignals(normalized)
   const qeegMarkers = extractQeegMarkers(normalized)
   const qeegStructuredMarkers = mapQEEGMarkers(qeegMarkers)
-  const neurofunctionalState = classifyNeurofunctionalState(normalized, qeegStructuredMarkers)
-  const partialContext = { signals: clinicalSignals, qeegMarkers, qeegStructuredMarkers }
+  const sourceLocalizationMarkers = mapSourceLocalization(normalized.sourceLocalization)
+  const neurofunctionalState = classifyNeurofunctionalState(normalized, qeegStructuredMarkers, sourceLocalizationMarkers)
+  const partialContext = { signals: clinicalSignals, qeegMarkers, qeegStructuredMarkers, sourceLocalizationMarkers }
   const domainMapping = mapToDomains(partialContext)
   const context: NeurofunctionalContext = {
     input: normalized,
     signals: clinicalSignals,
     qeegMarkers,
     qeegStructuredMarkers,
+    sourceLocalizationMarkers,
     rdocMappings: domainMapping.rdocMappings || [],
     networkMappings: domainMapping.networkMappings || [],
     functionalMappings: domainMapping.functionalMappings || [],
@@ -260,8 +273,9 @@ export function generateQuickReport(input: QuickReportInput): QuickReportOutput 
     'Entrada clinica bruta normalizada semanticamente.',
     'Sinais clinicos extraidos sem conclusao direta por sintoma isolado.',
     'Achados qEEG convertidos em marcadores estruturados com banda, topografia, rede, funcao, energia e limitacoes.',
+    'Achados de localizacao de fonte convertidos em marcadores estruturados por regiao/Brodmann explicitos, sem inferir anatomia por coordenada isolada sem atlas.',
     'Achados mapeados por modulos dedicados de RDoC, redes funcionais e funcoes neuropsicologicas.',
-    'Estado neurofuncional modulado por convergencia clinica e marcadores qEEG.',
+    'Estado neurofuncional modulado por convergencia clinica, marcadores qEEG e localizacao de fonte.',
     'Risco funcional e intervencao por fases calculados por mapas clinicos separados.',
     'Hipoteses dimensionais e confianca calculadas com trilha auditavel.',
   ]
@@ -278,6 +292,7 @@ export function generateQuickReport(input: QuickReportInput): QuickReportOutput 
         PatientContext: [normalized.patient],
         ClinicalSignal: clinicalSignals,
         QEEGMarker: qeegStructuredMarkers,
+        SourceLocalization: sourceLocalizationMarkers,
         RDoCDomain: context.rdocMappings,
         NetworkState: context.networkMappings,
         FunctionalHypothesis: hypotheses.functionalHypotheses,
