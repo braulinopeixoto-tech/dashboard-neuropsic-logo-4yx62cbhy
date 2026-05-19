@@ -33,7 +33,14 @@ export function calculateFunctionalRisk(context: NeurofunctionalContext): RiskAs
   const text = context.input.allFindings.join(' ').toLowerCase()
   const highEvidence = HIGH_RISK_TERMS.filter((term) => text.includes(term))
   const moderateEvidence = MODERATE_RISK_TERMS.filter((term) => text.includes(term))
+  const deltaWakeMarkers = context.qeegStructuredMarkers.filter((marker) =>
+    marker.band === 'delta' && marker.energyImpact === 'hypoactive'
+  )
   const alerts = [...highEvidence, ...moderateEvidence]
+
+  if (deltaWakeMarkers.length > 0) {
+    alerts.push('delta elevado em vigilia')
+  }
 
   if (context.input.flags?.requireMedicalReferral && !alerts.includes('encaminhamento medico requerido')) {
     alerts.push('encaminhamento medico requerido')
@@ -48,11 +55,14 @@ export function calculateFunctionalRisk(context: NeurofunctionalContext): RiskAs
     }
   }
 
-  if (moderateEvidence.length > 0) {
+  if (moderateEvidence.length > 0 || deltaWakeMarkers.length > 0) {
     return {
       level: 'moderate',
       alerts,
-      evidence: context.signals.map((signal) => signal.finding).filter((finding) => alerts.some((alert) => finding.toLowerCase().includes(alert))),
+      evidence: [
+        ...context.signals.map((signal) => signal.finding).filter((finding) => alerts.some((alert) => finding.toLowerCase().includes(alert))),
+        ...deltaWakeMarkers.flatMap((marker) => marker.evidence),
+      ],
       confidence: Math.min(0.85, 0.5 + alerts.length * 0.05),
     }
   }
