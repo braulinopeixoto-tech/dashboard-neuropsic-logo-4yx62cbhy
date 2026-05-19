@@ -10,6 +10,7 @@ import {
   mapSourceLocalization,
 } from './maps'
 import { renderReport } from './renderers/markdown-renderer'
+import { runReportSafetyGuard } from './safety'
 import { calculateClinicalConfidenceScore } from './scoring'
 import type {
   BrainEnergy,
@@ -24,12 +25,21 @@ import type {
   QEEGStructuredMarker,
   QuickReportInput,
   QuickReportOutput,
+  SafetyGuardResult,
   SourceLocalizationMarker,
 } from './types'
 
 const HYPERAROUSAL_TERMS = ['ansiedade', 'agitação', 'irritabilidade', 'insônia', 'hiperatividade', 'impulsividade']
 const HYPOACTIVE_TERMS = ['lentificacao', 'lentidão', 'fadiga', 'apatia', 'sonolencia', 'sonolência', 'baixo engajamento']
 const INSTABILITY_TERMS = ['oscilacao', 'oscilação', 'instabilidade', 'variabilidade', 'desregulacao', 'desregulação']
+
+const PENDING_SAFETY_GUARD: SafetyGuardResult = {
+  passed: false,
+  findings: [],
+  sanitizedMarkdown: '',
+  sanitizedTerms: [],
+  limitationsAdded: [],
+}
 
 function compactList(items?: string[]): string[] {
   return (items || []).map((item) => item.trim()).filter(Boolean)
@@ -287,14 +297,14 @@ export function generateQuickReport(input: QuickReportInput): QuickReportOutput 
     'Risco funcional e intervencao por fases calculados por mapas clinicos separados.',
     'Hipoteses dimensionais e confianca calculadas com trilha auditavel.',
   ]
-  const auditTrace = generateAuditTrace({
+  const initialAuditTrace = generateAuditTrace({
     input: normalized,
     confidenceLevel,
     riskLevel: riskAssessment.level,
     inferenceTrace,
   })
 
-  const outputWithoutMarkdown: Omit<QuickReportOutput, 'reportMarkdown'> = {
+  const baseOutputWithoutMarkdown: Omit<QuickReportOutput, 'reportMarkdown'> = {
     structuredFindings: {
       nqlBlocks: {
         PatientContext: [normalized.patient],
@@ -303,17 +313,19 @@ export function generateQuickReport(input: QuickReportInput): QuickReportOutput 
         SourceLocalization: sourceLocalizationMarkers,
         MetaAnalyticEvidence: metaAnalyticEvidence,
         ClinicalConfidenceScore: [clinicalConfidenceScore],
+        SafetyGuard: [PENDING_SAFETY_GUARD],
         RDoCDomain: context.rdocMappings,
         NetworkState: context.networkMappings,
         FunctionalHypothesis: hypotheses.functionalHypotheses,
         RiskVector: [riskAssessment],
         InterventionPhase: [interventionPlan],
-        AuditTrace: [auditTrace],
+        AuditTrace: [initialAuditTrace],
       },
       clinicalSignals,
       domainMapping: enrichedDomainMapping,
       functionalHypotheses: hypotheses.functionalHypotheses,
       clinicalConfidenceScore,
+      safetyGuard: PENDING_SAFETY_GUARD,
     },
     neurofunctionalState,
     dominantHypothesis: hypotheses.dominantHypothesis,
@@ -321,11 +333,47 @@ export function generateQuickReport(input: QuickReportInput): QuickReportOutput 
     riskLevel: riskAssessment.level,
     interventionPlan,
     clinicalConfidenceScore,
-    auditTrace,
+    safetyGuard: PENDING_SAFETY_GUARD,
+    auditTrace: initialAuditTrace,
   }
 
+  const firstSafetyGuard = runReportSafetyGuard(renderReport(normalized, baseOutputWithoutMarkdown), scoringContext)
+  const finalAuditTrace = generateAuditTrace({
+    input: normalized,
+    confidenceLevel,
+    riskLevel: riskAssessment.level,
+    inferenceTrace,
+    safetyGuard: firstSafetyGuard,
+  })
+
+  const finalOutputWithoutMarkdown: Omit<QuickReportOutput, 'reportMarkdown'> = {
+    ...baseOutputWithoutMarkdown,
+    structuredFindings: {
+      ...baseOutputWithoutMarkdown.structuredFindings,
+      nqlBlocks: {
+        ...baseOutputWithoutMarkdown.structuredFindings.nqlBlocks,
+        SafetyGuard: [firstSafetyGuard],
+        AuditTrace: [finalAuditTrace],
+      },
+      safetyGuard: firstSafetyGuard,
+    },
+    safetyGuard: firstSafetyGuard,
+    auditTrace: finalAuditTrace,
+  }
+
+  const finalSafetyGuard = runReportSafetyGuard(renderReport(normalized, finalOutputWithoutMarkdown), scoringContext)
+
   return {
-    ...outputWithoutMarkdown,
-    reportMarkdown: renderReport(normalized, outputWithoutMarkdown),
+    ...finalOutputWithoutMarkdown,
+    structuredFindings: {
+      ...finalOutputWithoutMarkdown.structuredFindings,
+      nqlBlocks: {
+        ...finalOutputWithoutMarkdown.structuredFindings.nqlBlocks,
+        SafetyGuard: [finalSafetyGuard],
+      },
+      safetyGuard: finalSafetyGuard,
+    },
+    safetyGuard: finalSafetyGuard,
+    reportMarkdown: finalSafetyGuard.sanitizedMarkdown,
   }
 }
