@@ -1,4 +1,4 @@
-import type { AuditTrace, NormalizedQuickReportInput, RiskLevel } from './types'
+import type { AuditTrace, NormalizedQuickReportInput, RiskLevel, SafetyGuardResult } from './types'
 
 export const QUICK_REPORT_ENGINE_VERSION = '0.1.0-nql-core'
 
@@ -109,9 +109,12 @@ export function generateAuditTrace(params: {
   confidenceLevel: number
   riskLevel: RiskLevel
   inferenceTrace: string[]
+  safetyGuard?: SafetyGuardResult
 }): AuditTrace {
   const limitations = buildLimitations(params.input)
   const riskAlerts = buildRiskAlerts(params.input, params.riskLevel)
+  const safetyGuard = params.safetyGuard
+  const criticalFindingsCount = safetyGuard?.findings.filter((finding) => finding.severity === 'critical').length || 0
 
   return {
     inputHash: hashInput(params.input),
@@ -120,8 +123,17 @@ export function generateAuditTrace(params: {
     confidenceLevel: params.confidenceLevel,
     fieldsUsed: listFieldsUsed(params.input),
     fieldsMissing: listFieldsMissing(params.input),
-    limitations,
+    limitations: [...limitations, ...(safetyGuard?.limitationsAdded || [])],
     riskAlerts,
-    inferenceTrace: params.inferenceTrace,
+    inferenceTrace: [
+      ...params.inferenceTrace,
+      safetyGuard
+        ? 'Safety Guard executado antes da emissao final do Markdown.'
+        : 'Safety Guard ainda nao executado nesta etapa intermediaria.',
+    ],
+    safetyGuardPassed: safetyGuard?.passed ?? false,
+    safetyFindingsCount: safetyGuard?.findings.length || 0,
+    criticalFindingsCount,
+    sanitizedTerms: safetyGuard?.sanitizedTerms || [],
   }
 }
