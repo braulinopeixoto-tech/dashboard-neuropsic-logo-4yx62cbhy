@@ -16,6 +16,7 @@ export type OrganizationImpact = Organization | 'uncertain'
 export type RiskLevel = 'low' | 'moderate' | 'high'
 export type CoordinateSystem = 'MNI' | 'Talairach'
 export type ConfidenceTier = 'low' | 'moderate' | 'high' | 'insufficient'
+export type SafetySeverity = 'info' | 'warning' | 'critical'
 
 export type BrainCoordinate = {
   system: CoordinateSystem
@@ -33,6 +34,21 @@ export type ClinicalConfidenceScore = {
   cautionFlags: string[]
   interpretation: string
   limitations: string[]
+}
+
+export type SafetyFinding = {
+  severity: SafetySeverity
+  code: string
+  message: string
+  suggestion?: string
+}
+
+export type SafetyGuardResult = {
+  passed: boolean
+  findings: SafetyFinding[]
+  sanitizedMarkdown: string
+  sanitizedTerms: string[]
+  limitationsAdded: string[]
 }
 
 export type EEGLocation10_20 =
@@ -67,6 +83,7 @@ export type NqlBlockType =
   | 'SourceLocalization'
   | 'MetaAnalyticEvidence'
   | 'ClinicalConfidenceScore'
+  | 'SafetyGuard'
   | 'NetworkState'
   | 'RDoCDomain'
   | 'FunctionalHypothesis'
@@ -212,6 +229,10 @@ export type AuditTrace = {
   limitations: string[]
   riskAlerts: string[]
   inferenceTrace: string[]
+  safetyGuardPassed: boolean
+  safetyFindingsCount: number
+  criticalFindingsCount: number
+  sanitizedTerms: string[]
 }
 
 export type InterventionPlan = {
@@ -250,6 +271,7 @@ export type QuickReportOutput = {
     domainMapping: DomainMapping
     functionalHypotheses: FunctionalHypothesis[]
     clinicalConfidenceScore: ClinicalConfidenceScore
+    safetyGuard: SafetyGuardResult
   }
   neurofunctionalState: NeurofunctionalState
   dominantHypothesis: string
@@ -257,6 +279,7 @@ export type QuickReportOutput = {
   riskLevel: RiskLevel
   interventionPlan: InterventionPlan
   clinicalConfidenceScore: ClinicalConfidenceScore
+  safetyGuard: SafetyGuardResult
   auditTrace: AuditTrace
 }
 
