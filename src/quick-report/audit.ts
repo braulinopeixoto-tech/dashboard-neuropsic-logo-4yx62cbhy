@@ -61,10 +61,15 @@ export function buildLimitations(input: NormalizedQuickReportInput): string[] {
   ]
 
   if (!input.qeeg?.findings?.length) {
-    limitations.push('Nao foram informados achados de qEEG; a classificacao neurofuncional fica limitada.')
+    limitations.push(
+      'Nao foram informados achados de qEEG; a classificacao neurofuncional fica limitada.',
+    )
   }
 
-  if (!input.sourceLocalization?.regions?.length && !input.sourceLocalization?.coordinates?.length) {
+  if (
+    !input.sourceLocalization?.regions?.length &&
+    !input.sourceLocalization?.coordinates?.length
+  ) {
     limitations.push('Nao foram informados dados de sLORETA/eLORETA ou coordenadas MNI/Talairach.')
   }
 
@@ -73,7 +78,9 @@ export function buildLimitations(input: NormalizedQuickReportInput): string[] {
   }
 
   if (input.flags?.juridicalSensitivity) {
-    limitations.push('Uso juridico ou assistencial exige revisao profissional e linguagem pericial apropriada.')
+    limitations.push(
+      'Uso juridico ou assistencial exige revisao profissional e linguagem pericial apropriada.',
+    )
   }
 
   return limitations
@@ -96,8 +103,12 @@ export function buildRiskAlerts(input: NormalizedQuickReportInput, riskLevel: Ri
   ]
 
   const alerts: string[] = []
-  if (riskLevel === 'high') alerts.push('Risco funcional elevado; recomenda-se acompanhamento clinico prioritario.')
-  if (input.flags?.requireMedicalReferral || neurologicalSignals.some((signal) => source.includes(signal))) {
+  if (riskLevel === 'high')
+    alerts.push('Risco funcional elevado; recomenda-se acompanhamento clinico prioritario.')
+  if (
+    input.flags?.requireMedicalReferral ||
+    neurologicalSignals.some((signal) => source.includes(signal))
+  ) {
     alerts.push('Ha sinais que justificam avaliacao medica ou neurologica complementar.')
   }
 

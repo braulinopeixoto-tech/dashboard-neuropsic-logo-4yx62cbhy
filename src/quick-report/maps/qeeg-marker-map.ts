@@ -73,7 +73,8 @@ export function inferFrequencyBand(frequencyHz?: number, text = ''): EEGFrequenc
   }
 
   const source = normalizeText(text)
-  if (source.includes('high beta') || source.includes('high_beta') || source.includes('beta alto')) return 'high_beta'
+  if (source.includes('high beta') || source.includes('high_beta') || source.includes('beta alto'))
+    return 'high_beta'
   if (source.includes('delta')) return 'delta'
   if (source.includes('theta') || source.includes('teta')) return 'theta'
   if (source.includes('alpha') || source.includes('alfa')) return 'alpha'
@@ -89,7 +90,11 @@ export function parseLocations(location?: string): EEGLocation10_20[] {
     .map((item) => item.trim())
     .filter(Boolean)
 
-  return uniq(tokens.filter((item): item is EEGLocation10_20 => VALID_LOCATIONS.includes(item as EEGLocation10_20)))
+  return uniq(
+    tokens.filter((item): item is EEGLocation10_20 =>
+      VALID_LOCATIONS.includes(item as EEGLocation10_20),
+    ),
+  )
 }
 
 function inferRegions(locations: EEGLocation10_20[]): string[] {
@@ -101,12 +106,16 @@ function hasMidline(locations: EEGLocation10_20[]): boolean {
 }
 
 function isElevated(marker: QEEGMarker): boolean {
-  const text = `${marker.finding} ${marker.amplitude || ''} ${marker.interpretation || ''}`.toLowerCase()
-  return ['elevado', 'aumentado', 'excesso', 'alta amplitude', 'hiper'].some((term) => text.includes(term))
+  const text =
+    `${marker.finding} ${marker.amplitude || ''} ${marker.interpretation || ''}`.toLowerCase()
+  return ['elevado', 'aumentado', 'excesso', 'alta amplitude', 'hiper'].some((term) =>
+    text.includes(term),
+  )
 }
 
 function isReduced(marker: QEEGMarker): boolean {
-  const text = `${marker.finding} ${marker.amplitude || ''} ${marker.interpretation || ''}`.toLowerCase()
+  const text =
+    `${marker.finding} ${marker.amplitude || ''} ${marker.interpretation || ''}`.toLowerCase()
   return ['reduzido', 'baixo', 'diminuido', 'diminuído', 'hipo'].some((term) => text.includes(term))
 }
 
@@ -114,7 +123,10 @@ function inferMarkerImpact(params: {
   marker: QEEGMarker
   band: EEGFrequencyBand
   locations: EEGLocation10_20[]
-}): Pick<QEEGStructuredMarker, 'energyImpact' | 'organizationImpact' | 'probableNetwork' | 'probableFunction'> {
+}): Pick<
+  QEEGStructuredMarker,
+  'energyImpact' | 'organizationImpact' | 'probableNetwork' | 'probableFunction'
+> {
   const elevated = isElevated(params.marker)
   const reduced = isReduced(params.marker)
   const midline = hasMidline(params.locations)
@@ -167,11 +179,15 @@ export function mapQEEGMarkers(qeeg: QEEGMarker[] = []): QEEGStructuredMarker[] 
     const limitations = [QEEG_LIMITATION]
 
     if (band === 'unknown') {
-      limitations.push('Banda nao inferida por ausencia de frequencia ou termo eletrofisiologico explicito.')
+      limitations.push(
+        'Banda nao inferida por ausencia de frequencia ou termo eletrofisiologico explicito.',
+      )
     }
 
     if (band === 'delta' && isElevated(marker)) {
-      limitations.push('Delta elevado em vigilia exige correlacao clinica e, quando indicado, avaliacao neurologica.')
+      limitations.push(
+        'Delta elevado em vigilia exige correlacao clinica e, quando indicado, avaliacao neurologica.',
+      )
     }
 
     if (locations.length === 0) {
@@ -190,7 +206,10 @@ export function mapQEEGMarkers(qeeg: QEEGMarker[] = []): QEEGStructuredMarker[] 
       evidence,
       confidence: Math.min(
         0.95,
-        0.25 + (band !== 'unknown' ? 0.25 : 0) + (locations.length ? 0.2 : 0) + (impact.energyImpact !== 'uncertain' ? 0.2 : 0),
+        0.25 +
+          (band !== 'unknown' ? 0.25 : 0) +
+          (locations.length ? 0.2 : 0) +
+          (impact.energyImpact !== 'uncertain' ? 0.2 : 0),
       ),
       limitations,
     }

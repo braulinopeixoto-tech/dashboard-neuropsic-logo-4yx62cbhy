@@ -53,7 +53,10 @@ function renderQeegMarkers(markers?: QEEGStructuredMarker[]): string {
     .join('\n\n')
 }
 
-export function renderReport(input: NormalizedQuickReportInput, output: Omit<QuickReportOutput, 'reportMarkdown'>): string {
+export function renderReport(
+  input: NormalizedQuickReportInput,
+  output: Omit<QuickReportOutput, 'reportMarkdown'>,
+): string {
   const state = output.neurofunctionalState
   const audit = output.auditTrace
   const qeegStructuredMarkers = output.structuredFindings.domainMapping.qeegStructuredMarkers
@@ -72,7 +75,11 @@ export function renderReport(input: NormalizedQuickReportInput, output: Omit<Qui
     list(input.complaint),
     '',
     numberedTitle(3, 'Dados clinicos relevantes'),
-    list([...(input.clinicalHistory || []), ...(input.developmentalHistory || []), ...(input.schoolHistory || [])]),
+    list([
+      ...(input.clinicalHistory || []),
+      ...(input.developmentalHistory || []),
+      ...(input.schoolHistory || []),
+    ]),
     '',
     numberedTitle(4, 'Achados neuropsicologicos'),
     list([...(input.behavioralFindings || []), ...(input.psychometricFindings || [])]),
@@ -80,10 +87,14 @@ export function renderReport(input: NormalizedQuickReportInput, output: Omit<Qui
     numberedTitle(5, 'Achados neurofuncionais'),
     renderQeegMarkers(qeegStructuredMarkers),
     '',
-    list([
-      ...(input.sourceLocalization?.regions?.map((region) => `Regiao de fonte: ${region}`) || []),
-      ...(input.sourceLocalization?.brodmannAreas?.map((area) => `Area de Brodmann: ${area}`) || []),
-    ], 'Sem achados de localizacao de fonte informados.'),
+    list(
+      [
+        ...(input.sourceLocalization?.regions?.map((region) => `Regiao de fonte: ${region}`) || []),
+        ...(input.sourceLocalization?.brodmannAreas?.map((area) => `Area de Brodmann: ${area}`) ||
+          []),
+      ],
+      'Sem achados de localizacao de fonte informados.',
+    ),
     '',
     numberedTitle(6, 'Convergencia neurofuncional'),
     `Energia cerebral: ${brainEnergyLabels[state.brainEnergy]}.`,
@@ -115,7 +126,9 @@ export function renderReport(input: NormalizedQuickReportInput, output: Omit<Qui
     list([
       'Correlacionar os achados com entrevista clinica, observacao e instrumentos padronizados.',
       'Evitar conclusoes diagnosticas absolutas sem confirmacao interdisciplinar.',
-      ...(audit.riskAlerts.length ? ['Considerar avaliacao medica complementar diante dos alertas identificados.'] : []),
+      ...(audit.riskAlerts.length
+        ? ['Considerar avaliacao medica complementar diante dos alertas identificados.']
+        : []),
     ]),
     '',
     numberedTitle(12, 'Intervencao por fases'),
@@ -131,7 +144,10 @@ export function renderReport(input: NormalizedQuickReportInput, output: Omit<Qui
     numberedTitle(13, 'Encaminhamentos'),
     list(
       audit.riskAlerts.length
-        ? ['Avaliacao medica/neurologica complementar quando clinicamente indicado.', 'Seguimento neuropsicologico para refinamento das hipoteses.']
+        ? [
+            'Avaliacao medica/neurologica complementar quando clinicamente indicado.',
+            'Seguimento neuropsicologico para refinamento das hipoteses.',
+          ]
         : ['Seguimento clinico conforme evolucao e necessidade funcional.'],
     ),
     '',

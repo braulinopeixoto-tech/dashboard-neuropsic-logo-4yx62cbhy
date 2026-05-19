@@ -34,7 +34,14 @@ export type EEGLocation10_20 =
   | 'O2'
   | 'Fz'
 
-export type EEGFrequencyBand = 'delta' | 'theta' | 'alpha' | 'beta' | 'high_beta' | 'gamma' | 'unknown'
+export type EEGFrequencyBand =
+  | 'delta'
+  | 'theta'
+  | 'alpha'
+  | 'beta'
+  | 'high_beta'
+  | 'gamma'
+  | 'unknown'
 
 export type NqlBlockType =
   | 'PatientContext'

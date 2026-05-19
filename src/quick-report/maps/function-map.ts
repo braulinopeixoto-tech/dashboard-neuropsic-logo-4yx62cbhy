@@ -6,20 +6,79 @@ type Rule = {
 }
 
 const RULES: Rule[] = [
-  { functionName: 'atencao sustentada', terms: ['atencao sustentada', 'atenção sustentada', 'vigilancia', 'vigilância', 'distratibilidade'] },
-  { functionName: 'controle inibitorio', terms: ['inibição', 'controle inibitorio', 'impulsividade', 'desinibicao', 'desinibição'] },
-  { functionName: 'memoria operacional', terms: ['memoria operacional', 'memória operacional', 'memoria de trabalho', 'memória de trabalho'] },
-  { functionName: 'flexibilidade cognitiva', terms: ['flexibilidade', 'rigidez', 'perseveracao', 'perseveração'] },
-  { functionName: 'regulacao emocional', terms: ['regulacao emocional', 'regulação emocional', 'ansiedade', 'irritabilidade', 'labilidade'] },
-  { functionName: 'processamento sensorial', terms: ['sensorial', 'hipersensibilidade', 'sensorimotor'] },
-  { functionName: 'linguagem', terms: ['linguagem', 'fala', 'compreensao verbal', 'compreensão verbal'] },
-  { functionName: 'aprendizagem', terms: ['aprendizagem', 'rendimento escolar', 'alfabetizacao', 'alfabetização'] },
-  { functionName: 'sono/vigilia', terms: ['sono', 'insônia', 'insonia', 'vigilia', 'vigília', 'sonolencia', 'sonolência'] },
-  { functionName: 'motivacao', terms: ['motivacao', 'motivação', 'apatia', 'anedonia', 'baixo engajamento'] },
-  { functionName: 'interacao social', terms: ['interacao', 'interação', 'social', 'reciprocidade', 'isolamento'] },
-  { functionName: 'planejamento', terms: ['planejamento', 'organizacao', 'organização', 'sequenciamento'] },
-  { functionName: 'autoconsciencia', terms: ['autoconsciencia', 'autoconsciência', 'insight', 'autopercepcao', 'autopercepção'] },
-  { functionName: 'tolerancia a frustracao', terms: ['frustracao', 'frustração', 'tolerancia', 'tolerância', 'oposicao', 'oposição'] },
+  {
+    functionName: 'atencao sustentada',
+    terms: [
+      'atencao sustentada',
+      'atenção sustentada',
+      'vigilancia',
+      'vigilância',
+      'distratibilidade',
+    ],
+  },
+  {
+    functionName: 'controle inibitorio',
+    terms: ['inibição', 'controle inibitorio', 'impulsividade', 'desinibicao', 'desinibição'],
+  },
+  {
+    functionName: 'memoria operacional',
+    terms: [
+      'memoria operacional',
+      'memória operacional',
+      'memoria de trabalho',
+      'memória de trabalho',
+    ],
+  },
+  {
+    functionName: 'flexibilidade cognitiva',
+    terms: ['flexibilidade', 'rigidez', 'perseveracao', 'perseveração'],
+  },
+  {
+    functionName: 'regulacao emocional',
+    terms: [
+      'regulacao emocional',
+      'regulação emocional',
+      'ansiedade',
+      'irritabilidade',
+      'labilidade',
+    ],
+  },
+  {
+    functionName: 'processamento sensorial',
+    terms: ['sensorial', 'hipersensibilidade', 'sensorimotor'],
+  },
+  {
+    functionName: 'linguagem',
+    terms: ['linguagem', 'fala', 'compreensao verbal', 'compreensão verbal'],
+  },
+  {
+    functionName: 'aprendizagem',
+    terms: ['aprendizagem', 'rendimento escolar', 'alfabetizacao', 'alfabetização'],
+  },
+  {
+    functionName: 'sono/vigilia',
+    terms: ['sono', 'insônia', 'insonia', 'vigilia', 'vigília', 'sonolencia', 'sonolência'],
+  },
+  {
+    functionName: 'motivacao',
+    terms: ['motivacao', 'motivação', 'apatia', 'anedonia', 'baixo engajamento'],
+  },
+  {
+    functionName: 'interacao social',
+    terms: ['interacao', 'interação', 'social', 'reciprocidade', 'isolamento'],
+  },
+  {
+    functionName: 'planejamento',
+    terms: ['planejamento', 'organizacao', 'organização', 'sequenciamento'],
+  },
+  {
+    functionName: 'autoconsciencia',
+    terms: ['autoconsciencia', 'autoconsciência', 'insight', 'autopercepcao', 'autopercepção'],
+  },
+  {
+    functionName: 'tolerancia a frustracao',
+    terms: ['frustracao', 'frustração', 'tolerancia', 'tolerância', 'oposicao', 'oposição'],
+  },
 ]
 
 export function mapSignalsToFunctions(signals: ClinicalSignal[]): FunctionalMapping[] {
