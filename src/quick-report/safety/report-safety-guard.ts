@@ -18,7 +18,7 @@ const REPLACEMENT_RULES: ReplacementRule[] = [
     unsafeTerm: 'diagnostico confirmado',
     replacement: 'hipotese clinica a ser correlacionada',
     severity: 'critical',
-    message: 'Linguagem de diagnostico confirmado foi detectada e substituida.',
+    message: 'Linguagem conclusiva indevida foi detectada e substituida.',
     suggestion: 'Usar hipotese clinica a ser correlacionada.',
   },
   {
@@ -27,7 +27,7 @@ const REPLACEMENT_RULES: ReplacementRule[] = [
     unsafeTerm: 'cura',
     replacement: 'melhora funcional',
     severity: 'critical',
-    message: 'Promessa de cura foi detectada e substituida.',
+    message: 'Promessa terapeutica indevida foi detectada e substituida.',
     suggestion: 'Usar melhora funcional.',
   },
   {
@@ -36,7 +36,7 @@ const REPLACEMENT_RULES: ReplacementRule[] = [
     unsafeTerm: 'garantia de resultado',
     replacement: 'objetivo terapeutico',
     severity: 'critical',
-    message: 'Garantia de resultado foi detectada e substituida.',
+    message: 'Promessa de desfecho foi detectada e substituida.',
     suggestion: 'Usar objetivo terapeutico.',
   },
   {
@@ -45,7 +45,7 @@ const REPLACEMENT_RULES: ReplacementRule[] = [
     unsafeTerm: 'probabilidade diagnostica',
     replacement: 'grau de convergencia clinica',
     severity: 'critical',
-    message: 'Expressao de probabilidade diagnostica foi detectada e substituida.',
+    message: 'Estimativa nosologica indevida foi detectada e substituida.',
     suggestion: 'Usar grau de convergencia clinica.',
   },
   {
@@ -54,7 +54,7 @@ const REPLACEMENT_RULES: ReplacementRule[] = [
     unsafeTerm: 'espectro do TDAH',
     replacement: 'perfil atencional/executivo a ser correlacionado',
     severity: 'critical',
-    message: 'Termo espectro do TDAH foi detectado e substituido.',
+    message: 'Rotulo dimensional inadequado foi detectado e substituido.',
     suggestion: 'Usar perfil atencional/executivo a ser correlacionado.',
   },
   {
@@ -63,7 +63,7 @@ const REPLACEMENT_RULES: ReplacementRule[] = [
     unsafeTerm: 'lesao cerebral',
     replacement: 'alteracao funcional sugerida',
     severity: 'critical',
-    message: 'Referencia a lesao cerebral foi detectada sem imagem estrutural informada e substituida.',
+    message: 'Afirmacao estrutural indevida foi detectada sem imagem estrutural informada e substituida.',
     suggestion: 'Usar alteracao funcional sugerida quando houver apenas qEEG/source localization.',
     requiresFunctionalEvidence: true,
   },
@@ -82,7 +82,7 @@ const REPLACEMENT_RULES: ReplacementRule[] = [
     unsafeTerm: 'tratamento definitivo',
     replacement: 'plano de intervencao por fases',
     severity: 'critical',
-    message: 'Tratamento definitivo foi detectado e substituido.',
+    message: 'Promessa de intervencao final foi detectada e substituida.',
     suggestion: 'Usar plano de intervencao por fases.',
   },
   {
@@ -91,7 +91,7 @@ const REPLACEMENT_RULES: ReplacementRule[] = [
     unsafeTerm: 'normalizar o cerebro',
     replacement: 'favorecer regulacao neurofuncional',
     severity: 'critical',
-    message: 'Promessa de normalizacao cerebral foi detectada e substituida.',
+    message: 'Promessa neurofuncional indevida foi detectada e substituida.',
     suggestion: 'Usar favorecer regulacao neurofuncional.',
   },
   {
@@ -100,7 +100,7 @@ const REPLACEMENT_RULES: ReplacementRule[] = [
     unsafeTerm: 'reverter autismo',
     replacement: 'favorecer recursos funcionais e adaptativos',
     severity: 'critical',
-    message: 'Promessa de reversao de autismo foi detectada e substituida.',
+    message: 'Promessa de reversao nosologica foi detectada e substituida.',
     suggestion: 'Usar favorecer recursos funcionais e adaptativos.',
   },
   {
@@ -109,7 +109,7 @@ const REPLACEMENT_RULES: ReplacementRule[] = [
     unsafeTerm: 'reverter TDAH',
     replacement: 'favorecer regulacao atencional e executiva',
     severity: 'critical',
-    message: 'Promessa de reversao de TDAH foi detectada e substituida.',
+    message: 'Promessa de reversao nosologica foi detectada e substituida.',
     suggestion: 'Usar favorecer regulacao atencional e executiva.',
   },
 ]
@@ -196,7 +196,9 @@ export function renderSafetyGuardSection(result: SafetyGuardResult): string {
   const suggestions = result.findings
     .filter((finding) => finding.suggestion)
     .map((finding) => `- ${finding.suggestion}`)
-  const terms = result.sanitizedTerms.length ? result.sanitizedTerms.map((term) => `- ${term}`).join('\n') : '- Nenhum termo corrigido.'
+  const terms = result.sanitizedTerms.length
+    ? result.findings.map((finding) => `- ${finding.code}`).join('\n')
+    : '- Nenhum termo corrigido.'
   const limitations = [
     '- A verificacao textual reduz risco de linguagem indevida, mas nao substitui revisao clinica profissional.',
     ...(criticalCount > 0 ? ['- Alertas criticos indicam necessidade de revisao antes de uso documental sensivel.'] : []),
