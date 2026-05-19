@@ -1,3 +1,4 @@
+import type { MetaAnalyticEvidence } from '../evidence'
 import type {
   NormalizedQuickReportInput,
   QEEGStructuredMarker,
@@ -91,11 +92,34 @@ function renderSourceLocalization(markers?: SourceLocalizationMarker[]): string 
   ].join('\n')
 }
 
+function renderMetaAnalyticEvidence(items?: MetaAnalyticEvidence[]): string {
+  if (!items?.length) return 'Sem evidencias meta-analiticas geradas nesta etapa.'
+
+  return items
+    .map((item, index) =>
+      [
+        `### Evidencia ${index + 1}`,
+        `- Fonte: ${item.source}`,
+        `- Tipo de consulta: ${item.queryType}`,
+        `- Consulta: ${item.query}`,
+        `- Termos associados: ${item.associatedTerms.join(', ') || 'nao informados'}`,
+        `- Funcoes associadas: ${item.associatedFunctions.join(', ') || 'nao informadas'}`,
+        `- Redes relacionadas: ${item.relatedNetworks.join(', ') || 'nao informadas'}`,
+        `- Peso de evidencia: ${item.evidenceWeight}`,
+        `- Confianca: ${Math.round(item.confidence * 100)}%`,
+        `- Limitacoes: ${item.limitations.join(' | ')}`,
+        `- Referencias: ${item.references?.join(', ') || 'nao informadas'}`,
+      ].join('\n'),
+    )
+    .join('\n\n')
+}
+
 export function renderReport(input: NormalizedQuickReportInput, output: Omit<QuickReportOutput, 'reportMarkdown'>): string {
   const state = output.neurofunctionalState
   const audit = output.auditTrace
   const qeegStructuredMarkers = output.structuredFindings.domainMapping.qeegStructuredMarkers
   const sourceLocalizationMarkers = output.structuredFindings.domainMapping.sourceLocalizationMarkers
+  const metaAnalyticEvidence = output.structuredFindings.domainMapping.metaAnalyticEvidence
 
   return [
     '# Quick Report Neurofuncional',
@@ -133,6 +157,9 @@ export function renderReport(input: NormalizedQuickReportInput, output: Omit<Qui
           `- Achado: ${item.finding}\n  - Interpretacao: ${item.interpretation}\n  - Hipotese: ${item.hypothesis}\n  - Recomendacao: ${item.recommendation}`,
       )
       .join('\n'),
+    '',
+    '## Evidencia Meta-Analitica',
+    renderMetaAnalyticEvidence(metaAnalyticEvidence),
     '',
     numberedTitle(7, 'Hipotese dominante'),
     output.dominantHypothesis,
