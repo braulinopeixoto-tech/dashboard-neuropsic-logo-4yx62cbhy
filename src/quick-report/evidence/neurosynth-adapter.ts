@@ -135,9 +135,12 @@ function findRule(marker: SourceLocalizationMarker): EvidenceRule | undefined {
 
 function hasClinicalConvergence(context: NeurofunctionalContext, marker: SourceLocalizationMarker, rule?: EvidenceRule): boolean {
   const clinicalFunctions = context.functionalMappings.map((item) => normalizeText(item.functionName))
+  const clinicalText = normalizeText(context.input.allFindings.join(' '))
   const sourceFunctions = [...(marker.probableFunction || []), ...(rule?.associatedFunctions || [])].map(normalizeText)
-  if (!clinicalFunctions.length || !sourceFunctions.length) return true
-  return sourceFunctions.some((fn) => clinicalFunctions.includes(fn))
+  if (!clinicalFunctions.length && !clinicalText) return true
+  if (!sourceFunctions.length) return true
+
+  return sourceFunctions.some((fn) => clinicalFunctions.includes(fn) || clinicalText.includes(fn))
 }
 
 function inferWeight(marker: SourceLocalizationMarker, rule: EvidenceRule | undefined, convergent: boolean): EvidenceWeight {
