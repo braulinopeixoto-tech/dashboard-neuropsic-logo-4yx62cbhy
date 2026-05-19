@@ -12,6 +12,14 @@ export type NetworkState = NetworkIntegration | 'uncertain'
 export type Organization = 'coherent' | 'diffuse' | 'rigid' | 'noisy'
 export type OrganizationImpact = Organization | 'uncertain'
 export type RiskLevel = 'low' | 'moderate' | 'high'
+export type CoordinateSystem = 'MNI' | 'Talairach'
+
+export type BrainCoordinate = {
+  system: CoordinateSystem
+  x: number
+  y: number
+  z: number
+}
 
 export type EEGLocation10_20 =
   | 'Fp1'
@@ -73,13 +81,8 @@ export type QuickReportInput = {
     interpretation?: string
   }
   sourceLocalization?: {
-    method?: 'sLORETA' | 'eLORETA' | 'other'
-    coordinates?: {
-      system: 'MNI' | 'Talairach'
-      x: number
-      y: number
-      z: number
-    }[]
+    method?: 'sLORETA' | 'eLORETA' | 'LORETA' | 'other'
+    coordinates?: BrainCoordinate[]
     regions?: string[]
     brodmannAreas?: string[]
   }
@@ -127,6 +130,22 @@ export type QEEGStructuredMarker = {
   limitations: string[]
 }
 
+export type SourceLocalizationMarker = {
+  method?: 'sLORETA' | 'eLORETA' | 'LORETA' | 'other'
+  coordinate?: BrainCoordinate
+  region?: string
+  brodmannArea?: string
+  hemisphere?: 'left' | 'right' | 'midline' | 'bilateral' | 'uncertain'
+  probableNetwork?: string[]
+  probableFunction?: string[]
+  rdocDomain?: string[]
+  energyImpact?: BrainEnergyImpact
+  organizationImpact?: OrganizationImpact
+  evidence: string[]
+  confidence: number
+  limitations: string[]
+}
+
 export type RDoCMapping = {
   domain: string
   construct?: string
@@ -155,6 +174,7 @@ export type DomainMapping = {
   networkMappings?: NetworkMapping[]
   functionalMappings?: FunctionalMapping[]
   qeegStructuredMarkers?: QEEGStructuredMarker[]
+  sourceLocalizationMarkers?: SourceLocalizationMarker[]
 }
 
 export type FunctionalHypothesis = {
@@ -194,6 +214,7 @@ export type NeurofunctionalContext = {
   signals: ClinicalSignal[]
   qeegMarkers: QEEGMarker[]
   qeegStructuredMarkers: QEEGStructuredMarker[]
+  sourceLocalizationMarkers: SourceLocalizationMarker[]
   rdocMappings: RDoCMapping[]
   networkMappings: NetworkMapping[]
   functionalMappings: FunctionalMapping[]
