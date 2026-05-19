@@ -234,7 +234,7 @@ export function renderReport(input: NormalizedQuickReportInput, output: Omit<Qui
     `Safety Guard aprovado: ${audit.safetyGuardPassed ? 'sim' : 'nao'}`,
     `Achados do Safety Guard: ${audit.safetyFindingsCount}`,
     `Achados criticos do Safety Guard: ${audit.criticalFindingsCount}`,
-    `Termos sanitizados: ${audit.sanitizedTerms.join(', ') || 'nenhum'}`,
+    `Termos sanitizados: ${audit.sanitizedTerms.length}`,
     'Rastreabilidade:',
     list(audit.inferenceTrace),
   ].join('\n')
