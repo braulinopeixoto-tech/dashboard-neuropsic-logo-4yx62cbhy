@@ -231,6 +231,10 @@ export function renderReport(input: NormalizedQuickReportInput, output: Omit<Qui
     `Nivel de confianca: ${Math.round(audit.confidenceLevel * 100)}%`,
     `Campos usados: ${audit.fieldsUsed.join(', ') || 'nenhum'}`,
     `Campos ausentes: ${audit.fieldsMissing.join(', ') || 'nenhum'}`,
+    `Safety Guard aprovado: ${audit.safetyGuardPassed ? 'sim' : 'nao'}`,
+    `Achados do Safety Guard: ${audit.safetyFindingsCount}`,
+    `Achados criticos do Safety Guard: ${audit.criticalFindingsCount}`,
+    `Termos sanitizados: ${audit.sanitizedTerms.join(', ') || 'nenhum'}`,
     'Rastreabilidade:',
     list(audit.inferenceTrace),
   ].join('\n')
