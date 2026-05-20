@@ -8,7 +8,7 @@ export function generateMetaAnalyticEvidence(context: any): any[] {
       finding: 'Achados sugestivos de padrão neurofuncional clínico',
       level: 'A- (Forte)',
       source: 'Base de Dados Neurofuncional Interna',
-      effectSize: 0.8
-    }
+      effectSize: 0.8,
+    },
   ]
 }

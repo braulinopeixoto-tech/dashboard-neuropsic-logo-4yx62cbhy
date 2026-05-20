@@ -38,7 +38,8 @@ function numberedTitle(index: number, title: string): string {
 }
 
 export function renderMetaAnalyticEvidence(evidence?: any[]): string {
-  if (!evidence || !Array.isArray(evidence) || !evidence.length) return 'Nenhuma evidencia meta-analitica reportada.'
+  if (!evidence || !Array.isArray(evidence) || !evidence.length)
+    return 'Nenhuma evidencia meta-analitica reportada.'
 
   return evidence
     .filter(Boolean)
