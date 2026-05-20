@@ -9,6 +9,7 @@ import {
   mapSignalsToNetworks,
   mapSourceLocalization,
 } from './maps'
+import { renderProfiledReport, type ProfileRenderContext } from './profiles'
 import { renderReport } from './renderers/markdown-renderer'
 import { runReportSafetyGuard } from './safety'
 import { calculateClinicalConfidenceScore } from './scoring'
@@ -24,6 +25,7 @@ import type {
   QEEGMarker,
   QEEGStructuredMarker,
   QuickReportInput,
+  QuickReportOptions,
   QuickReportOutput,
   SafetyGuardResult,
   SourceLocalizationMarker,
@@ -257,7 +259,8 @@ export function calculateConfidence(input: NormalizedQuickReportInput): number {
   return Math.min(0.95, Math.max(0.15, availableSignals / 8))
 }
 
-export function generateQuickReport(input: QuickReportInput): QuickReportOutput {
+export function generateQuickReport(input: QuickReportInput, options: QuickReportOptions = {}): QuickReportOutput {
+  const profile = options.profile || 'clinical'
   const normalized = normalizeInput(input)
   const clinicalSignals = extractClinicalSignals(normalized)
   const qeegMarkers = extractQeegMarkers(normalized)
@@ -292,6 +295,7 @@ export function generateQuickReport(input: QuickReportInput): QuickReportOutput 
     'Achados de localizacao de fonte convertidos em marcadores estruturados por regiao/Brodmann explicitos, sem inferir anatomia por coordenada isolada sem atlas.',
     'Evidencia meta-analitica offline gerada por InternalMap, sem chamada externa e sem funcao diagnostica.',
     'Grau de convergencia clinica calculado como consistencia dimensional multimodal, sem finalidade diagnostica automatica.',
+    `Perfil de renderizacao aplicado: ${profile}.`,
     'Achados mapeados por modulos dedicados de RDoC, redes funcionais e funcoes neuropsicologicas.',
     'Estado neurofuncional modulado por convergencia clinica, marcadores qEEG e localizacao de fonte.',
     'Risco funcional e intervencao por fases calculados por mapas clinicos separados.',
@@ -305,6 +309,7 @@ export function generateQuickReport(input: QuickReportInput): QuickReportOutput 
   })
 
   const baseOutputWithoutMarkdown: Omit<QuickReportOutput, 'reportMarkdown'> = {
+    profile,
     structuredFindings: {
       nqlBlocks: {
         PatientContext: [normalized.patient],
@@ -337,7 +342,9 @@ export function generateQuickReport(input: QuickReportInput): QuickReportOutput 
     auditTrace: initialAuditTrace,
   }
 
-  const firstSafetyGuard = runReportSafetyGuard(renderReport(normalized, baseOutputWithoutMarkdown), scoringContext)
+  const clinicalMarkdown = renderReport(normalized, baseOutputWithoutMarkdown)
+  const baseProfileContext: ProfileRenderContext = { ...scoringContext, output: baseOutputWithoutMarkdown, clinicalMarkdown }
+  const firstSafetyGuard = runReportSafetyGuard(renderProfiledReport(baseProfileContext, { profile }), scoringContext)
   const finalAuditTrace = generateAuditTrace({
     input: normalized,
     confidenceLevel,
@@ -361,7 +368,9 @@ export function generateQuickReport(input: QuickReportInput): QuickReportOutput 
     auditTrace: finalAuditTrace,
   }
 
-  const finalSafetyGuard = runReportSafetyGuard(renderReport(normalized, finalOutputWithoutMarkdown), scoringContext)
+  const finalClinicalMarkdown = renderReport(normalized, finalOutputWithoutMarkdown)
+  const finalProfileContext: ProfileRenderContext = { ...scoringContext, output: finalOutputWithoutMarkdown, clinicalMarkdown: finalClinicalMarkdown }
+  const finalSafetyGuard = runReportSafetyGuard(renderProfiledReport(finalProfileContext, { profile }), scoringContext)
 
   return {
     ...finalOutputWithoutMarkdown,
