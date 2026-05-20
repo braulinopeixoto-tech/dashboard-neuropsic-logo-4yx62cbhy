@@ -24,6 +24,14 @@ const COORDINATE_ATLAS_LIMITATION =
 
 const ANATOMICAL_RULES: AnatomicalRule[] = [
   {
+    keys: ['area de broca', 'broca', 'cortex frontal inferior esquerdo', 'frontal inferior esquerdo'],
+    brodmannAreas: ['BA44', 'BA45'],
+    probableNetwork: ['Language Network', 'Auditory Network', 'Social Processes Network'],
+    probableFunction: ['linguagem expressiva', 'organizacao verbal', 'comunicacao social'],
+    rdocDomain: ['Cognitive Systems', 'Social Processes'],
+    organizationImpact: 'noisy',
+  },
+  {
     keys: ['pre-frontal dorsolateral', 'prefrontal dorsolateral', 'dorsolateral', 'dlpfc'],
     brodmannAreas: ['BA9', 'BA46'],
     probableNetwork: ['Central Executive Network', 'Frontoparietal Control Network'],
@@ -103,7 +111,11 @@ function normalizeBrodmann(value?: string): string | undefined {
   return match ? match[0].replace(/\s+/g, '') : value.trim()
 }
 
-function inferHemisphere(coordinate?: BrainCoordinate): SourceLocalizationMarker['hemisphere'] {
+function inferHemisphere(coordinate?: BrainCoordinate, region?: string): SourceLocalizationMarker['hemisphere'] {
+  const normalizedRegion = normalizeText(region)
+  if (normalizedRegion.includes('bilateral')) return 'bilateral'
+  if (normalizedRegion.includes('esquerdo') || normalizedRegion.includes('left')) return 'left'
+  if (normalizedRegion.includes('direito') || normalizedRegion.includes('right')) return 'right'
   if (!coordinate) return 'uncertain'
   if (coordinate.x < -2) return 'left'
   if (coordinate.x > 2) return 'right'
@@ -155,7 +167,7 @@ function buildMarker(params: {
     coordinate: params.coordinate,
     region: params.region,
     brodmannArea,
-    hemisphere: inferHemisphere(params.coordinate),
+    hemisphere: inferHemisphere(params.coordinate, params.region),
     probableNetwork: rule?.probableNetwork,
     probableFunction: rule?.probableFunction,
     rdocDomain: rule?.rdocDomain,
