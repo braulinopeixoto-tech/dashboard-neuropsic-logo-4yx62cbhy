@@ -188,4 +188,36 @@ export function renderReport(
     list(output.interventionPlan.phase1),
     '',
     '### Fase 2: Integracao de rede',
-    list(output.interventionPlan.p
+    list(output.interventionPlan.phase2),
+    '',
+    '### Fase 3: Especializacao funcional',
+    list(output.interventionPlan.phase3),
+    '',
+    numberedTitle(13, 'Encaminhamentos'),
+    list(
+      audit.riskAlerts.length
+        ? [
+            'Avaliacao medica/neurologica complementar quando clinicamente indicado.',
+            'Seguimento neuropsicologico para refinamento das hipoteses.',
+          ]
+        : ['Seguimento clinico conforme evolucao e necessidade funcional.'],
+    ),
+    '',
+    numberedTitle(14, 'Limitacoes do relatorio'),
+    list(audit.limitations),
+    '',
+    numberedTitle(15, 'Trilha de auditoria'),
+    `Hash do input: ${audit.inputHash}`,
+    `Gerado em: ${audit.generatedAt}`,
+    `Versao do motor: ${audit.engineVersion}`,
+    `Nivel de confianca: ${Math.round(audit.confidenceLevel * 100)}%`,
+    `Campos usados: ${audit.fieldsUsed.join(', ') || 'nenhum'}`,
+    `Campos ausentes: ${audit.fieldsMissing.join(', ') || 'nenhum'}`,
+    `Safety Guard aprovado: ${audit.safetyGuardPassed ? 'sim' : 'nao'}`,
+    `Achados do Safety Guard: ${audit.safetyFindingsCount}`,
+    `Achados criticos do Safety Guard: ${audit.criticalFindingsCount}`,
+    `Termos sanitizados: ${audit.sanitizedTerms.length}`,
+    'Rastreabilidade:',
+    list(audit.inferenceTrace),
+  ].join('\n')
+}
