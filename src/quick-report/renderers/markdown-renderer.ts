@@ -37,6 +37,40 @@ function numberedTitle(index: number, title: string): string {
   return `## ${index}. ${title}`
 }
 
+function renderMetaAnalyticEvidence(evidence?: any[]): string {
+  if (!evidence?.length) return 'Nenhuma evidencia meta-analitica reportada.'
+
+  return evidence
+    .map((item) => {
+      const finding = item.finding || item.domain || item.description || 'Achado'
+      const level = item.level || item.evidenceLevel || 'N/A'
+      const source = item.source || item.reference || 'Literatura'
+      const effect = item.effectSize ? ` (Tamanho do efeito: ${item.effectSize})` : ''
+      return `- **${finding}**: ${source} [Nivel de Evidencia: ${level}]${effect}`
+    })
+    .join('\n')
+}
+
+function renderClinicalConfidence(score?: any): string {
+  if (!score) return 'Pontuacao nao disponivel.'
+
+  const total = score.totalScore ?? score.score ?? score.total ?? score
+  const percentage =
+    typeof total === 'number' ? Math.round(total * 100) : typeof total === 'string' ? total : 0
+
+  let details = ''
+  if (score.dimensions && typeof score.dimensions === 'object') {
+    details = Object.entries(score.dimensions)
+      .map(
+        ([key, value]) =>
+          `  - ${key}: ${typeof value === 'number' ? Math.round(value * 100) : value}%`,
+      )
+      .join('\n')
+  }
+
+  return `Confianca Geral: **${percentage}%**${details ? `\n\nDimensões:\n${details}` : ''}`
+}
+
 function renderQeegMarkers(markers?: QEEGStructuredMarker[]): string {
   if (!markers?.length) return 'Nao informado.'
 
