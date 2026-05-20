@@ -40,6 +40,7 @@ import {
 import { toast } from 'sonner'
 import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
+import { extractFieldErrors, getErrorMessage } from '@/lib/pocketbase/errors'
 import { Skeleton } from '@/components/ui/skeleton'
 import { generateQuickReport } from '@/quick-report/engine'
 import type { QuickReportOutput } from '@/quick-report/types'
@@ -154,7 +155,8 @@ export default function QuickReport() {
       await loadData(true)
     } catch (err) {
       console.error(err)
-      toast.error('Não foi possível criar o Quick Report. Verifique as permissões da collection.')
+      const errorMsg = getErrorMessage(err)
+      toast.error(`Erro ao salvar relatório: ${errorMsg}`)
     } finally {
       setSaving(false)
     }

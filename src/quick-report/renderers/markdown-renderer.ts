@@ -38,9 +38,10 @@ function numberedTitle(index: number, title: string): string {
 }
 
 export function renderMetaAnalyticEvidence(evidence?: any[]): string {
-  if (!evidence?.length) return 'Nenhuma evidencia meta-analitica reportada.'
+  if (!evidence || !Array.isArray(evidence) || !evidence.length) return 'Nenhuma evidencia meta-analitica reportada.'
 
   return evidence
+    .filter(Boolean)
     .map((item) => {
       const finding = item.finding || item.domain || item.description || 'Achado'
       const level = item.level || item.evidenceLevel || 'N/A'
