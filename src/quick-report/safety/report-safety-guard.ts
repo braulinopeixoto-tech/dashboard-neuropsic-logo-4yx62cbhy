@@ -1,4 +1,9 @@
-import type { NeurofunctionalContext, SafetyFinding, SafetyGuardResult, SafetySeverity } from '../types'
+import type {
+  NeurofunctionalContext,
+  SafetyFinding,
+  SafetyGuardResult,
+  SafetySeverity,
+} from '../types'
 
 type ReplacementRule = {
   code: string
@@ -63,7 +68,8 @@ const REPLACEMENT_RULES: ReplacementRule[] = [
     unsafeTerm: 'lesao cerebral',
     replacement: 'alteracao funcional sugerida',
     severity: 'critical',
-    message: 'Afirmacao estrutural indevida foi detectada sem imagem estrutural informada e substituida.',
+    message:
+      'Afirmacao estrutural indevida foi detectada sem imagem estrutural informada e substituida.',
     suggestion: 'Usar alteracao funcional sugerida quando houver apenas qEEG/source localization.',
     requiresFunctionalEvidence: true,
   },
@@ -138,7 +144,10 @@ function hasFunctionalEvidenceOnly(context: NeurofunctionalContext): boolean {
 
 function hasMedicalRisk(context: NeurofunctionalContext): boolean {
   const text = context.input.allFindings.join(' ').toLowerCase()
-  return context.riskAssessment?.level === 'high' || MEDICAL_RISK_TERMS.some((term) => text.includes(term))
+  return (
+    context.riskAssessment?.level === 'high' ||
+    MEDICAL_RISK_TERMS.some((term) => text.includes(term))
+  )
 }
 
 function hasMedicalReferral(markdown: string): boolean {
@@ -159,7 +168,10 @@ function unique(items: string[]): string[] {
   return [...new Set(items)]
 }
 
-function applyReplacementRules(markdown: string, context: NeurofunctionalContext): {
+function applyReplacementRules(
+  markdown: string,
+  context: NeurofunctionalContext,
+): {
   markdown: string
   findings: SafetyFinding[]
   sanitizedTerms: string[]
@@ -191,7 +203,9 @@ export function renderSafetyGuardSection(result: SafetyGuardResult): string {
   const criticalCount = result.findings.filter((finding) => finding.severity === 'critical').length
   const status = result.passed ? 'aprovado sem alertas criticos' : 'revisado com alertas criticos'
   const alerts = result.findings.length
-    ? result.findings.map((finding) => `- [${finding.severity}] ${finding.code}: ${finding.message}`).join('\n')
+    ? result.findings
+        .map((finding) => `- [${finding.severity}] ${finding.code}: ${finding.message}`)
+        .join('\n')
     : '- Nenhum alerta de seguranca identificado.'
   const suggestions = result.findings
     .filter((finding) => finding.suggestion)
@@ -201,7 +215,9 @@ export function renderSafetyGuardSection(result: SafetyGuardResult): string {
     : '- Nenhum termo corrigido.'
   const limitations = [
     '- A verificacao textual reduz risco de linguagem indevida, mas nao substitui revisao clinica profissional.',
-    ...(criticalCount > 0 ? ['- Alertas criticos indicam necessidade de revisao antes de uso documental sensivel.'] : []),
+    ...(criticalCount > 0
+      ? ['- Alertas criticos indicam necessidade de revisao antes de uso documental sensivel.']
+      : []),
     ...suggestions,
   ].join('\n')
 
@@ -218,7 +234,10 @@ export function renderSafetyGuardSection(result: SafetyGuardResult): string {
   ].join('\n')
 }
 
-export function runReportSafetyGuard(markdown: string, context: NeurofunctionalContext): SafetyGuardResult {
+export function runReportSafetyGuard(
+  markdown: string,
+  context: NeurofunctionalContext,
+): SafetyGuardResult {
   const replacementResult = applyReplacementRules(markdown, context)
   let sanitizedMarkdown = replacementResult.markdown
   const findings = [...replacementResult.findings]
@@ -228,10 +247,13 @@ export function runReportSafetyGuard(markdown: string, context: NeurofunctionalC
     findings.push({
       severity: 'critical',
       code: 'missing-medical-referral',
-      message: 'Risco clinico relevante sem recomendacao explicita de correlacao medica, neurologica ou psiquiatrica.',
+      message:
+        'Risco clinico relevante sem recomendacao explicita de correlacao medica, neurologica ou psiquiatrica.',
       suggestion: 'Adicionar encaminhamento medico/neurologico ou psiquiatrico quando aplicavel.',
     })
-    limitationsAdded.push('Risco clinico relevante exige correlacao medica, neurologica ou psiquiatrica quando aplicavel.')
+    limitationsAdded.push(
+      'Risco clinico relevante exige correlacao medica, neurologica ou psiquiatrica quando aplicavel.',
+    )
     sanitizedMarkdown = [
       sanitizedMarkdown,
       '',
@@ -249,6 +271,8 @@ export function runReportSafetyGuard(markdown: string, context: NeurofunctionalC
 
   return {
     ...resultWithoutSection,
-    sanitizedMarkdown: [sanitizedMarkdown, '', renderSafetyGuardSection(resultWithoutSection)].join('\n'),
+    sanitizedMarkdown: [sanitizedMarkdown, '', renderSafetyGuardSection(resultWithoutSection)].join(
+      '\n',
+    ),
   }
 }

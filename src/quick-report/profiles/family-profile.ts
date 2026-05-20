@@ -1,4 +1,10 @@
-import { getOutput, list, networkLabel, stateLabel, type ProfileRenderContext } from './profile-types'
+import {
+  getOutput,
+  list,
+  networkLabel,
+  stateLabel,
+  type ProfileRenderContext,
+} from './profile-types'
 
 export function renderFamilyProfile(context: ProfileRenderContext): string {
   const output = getOutput(context)

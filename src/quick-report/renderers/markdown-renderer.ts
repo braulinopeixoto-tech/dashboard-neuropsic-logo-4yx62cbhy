@@ -67,7 +67,8 @@ export function renderReport(
   const state = output.neurofunctionalState
   const audit = output.auditTrace
   const qeegStructuredMarkers = output.structuredFindings.domainMapping.qeegStructuredMarkers
-  const sourceLocalizationMarkers = output.structuredFindings.domainMapping.sourceLocalizationMarkers
+  const sourceLocalizationMarkers =
+    output.structuredFindings.domainMapping.sourceLocalizationMarkers
   const metaAnalyticEvidence = output.structuredFindings.domainMapping.metaAnalyticEvidence
   const clinicalConfidenceScore = output.clinicalConfidenceScore
 

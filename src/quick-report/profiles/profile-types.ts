@@ -38,7 +38,8 @@ export function stateLabel(value: string): string {
 export function networkLabel(value: string): string {
   const labels: Record<string, string> = {
     'Central Executive Network': 'rede relacionada a organizacao mental e atencao',
-    'Default Mode Network': 'rede relacionada a memoria interna, autorreferencia e integracao pessoal',
+    'Default Mode Network':
+      'rede relacionada a memoria interna, autorreferencia e integracao pessoal',
     'Salience Network': 'rede relacionada a percepcao de importancia, alerta e regulacao emocional',
     'Sensorimotor Network': 'rede relacionada a movimento, corpo e integracao sensorial',
     'Dorsal Attention Network': 'rede relacionada a atencao direcionada',
@@ -52,7 +53,9 @@ export function networkLabel(value: string): string {
   return labels[value] || value
 }
 
-export function getOutput(context: ProfileRenderContext): Omit<QuickReportOutput, 'reportMarkdown'> {
+export function getOutput(
+  context: ProfileRenderContext,
+): Omit<QuickReportOutput, 'reportMarkdown'> {
   if (!context.output) throw new Error('Profile rendering requires QuickReport output context.')
   return context.output
 }

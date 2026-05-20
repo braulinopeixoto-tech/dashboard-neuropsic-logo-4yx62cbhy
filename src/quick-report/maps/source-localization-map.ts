@@ -1,8 +1,4 @@
-import type {
-  BrainCoordinate,
-  QuickReportInput,
-  SourceLocalizationMarker,
-} from '../types'
+import type { BrainCoordinate, QuickReportInput, SourceLocalizationMarker } from '../types'
 
 type SourceLocalizationInput = QuickReportInput['sourceLocalization']
 
@@ -27,7 +23,12 @@ const ANATOMICAL_RULES: AnatomicalRule[] = [
     keys: ['pre-frontal dorsolateral', 'prefrontal dorsolateral', 'dorsolateral', 'dlpfc'],
     brodmannAreas: ['BA9', 'BA46'],
     probableNetwork: ['Central Executive Network', 'Frontoparietal Control Network'],
-    probableFunction: ['memoria operacional', 'planejamento', 'controle inibitorio', 'flexibilidade cognitiva'],
+    probableFunction: [
+      'memoria operacional',
+      'planejamento',
+      'controle inibitorio',
+      'flexibilidade cognitiva',
+    ],
     rdocDomain: ['Cognitive Systems'],
     organizationImpact: 'rigid',
   },
@@ -35,7 +36,12 @@ const ANATOMICAL_RULES: AnatomicalRule[] = [
     keys: ['cingulado anterior', 'anterior cingulate', 'acc'],
     brodmannAreas: ['BA24', 'BA32'],
     probableNetwork: ['Salience Network', 'Cingulo-opercular Network'],
-    probableFunction: ['monitoramento de erro', 'motivacao', 'controle emocional', 'selecao de resposta'],
+    probableFunction: [
+      'monitoramento de erro',
+      'motivacao',
+      'controle emocional',
+      'selecao de resposta',
+    ],
     rdocDomain: ['Cognitive Systems', 'Arousal / Regulatory Systems', 'Negative Valence Systems'],
     energyImpact: 'unstable',
     organizationImpact: 'noisy',
@@ -44,7 +50,12 @@ const ANATOMICAL_RULES: AnatomicalRule[] = [
     keys: ['insula', 'insular'],
     brodmannAreas: [],
     probableNetwork: ['Salience Network'],
-    probableFunction: ['interocepcao', 'saliencia emocional', 'percepcao corporal', 'integracao autonomica'],
+    probableFunction: [
+      'interocepcao',
+      'saliencia emocional',
+      'percepcao corporal',
+      'integracao autonomica',
+    ],
     rdocDomain: ['Arousal / Regulatory Systems', 'Negative Valence Systems'],
     energyImpact: 'unstable',
   },
@@ -52,7 +63,12 @@ const ANATOMICAL_RULES: AnatomicalRule[] = [
     keys: ['precuneus', 'pcc', 'cingulado posterior', 'posterior cingulate'],
     brodmannAreas: ['BA7', 'BA31'],
     probableNetwork: ['Default Mode Network'],
-    probableFunction: ['autorreferencia', 'memoria autobiografica', 'integracao interna', 'consciencia narrativa'],
+    probableFunction: [
+      'autorreferencia',
+      'memoria autobiografica',
+      'integracao interna',
+      'consciencia narrativa',
+    ],
     rdocDomain: ['Social Processes', 'Cognitive Systems'],
   },
   {
@@ -112,7 +128,9 @@ function inferHemisphere(coordinate?: BrainCoordinate): SourceLocalizationMarker
 
 function coordinateEvidence(coordinate?: BrainCoordinate): string[] {
   if (!coordinate) return []
-  return [`Coordenada ${coordinate.system}: x=${coordinate.x}, y=${coordinate.y}, z=${coordinate.z}`]
+  return [
+    `Coordenada ${coordinate.system}: x=${coordinate.x}, y=${coordinate.y}, z=${coordinate.z}`,
+  ]
 }
 
 function findRule(region?: string, brodmannArea?: string): AnatomicalRule | undefined {
@@ -120,7 +138,8 @@ function findRule(region?: string, brodmannArea?: string): AnatomicalRule | unde
   const normalizedBA = normalizeBrodmann(brodmannArea)
 
   return ANATOMICAL_RULES.find((rule) => {
-    const regionMatch = normalizedRegion && rule.keys.some((key) => normalizedRegion.includes(normalizeText(key)))
+    const regionMatch =
+      normalizedRegion && rule.keys.some((key) => normalizedRegion.includes(normalizeText(key)))
     const baMatch = normalizedBA && rule.brodmannAreas.includes(normalizedBA)
     return regionMatch || baMatch
   })
@@ -147,7 +166,9 @@ function buildMarker(params: {
   }
 
   if (!rule) {
-    limitations.push('Regiao ou area de Brodmann sem regra textual inicial; inferencia de rede e funcao limitada.')
+    limitations.push(
+      'Regiao ou area de Brodmann sem regra textual inicial; inferencia de rede e funcao limitada.',
+    )
   }
 
   return {
@@ -162,12 +183,17 @@ function buildMarker(params: {
     energyImpact: rule?.energyImpact || 'uncertain',
     organizationImpact: rule?.organizationImpact || 'uncertain',
     evidence,
-    confidence: Math.min(0.95, 0.25 + (params.region ? 0.25 : 0) + (brodmannArea ? 0.25 : 0) + (rule ? 0.2 : 0)),
+    confidence: Math.min(
+      0.95,
+      0.25 + (params.region ? 0.25 : 0) + (brodmannArea ? 0.25 : 0) + (rule ? 0.2 : 0),
+    ),
     limitations,
   }
 }
 
-export function mapSourceLocalization(sourceLocalization?: SourceLocalizationInput): SourceLocalizationMarker[] {
+export function mapSourceLocalization(
+  sourceLocalization?: SourceLocalizationInput,
+): SourceLocalizationMarker[] {
   if (!sourceLocalization) return []
 
   const regions = sourceLocalization.regions || []

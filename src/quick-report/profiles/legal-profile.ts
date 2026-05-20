@@ -17,7 +17,11 @@ export function renderLegalProfile(context: ProfileRenderContext): string {
     `Campos ausentes: ${audit.fieldsMissing.join(', ') || 'nenhum'}`,
     '',
     '## Achados Funcionais Relevantes',
-    list(output.structuredFindings.functionalHypotheses.map((item) => `${item.finding} | ${item.interpretation}`)),
+    list(
+      output.structuredFindings.functionalHypotheses.map(
+        (item) => `${item.finding} | ${item.interpretation}`,
+      ),
+    ),
     '',
     '## Impacto Funcional e Convergencia',
     output.dominantHypothesis,
@@ -38,7 +42,10 @@ export function renderLegalProfile(context: ProfileRenderContext): string {
     '## Segurança Clínica',
     `Safety Guard aprovado: ${audit.safetyGuardPassed ? 'sim' : 'nao'}`,
     `Achados criticos: ${audit.criticalFindingsCount}`,
-    list(safety.findings.map((finding) => `[${finding.severity}] ${finding.code}: ${finding.message}`), 'Nenhum achado de seguranca registrado.'),
+    list(
+      safety.findings.map((finding) => `[${finding.severity}] ${finding.code}: ${finding.message}`),
+      'Nenhum achado de seguranca registrado.',
+    ),
     '',
     '## AuditTrace',
     `Hash do input: ${audit.inputHash}`,

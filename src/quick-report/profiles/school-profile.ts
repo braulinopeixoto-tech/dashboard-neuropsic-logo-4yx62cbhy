@@ -14,7 +14,9 @@ const SCHOOL_FUNCTIONS = [
 
 export function renderSchoolProfile(context: ProfileRenderContext): string {
   const output = getOutput(context)
-  const functions = output.structuredFindings.domainMapping.cognitiveFunctions.filter((item) => SCHOOL_FUNCTIONS.includes(item))
+  const functions = output.structuredFindings.domainMapping.cognitiveFunctions.filter((item) =>
+    SCHOOL_FUNCTIONS.includes(item),
+  )
 
   return [
     '# Quick Report Escolar',
@@ -25,10 +27,16 @@ export function renderSchoolProfile(context: ProfileRenderContext): string {
     `Escola: ${context.input.patient.school || 'Nao informada'}`,
     '',
     '## Foco Funcional e Pedagogico',
-    list(context.input.schoolHistory?.length ? context.input.schoolHistory : context.input.complaint),
+    list(
+      context.input.schoolHistory?.length ? context.input.schoolHistory : context.input.complaint,
+    ),
     '',
     '## Funcoes que Podem Impactar a Escola',
-    list(functions.length ? functions : output.structuredFindings.domainMapping.cognitiveFunctions.slice(0, 6)),
+    list(
+      functions.length
+        ? functions
+        : output.structuredFindings.domainMapping.cognitiveFunctions.slice(0, 6),
+    ),
     '',
     '## Manifestacoes Possiveis em Sala',
     list(output.structuredFindings.functionalHypotheses.slice(0, 6).map((item) => item.finding)),

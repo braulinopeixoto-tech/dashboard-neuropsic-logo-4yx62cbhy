@@ -33,7 +33,11 @@ function hasClosedDiagnosticLanguage(context: NeurofunctionalContext): boolean {
 }
 
 function hasClearClinicalSignals(context: NeurofunctionalContext): boolean {
-  return context.signals.filter((signal) => signal.source !== 'qeeg' && signal.source !== 'sourceLocalization').length >= 2
+  return (
+    context.signals.filter(
+      (signal) => signal.source !== 'qeeg' && signal.source !== 'sourceLocalization',
+    ).length >= 2
+  )
 }
 
 function hasDevelopmentalHistory(context: NeurofunctionalContext): boolean {
@@ -45,7 +49,9 @@ function hasPsychometrics(context: NeurofunctionalContext): boolean {
 }
 
 function hasModerateQeeg(context: NeurofunctionalContext): boolean {
-  return context.qeegStructuredMarkers.some((marker) => marker.confidence >= 0.55 && marker.band !== 'unknown')
+  return context.qeegStructuredMarkers.some(
+    (marker) => marker.confidence >= 0.55 && marker.band !== 'unknown',
+  )
 }
 
 function hasQeegWithoutClinicalCorrelation(context: NeurofunctionalContext): boolean {
@@ -54,7 +60,9 @@ function hasQeegWithoutClinicalCorrelation(context: NeurofunctionalContext): boo
 
 function hasMappedSource(context: NeurofunctionalContext): boolean {
   return context.sourceLocalizationMarkers.some(
-    (marker) => Boolean(marker.region || marker.brodmannArea) && Boolean(marker.probableNetwork?.length || marker.probableFunction?.length),
+    (marker) =>
+      Boolean(marker.region || marker.brodmannArea) &&
+      Boolean(marker.probableNetwork?.length || marker.probableFunction?.length),
   )
 }
 
@@ -63,11 +71,17 @@ function hasSourceWithoutClinicalCorrelation(context: NeurofunctionalContext): b
 }
 
 function hasCoordinateOnlySource(context: NeurofunctionalContext): boolean {
-  return context.sourceLocalizationMarkers.some((marker) => Boolean(marker.coordinate) && !marker.region && !marker.brodmannArea)
+  return context.sourceLocalizationMarkers.some(
+    (marker) => Boolean(marker.coordinate) && !marker.region && !marker.brodmannArea,
+  )
 }
 
 function hasModerateMetaEvidence(context: NeurofunctionalContext): boolean {
-  return Boolean(context.metaAnalyticEvidence?.some((item) => item.evidenceWeight === 'moderate' || item.evidenceWeight === 'high'))
+  return Boolean(
+    context.metaAnalyticEvidence?.some(
+      (item) => item.evidenceWeight === 'moderate' || item.evidenceWeight === 'high',
+    ),
+  )
 }
 
 function hasRiskClassified(context: NeurofunctionalContext): boolean {
@@ -97,11 +111,15 @@ function hasMedicalReferralForHighRisk(context: NeurofunctionalContext): boolean
 function hasCoherentIntervention(context: NeurofunctionalContext): boolean {
   if (!context.interventionPlan) return false
   const phase1 = context.interventionPlan.phase1.join(' ').toLowerCase()
-  const hasPhases = context.interventionPlan.phase1.length > 0 && context.interventionPlan.phase2.length > 0 && context.interventionPlan.phase3.length > 0
+  const hasPhases =
+    context.interventionPlan.phase1.length > 0 &&
+    context.interventionPlan.phase2.length > 0 &&
+    context.interventionPlan.phase3.length > 0
   if (!hasPhases) return false
 
   const requiresStabilization =
-    context.neurofunctionalState.brainEnergy === 'hypoactive' || context.neurofunctionalState.brainEnergy === 'unstable'
+    context.neurofunctionalState.brainEnergy === 'hypoactive' ||
+    context.neurofunctionalState.brainEnergy === 'unstable'
 
   if (!requiresStabilization) return true
   return phase1.includes('evitar recomendacao precoce') || phase1.includes('base regulatoria')
@@ -117,7 +135,9 @@ function missingData(context: NeurofunctionalContext): string[] {
   return missing
 }
 
-export function calculateClinicalConfidenceScore(context: NeurofunctionalContext): ClinicalConfidenceScore {
+export function calculateClinicalConfidenceScore(
+  context: NeurofunctionalContext,
+): ClinicalConfidenceScore {
   let score = 0
   const convergenceDrivers: string[] = []
   const divergenceDrivers: string[] = []

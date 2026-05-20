@@ -125,7 +125,8 @@ export function generateAuditTrace(params: {
   const limitations = buildLimitations(params.input)
   const riskAlerts = buildRiskAlerts(params.input, params.riskLevel)
   const safetyGuard = params.safetyGuard
-  const criticalFindingsCount = safetyGuard?.findings.filter((finding) => finding.severity === 'critical').length || 0
+  const criticalFindingsCount =
+    safetyGuard?.findings.filter((finding) => finding.severity === 'critical').length || 0
 
   return {
     inputHash: hashInput(params.input),

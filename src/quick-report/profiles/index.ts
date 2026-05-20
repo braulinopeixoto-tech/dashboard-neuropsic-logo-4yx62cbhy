@@ -13,7 +13,10 @@ export * from './legal-profile'
 export * from './school-profile'
 export * from './evolution-profile'
 
-export function renderProfiledReport(context: NeurofunctionalContext, options: ProfileRenderOptions): string {
+export function renderProfiledReport(
+  context: NeurofunctionalContext,
+  options: ProfileRenderOptions,
+): string {
   const profileContext = context as ProfileRenderContext
 
   switch (options.profile) {

@@ -195,7 +195,10 @@ export function extractQeegMarkers(input: NormalizedQuickReportInput): QEEGMarke
 }
 
 export function mapToDomains(
-  context: Pick<NeurofunctionalContext, 'signals' | 'qeegMarkers' | 'qeegStructuredMarkers' | 'sourceLocalizationMarkers'>,
+  context: Pick<
+    NeurofunctionalContext,
+    'signals' | 'qeegMarkers' | 'qeegStructuredMarkers' | 'sourceLocalizationMarkers'
+  >,
 ): DomainMapping {
   const rdocMappings = mapClinicalSignalsToRDoC(context.signals)
   const networkMappings = mapSignalsToNetworks(context.signals, context.qeegMarkers)
@@ -264,7 +267,8 @@ export function classifyNeurofunctionalState(
     (marker) => marker.organizationImpact !== 'uncertain',
   )?.organizationImpact
   if (qEEGOrganization && qEEGOrganization !== 'uncertain') organization = qEEGOrganization
-  else if (sourceOrganization && sourceOrganization !== 'uncertain') organization = sourceOrganization
+  else if (sourceOrganization && sourceOrganization !== 'uncertain')
+    organization = sourceOrganization
 
   return { brainEnergy, networkIntegration, organization }
 }
@@ -332,15 +336,27 @@ export function calculateConfidence(input: NormalizedQuickReportInput): number {
   return Math.min(0.95, Math.max(0.15, availableSignals / 8))
 }
 
-export function generateQuickReport(input: QuickReportInput, options: QuickReportOptions = {}): QuickReportOutput {
+export function generateQuickReport(
+  input: QuickReportInput,
+  options: QuickReportOptions = {},
+): QuickReportOutput {
   const profile = options.profile || 'clinical'
   const normalized = normalizeInput(input)
   const clinicalSignals = extractClinicalSignals(normalized)
   const qeegMarkers = extractQeegMarkers(normalized)
   const qeegStructuredMarkers = mapQEEGMarkers(qeegMarkers)
   const sourceLocalizationMarkers = mapSourceLocalization(normalized.sourceLocalization)
-  const neurofunctionalState = classifyNeurofunctionalState(normalized, qeegStructuredMarkers, sourceLocalizationMarkers)
-  const partialContext = { signals: clinicalSignals, qeegMarkers, qeegStructuredMarkers, sourceLocalizationMarkers }
+  const neurofunctionalState = classifyNeurofunctionalState(
+    normalized,
+    qeegStructuredMarkers,
+    sourceLocalizationMarkers,
+  )
+  const partialContext = {
+    signals: clinicalSignals,
+    qeegMarkers,
+    qeegStructuredMarkers,
+    sourceLocalizationMarkers,
+  }
   const domainMapping = mapToDomains(partialContext)
   const context: NeurofunctionalContext = {
     input: normalized,
@@ -361,10 +377,23 @@ export function generateQuickReport(input: QuickReportInput, options: QuickRepor
   const confidenceLevel = calculateConfidence(normalized)
   const riskAssessment = calculateFunctionalRisk(context)
   const interventionPlan = generateInterventionPhases(context)
-  const scoringContext: NeurofunctionalContext = { ...context, metaAnalyticEvidence, riskAssessment, interventionPlan }
+  const scoringContext: NeurofunctionalContext = {
+    ...context,
+    metaAnalyticEvidence,
+    riskAssessment,
+    interventionPlan,
+  }
   const clinicalConfidenceScore = calculateClinicalConfidenceScore(scoringContext)
-  const enrichedDomainMapping: DomainMapping = { ...domainMapping, metaAnalyticEvidence, clinicalConfidenceScore }
-  const hypotheses = generateHypotheses({ input: normalized, domains: enrichedDomainMapping, state: neurofunctionalState })
+  const enrichedDomainMapping: DomainMapping = {
+    ...domainMapping,
+    metaAnalyticEvidence,
+    clinicalConfidenceScore,
+  }
+  const hypotheses = generateHypotheses({
+    input: normalized,
+    domains: enrichedDomainMapping,
+    state: neurofunctionalState,
+  })
   const confidenceLevel = clinicalConfidenceScore.score / 100
   const inferenceTrace = [
     'Entrada clinica bruta normalizada semanticamente.',
@@ -421,8 +450,15 @@ export function generateQuickReport(input: QuickReportInput, options: QuickRepor
   }
 
   const clinicalMarkdown = renderReport(normalized, baseOutputWithoutMarkdown)
-  const baseProfileContext: ProfileRenderContext = { ...scoringContext, output: baseOutputWithoutMarkdown, clinicalMarkdown }
-  const firstSafetyGuard = runReportSafetyGuard(renderProfiledReport(baseProfileContext, { profile }), scoringContext)
+  const baseProfileContext: ProfileRenderContext = {
+    ...scoringContext,
+    output: baseOutputWithoutMarkdown,
+    clinicalMarkdown,
+  }
+  const firstSafetyGuard = runReportSafetyGuard(
+    renderProfiledReport(baseProfileContext, { profile }),
+    scoringContext,
+  )
   const finalAuditTrace = generateAuditTrace({
     input: normalized,
     confidenceLevel,
@@ -447,8 +483,15 @@ export function generateQuickReport(input: QuickReportInput, options: QuickRepor
   }
 
   const finalClinicalMarkdown = renderReport(normalized, finalOutputWithoutMarkdown)
-  const finalProfileContext: ProfileRenderContext = { ...scoringContext, output: finalOutputWithoutMarkdown, clinicalMarkdown: finalClinicalMarkdown }
-  const finalSafetyGuard = runReportSafetyGuard(renderProfiledReport(finalProfileContext, { profile }), scoringContext)
+  const finalProfileContext: ProfileRenderContext = {
+    ...scoringContext,
+    output: finalOutputWithoutMarkdown,
+    clinicalMarkdown: finalClinicalMarkdown,
+  }
+  const finalSafetyGuard = runReportSafetyGuard(
+    renderProfiledReport(finalProfileContext, { profile }),
+    scoringContext,
+  )
 
   return {
     ...finalOutputWithoutMarkdown,
