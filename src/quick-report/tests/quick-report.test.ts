@@ -1,6 +1,8 @@
 import { generateQuickReport } from '../engine'
 import { mapQEEGMarkers } from '../maps/qeeg-marker-map'
-import type { QuickReportInput } from '../types'
+import { mapSourceLocalization } from '../maps/source-localization-map'
+import { runReportSafetyGuard } from '../safety'
+import type { NeurofunctionalContext, QuickReportInput } from '../types'
 
 function assert(condition: unknown, message: string): void {
   if (!condition) throw new Error(message)
@@ -12,6 +14,85 @@ const baseInput: QuickReportInput = {
   behavioralFindings: ['distratibilidade e impulsividade em contexto escolar'],
   psychometricFindings: ['prejuizo em memoria operacional e controle inibitorio'],
   requestedPurpose: 'clinical_summary',
+}
+
+const dangerousLanguageInput: QuickReportInput = {
+  patient: { name: 'Paciente Seguranca', age: '10 anos' },
+  complaint: [
+    'diagnostico confirmado com promessa de cura e garantia de resultado',
+    'probabilidade diagnostica elevada e espectro do TDAH',
+  ],
+  behavioralFindings: ['tratamento definitivo para normalizar o cerebro'],
+  qeeg: {
+    findings: ['high beta elevado associado a lesao cerebral causada por disfuncao eletrica'],
+    frequencyHz: [34],
+    location10_20: ['F3'],
+    amplitude: ['elevado'],
+  },
+  sourceLocalization: {
+    method: 'sLORETA',
+    regions: ['pre-frontal dorsolateral'],
+    brodmannAreas: ['BA46'],
+  },
+  requestedPurpose: 'clinical_summary',
+}
+
+const fullConvergenceInput: QuickReportInput = {
+  patient: { name: 'Paciente Convergencia', age: '12 anos' },
+  complaint: ['dificuldade persistente de atencao sustentada', 'desorganizacao executiva recorrente'],
+  developmentalHistory: ['historico de atraso em autorregulacao e planejamento funcional'],
+  behavioralFindings: ['impulsividade e baixa tolerancia a frustracao em tarefas escolares'],
+  psychometricFindings: ['prejuizo estruturado em memoria operacional e controle inibitorio'],
+  qeeg: {
+    findings: ['theta aumentado em linha media'],
+    frequencyHz: [6.5],
+    location10_20: ['Cz'],
+    amplitude: ['aumentado'],
+    interpretation: 'lentificacao funcional em linha media',
+  },
+  sourceLocalization: {
+    method: 'sLORETA',
+    regions: ['pre-frontal dorsolateral'],
+    brodmannAreas: ['BA46'],
+  },
+  requestedPurpose: 'clinical_summary',
+}
+
+const clinicalOnlyInput: QuickReportInput = {
+  patient: { name: 'Paciente Clinico', age: '9 anos' },
+  complaint: ['ansiedade situacional recorrente', 'oscilacao de atencao em sala'],
+  behavioralFindings: ['irritabilidade em transicoes de rotina'],
+  requestedPurpose: 'clinical_summary',
+}
+
+const qeegOnlyInput: QuickReportInput = {
+  patient: { name: 'Paciente qEEG Isolado', age: '11 anos' },
+  complaint: [],
+  qeeg: {
+    findings: ['high beta elevado em regioes frontais'],
+    frequencyHz: [34],
+    location10_20: ['F3'],
+    amplitude: ['elevado'],
+  },
+  requestedPurpose: 'clinical_summary',
+}
+
+const sourceOnlyInput: QuickReportInput = {
+  patient: { name: 'Paciente Fonte Isolada', age: '13 anos' },
+  complaint: [],
+  sourceLocalization: {
+    method: 'eLORETA',
+    regions: ['pre-frontal dorsolateral'],
+    brodmannAreas: ['BA46'],
+  },
+  requestedPurpose: 'clinical_summary',
+}
+
+const highRiskNoReferralInput: QuickReportInput = {
+  patient: { name: 'Paciente Cautela', age: '15 anos' },
+  complaint: ['ideacao suicida relatada em entrevista', 'autoagressao recente'],
+  behavioralFindings: ['isolamento e prejuizo escolar grave'],
+  requestedPurpose: 'diagnostic_referral',
 }
 
 const neurologicalRiskInput: QuickReportInput = {
@@ -66,6 +147,61 @@ const highBetaInput: QuickReportInput = {
   requestedPurpose: 'clinical_summary',
 }
 
+const sourceInput: QuickReportInput = {
+  patient: { name: 'Paciente Fonte', age: '14 anos' },
+  complaint: ['dificuldade de planejamento'],
+  sourceLocalization: {
+    method: 'sLORETA',
+    regions: ['pre-frontal dorsolateral'],
+    brodmannAreas: ['BA46'],
+  },
+  requestedPurpose: 'clinical_summary',
+}
+
+const pccSourceInput: QuickReportInput = {
+  patient: { name: 'Paciente PCC', age: '16 anos' },
+  complaint: ['oscilacao de autorreferencia e integracao interna'],
+  sourceLocalization: {
+    method: 'LORETA',
+    regions: ['Precuneus / PCC'],
+    brodmannAreas: ['BA31'],
+  },
+  requestedPurpose: 'clinical_summary',
+}
+
+const coordinateOnlyInput: QuickReportInput = {
+  patient: { name: 'Paciente Coordenada', age: '15 anos' },
+  complaint: ['queixa funcional inespecifica'],
+  sourceLocalization: {
+    method: 'eLORETA',
+    coordinates: [{ system: 'MNI', x: -32, y: 18, z: 42 }],
+  },
+  requestedPurpose: 'clinical_summary',
+}
+
+function outputText(report: ReturnType<typeof generateQuickReport>): string {
+  return JSON.stringify(report).toLowerCase()
+}
+
+function highRiskContextWithoutReferral(): NeurofunctionalContext {
+  return {
+    input: {
+      ...highRiskNoReferralInput,
+      normalizedAt: new Date().toISOString(),
+      allFindings: [...highRiskNoReferralInput.complaint, ...(highRiskNoReferralInput.behavioralFindings || [])],
+    },
+    signals: [],
+    qeegMarkers: [],
+    qeegStructuredMarkers: [],
+    sourceLocalizationMarkers: [],
+    rdocMappings: [],
+    networkMappings: [],
+    functionalMappings: [],
+    riskAssessment: { level: 'high', alerts: ['ideacao suicida'], evidence: ['ideacao suicida'], confidence: 0.85 },
+    neurofunctionalState: { brainEnergy: 'unstable', networkIntegration: 'fragmented', organization: 'noisy' },
+  }
+}
+
 export function runQuickReportSmokeTests(): void {
   const report = generateQuickReport(baseInput)
   assert(report.reportMarkdown.includes('## 15. Trilha de auditoria'), 'Relatorio deve manter as 15 secoes e auditoria.')
@@ -108,4 +244,127 @@ export function runQuickReportSmokeTests(): void {
   const noQeegReport = generateQuickReport(baseInput)
   assert(noQeegReport.reportMarkdown.includes('Nao informado'), 'qEEG ausente nao deve quebrar o relatorio.')
   assert(!noQeegReport.dominantHypothesis.toLowerCase().includes('diagnostico fechado'), 'qEEG nao deve gerar diagnostico fechado.')
+
+  const ba46Markers = mapSourceLocalization({ method: 'sLORETA', brodmannAreas: ['BA46'] })
+  assert(ba46Markers[0].probableNetwork?.includes('Central Executive Network'), 'BA46 deve mapear para rede executiva.')
+
+  const ba32Markers = mapSourceLocalization({ method: 'eLORETA', brodmannAreas: ['BA32'] })
+  assert(ba32Markers[0].probableNetwork?.includes('Salience Network'), 'BA32 deve mapear para Salience Network.')
+  assert(ba32Markers[0].probableNetwork?.includes('Cingulo-opercular Network'), 'BA32 deve mapear para rede cingulo-opercular.')
+
+  const pccMarkers = mapSourceLocalization({ method: 'LORETA', regions: ['Precuneus / PCC'] })
+  assert(pccMarkers[0].probableNetwork?.includes('Default Mode Network'), 'Precuneus/PCC deve mapear para DMN.')
+
+  const coordinateReport = generateQuickReport(coordinateOnlyInput)
+  assert(
+    coordinateReport.structuredFindings.domainMapping.sourceLocalizationMarkers?.[0].limitations.some((item) => item.includes('atlas validado')),
+    'Coordenada sem regiao deve gerar limitacao de atlas.',
+  )
+
+  const sourceReport = generateQuickReport(sourceInput)
+  assert(sourceReport.reportMarkdown.includes('Localizacao de Fonte'), 'Markdown deve mostrar Localizacao de Fonte.')
+  assert(sourceReport.structuredFindings.domainMapping.networks.includes('Central Executive Network'), 'Source deve entrar nas redes do dominio.')
+  assert(sourceReport.structuredFindings.domainMapping.rdocDomains.includes('Cognitive Systems'), 'Source deve entrar em RDoC.')
+
+  const ba46Evidence = sourceReport.structuredFindings.domainMapping.metaAnalyticEvidence?.[0]
+  assert(ba46Evidence?.associatedFunctions.includes('memoria operacional'), 'BA46 deve gerar evidencia para funcoes executivas.')
+  assert(ba46Evidence?.relatedNetworks.includes('Central Executive Network'), 'BA46 deve gerar evidencia para rede executiva.')
+
+  const pccReport = generateQuickReport(pccSourceInput)
+  const pccEvidence = pccReport.structuredFindings.domainMapping.metaAnalyticEvidence?.[0]
+  assert(pccEvidence?.relatedNetworks.includes('Default Mode Network'), 'PCC/Precuneus deve gerar evidencia para DMN.')
+  assert(pccEvidence?.associatedFunctions.includes('autorreferencia'), 'PCC/Precuneus deve gerar evidencia para autorreferencia.')
+
+  const coordinateEvidence = coordinateReport.structuredFindings.domainMapping.metaAnalyticEvidence?.[0]
+  assert(coordinateEvidence?.evidenceWeight === 'uncertain', 'Coordenada isolada deve gerar evidencia incerta.')
+  assert(
+    coordinateEvidence?.limitations.some((item) => item.includes('Coordenada isolada')),
+    'Coordenada isolada deve exigir anotacao anatomica antes de associacao meta-analitica.',
+  )
+
+  const noSourceReport = generateQuickReport(baseInput)
+  assert(noSourceReport.reportMarkdown.includes('Sem achados de localizacao de fonte'), 'Source ausente nao deve quebrar o relatorio.')
+  assert(noSourceReport.reportMarkdown.includes('Sem evidencias meta-analiticas'), 'Evidencia ausente nao deve quebrar o relatorio.')
+  assert(sourceReport.reportMarkdown.includes('Evidencia Meta-Analitica'), 'Markdown deve mostrar Evidencia Meta-Analitica.')
+  assert(!sourceReport.dominantHypothesis.toLowerCase().includes('diagnostico fechado'), 'Source localization isolada nao deve gerar diagnostico fechado.')
+  assert(!sourceReport.reportMarkdown.toLowerCase().includes('diagnostico fechado'), 'Evidencia meta-analitica nao deve gerar diagnostico fechado.')
+
+  const fullConfidenceReport = generateQuickReport(fullConvergenceInput)
+  assert(
+    fullConfidenceReport.clinicalConfidenceScore.tier === 'moderate' || fullConfidenceReport.clinicalConfidenceScore.tier === 'high',
+    'Caso com clinica, psicometria, qEEG, source e evidencia deve gerar tier moderate/high.',
+  )
+  assert(fullConfidenceReport.reportMarkdown.includes('Grau de Convergencia Clinica'), 'Markdown deve mostrar Grau de Convergencia Clinica.')
+  assert(
+    fullConfidenceReport.clinicalConfidenceScore.convergenceDrivers.includes('marcador qEEG estruturado com confianca moderada/alta'),
+    'qEEG estruturado deve aumentar a confianca de convergencia.',
+  )
+  assert(
+    fullConfidenceReport.clinicalConfidenceScore.convergenceDrivers.includes('source localization com regiao/Brodmann e rede/funcao mapeada'),
+    'Source localization mapeada deve aumentar a confianca de convergencia.',
+  )
+
+  const clinicalOnlyReport = generateQuickReport(clinicalOnlyInput)
+  assert(clinicalOnlyReport.clinicalConfidenceScore.tier !== 'high', 'Caso apenas clinico nunca deve gerar tier high.')
+
+  const coordinateOnlyReport = generateQuickReport(coordinateOnlyInput)
+  assert(
+    coordinateOnlyReport.clinicalConfidenceScore.divergenceDrivers.includes('coordenada isolada sem regiao anatomica validada por atlas'),
+    'Coordenada isolada deve reduzir o score.',
+  )
+
+  const qeegOnlyReport = generateQuickReport(qeegOnlyInput)
+  assert(qeegOnlyReport.clinicalConfidenceScore.tier !== 'high', 'qEEG isolado nao deve gerar tier high.')
+  assert(
+    qeegOnlyReport.clinicalConfidenceScore.divergenceDrivers.includes('qEEG presente sem correlacao clinica suficiente'),
+    'qEEG sem clinica deve ser penalizado.',
+  )
+
+  const sourceOnlyReport = generateQuickReport(sourceOnlyInput)
+  assert(sourceOnlyReport.clinicalConfidenceScore.tier !== 'high', 'Source localization isolada nao deve gerar tier high.')
+  assert(
+    sourceOnlyReport.clinicalConfidenceScore.divergenceDrivers.includes('source localization presente sem correlacao clinica suficiente'),
+    'Source sem clinica deve ser penalizada.',
+  )
+
+  const highRiskNoReferralReport = generateQuickReport(highRiskNoReferralInput)
+  assert(highRiskNoReferralReport.riskLevel === 'high', 'Input com autoagressao/ideacao deve gerar risco alto.')
+  assert(
+    highRiskNoReferralReport.clinicalConfidenceScore.cautionFlags.includes('risco alto sem encaminhamento medico/neurologico explicito'),
+    'Risco alto sem encaminhamento deve gerar cautionFlag.',
+  )
+
+  const prohibitedOutputs = [fullConfidenceReport, clinicalOnlyReport, qeegOnlyReport, sourceOnlyReport, highRiskNoReferralReport]
+  prohibitedOutputs.forEach((item) => {
+    const text = outputText(item)
+    assert(!text.includes('probabilidade diagnostica'), 'Output nao deve usar probabilidade diagnostica.')
+    assert(!text.includes('probabilidade diagnóstica'), 'Output nao deve usar probabilidade diagnostica acentuada.')
+  })
+
+  const dangerousReport = generateQuickReport(dangerousLanguageInput)
+  const dangerousText = dangerousReport.reportMarkdown.toLowerCase()
+  assert(dangerousReport.reportMarkdown.includes('Verificacao de Seguranca Clinica'), 'Markdown final deve mostrar verificacao de seguranca clinica.')
+  assert(dangerousReport.safetyGuard.findings.some((finding) => finding.code === 'diagnostic-confirmed'), 'Safety Guard deve bloquear diagnostico confirmado.')
+  assert(dangerousReport.safetyGuard.findings.some((finding) => finding.code === 'cure-promise'), 'Safety Guard deve substituir cura.')
+  assert(dangerousReport.safetyGuard.findings.some((finding) => finding.code === 'diagnostic-probability'), 'Safety Guard deve substituir probabilidade diagnostica.')
+  assert(dangerousReport.safetyGuard.findings.some((finding) => finding.code === 'adhd-spectrum'), 'Safety Guard deve bloquear espectro do TDAH.')
+  assert(dangerousReport.safetyGuard.findings.some((finding) => finding.code === 'brain-lesion-functional-only'), 'qEEG/source nao podem sustentar lesao cerebral.')
+  assert(!dangerousText.includes('diagnostico confirmado'), 'Markdown final deve usar versao sanitizada para diagnostico confirmado.')
+  assert(!dangerousText.includes('cura'), 'Markdown final deve substituir cura.')
+  assert(!dangerousText.includes('probabilidade diagnostica'), 'Markdown final deve substituir probabilidade diagnostica.')
+  assert(!dangerousText.includes('espectro do tdah'), 'Markdown final deve substituir espectro do TDAH.')
+  assert(!dangerousText.includes('lesao cerebral'), 'Markdown final deve substituir lesao cerebral quando vier de qEEG/source.')
+  assert(dangerousText.includes('alteracao funcional sugerida'), 'Markdown final deve conter substituicao segura para lesao cerebral.')
+  assert(dangerousReport.auditTrace.safetyFindingsCount > 0, 'AuditTrace deve registrar achados do Safety Guard.')
+  assert(dangerousReport.auditTrace.criticalFindingsCount > 0, 'AuditTrace deve registrar achados criticos do Safety Guard.')
+  assert(dangerousReport.auditTrace.sanitizedTerms.includes('cura'), 'AuditTrace deve registrar termos sanitizados.')
+
+  const missingReferralSafety = runReportSafetyGuard('Relatorio clinico sem encaminhamento explicito.', highRiskContextWithoutReferral())
+  assert(
+    missingReferralSafety.findings.some((finding) => finding.code === 'missing-medical-referral' && finding.severity === 'critical'),
+    'Risco alto sem encaminhamento deve gerar finding critico.',
+  )
+
+  assert(report.safetyGuard.findings.filter((finding) => finding.severity === 'critical').length === 0, 'Relatorio valido deve passar sem critical.')
+  assert(report.auditTrace.safetyGuardPassed, 'AuditTrace deve registrar Safety Guard em relatorio valido.')
 }

@@ -1,3 +1,5 @@
+import type { MetaAnalyticEvidence } from './evidence/evidence-types'
+
 export type RequestedPurpose =
   | 'screening'
   | 'diagnostic_referral'
@@ -12,6 +14,46 @@ export type NetworkState = NetworkIntegration | 'uncertain'
 export type Organization = 'coherent' | 'diffuse' | 'rigid' | 'noisy'
 export type OrganizationImpact = Organization | 'uncertain'
 export type RiskLevel = 'low' | 'moderate' | 'high'
+export type CoordinateSystem = 'MNI' | 'Talairach'
+export type ConfidenceTier = 'low' | 'moderate' | 'high' | 'insufficient'
+export type SafetySeverity = 'info' | 'warning' | 'critical'
+
+export type QuickReportOptions = {
+  profile?: import('./profiles/profile-types').ReportProfile
+}
+
+export type BrainCoordinate = {
+  system: CoordinateSystem
+  x: number
+  y: number
+  z: number
+}
+
+export type ClinicalConfidenceScore = {
+  score: number
+  tier: ConfidenceTier
+  convergenceDrivers: string[]
+  divergenceDrivers: string[]
+  missingData: string[]
+  cautionFlags: string[]
+  interpretation: string
+  limitations: string[]
+}
+
+export type SafetyFinding = {
+  severity: SafetySeverity
+  code: string
+  message: string
+  suggestion?: string
+}
+
+export type SafetyGuardResult = {
+  passed: boolean
+  findings: SafetyFinding[]
+  sanitizedMarkdown: string
+  sanitizedTerms: string[]
+  limitationsAdded: string[]
+}
 
 export type EEGLocation10_20 =
   | 'Fp1'
@@ -50,6 +92,9 @@ export type NqlBlockType =
   | 'PsychometricFinding'
   | 'QEEGMarker'
   | 'SourceLocalization'
+  | 'MetaAnalyticEvidence'
+  | 'ClinicalConfidenceScore'
+  | 'SafetyGuard'
   | 'NetworkState'
   | 'RDoCDomain'
   | 'FunctionalHypothesis'
@@ -80,13 +125,8 @@ export type QuickReportInput = {
     interpretation?: string
   }
   sourceLocalization?: {
-    method?: 'sLORETA' | 'eLORETA' | 'other'
-    coordinates?: {
-      system: 'MNI' | 'Talairach'
-      x: number
-      y: number
-      z: number
-    }[]
+    method?: 'sLORETA' | 'eLORETA' | 'LORETA' | 'other'
+    coordinates?: BrainCoordinate[]
     regions?: string[]
     brodmannAreas?: string[]
   }
@@ -134,6 +174,22 @@ export type QEEGStructuredMarker = {
   limitations: string[]
 }
 
+export type SourceLocalizationMarker = {
+  method?: 'sLORETA' | 'eLORETA' | 'LORETA' | 'other'
+  coordinate?: BrainCoordinate
+  region?: string
+  brodmannArea?: string
+  hemisphere?: 'left' | 'right' | 'midline' | 'bilateral' | 'uncertain'
+  probableNetwork?: string[]
+  probableFunction?: string[]
+  rdocDomain?: string[]
+  energyImpact?: BrainEnergyImpact
+  organizationImpact?: OrganizationImpact
+  evidence: string[]
+  confidence: number
+  limitations: string[]
+}
+
 export type RDoCMapping = {
   domain: string
   construct?: string
@@ -162,6 +218,9 @@ export type DomainMapping = {
   networkMappings?: NetworkMapping[]
   functionalMappings?: FunctionalMapping[]
   qeegStructuredMarkers?: QEEGStructuredMarker[]
+  sourceLocalizationMarkers?: SourceLocalizationMarker[]
+  metaAnalyticEvidence?: MetaAnalyticEvidence[]
+  clinicalConfidenceScore?: ClinicalConfidenceScore
 }
 
 export type FunctionalHypothesis = {
@@ -181,6 +240,10 @@ export type AuditTrace = {
   limitations: string[]
   riskAlerts: string[]
   inferenceTrace: string[]
+  safetyGuardPassed: boolean
+  safetyFindingsCount: number
+  criticalFindingsCount: number
+  sanitizedTerms: string[]
 }
 
 export type InterventionPlan = {
@@ -201,6 +264,10 @@ export type NeurofunctionalContext = {
   signals: ClinicalSignal[]
   qeegMarkers: QEEGMarker[]
   qeegStructuredMarkers: QEEGStructuredMarker[]
+  sourceLocalizationMarkers: SourceLocalizationMarker[]
+  metaAnalyticEvidence?: MetaAnalyticEvidence[]
+  riskAssessment?: RiskAssessment
+  interventionPlan?: InterventionPlan
   rdocMappings: RDoCMapping[]
   networkMappings: NetworkMapping[]
   functionalMappings: FunctionalMapping[]
@@ -209,17 +276,22 @@ export type NeurofunctionalContext = {
 
 export type QuickReportOutput = {
   reportMarkdown: string
+  profile: import('./profiles/profile-types').ReportProfile
   structuredFindings: {
     nqlBlocks: Partial<Record<NqlBlockType, unknown[]>>
     clinicalSignals: ClinicalSignal[]
     domainMapping: DomainMapping
     functionalHypotheses: FunctionalHypothesis[]
+    clinicalConfidenceScore: ClinicalConfidenceScore
+    safetyGuard: SafetyGuardResult
   }
   neurofunctionalState: NeurofunctionalState
   dominantHypothesis: string
   differentialHypotheses: string[]
   riskLevel: RiskLevel
   interventionPlan: InterventionPlan
+  clinicalConfidenceScore: ClinicalConfidenceScore
+  safetyGuard: SafetyGuardResult
   auditTrace: AuditTrace
 }
 

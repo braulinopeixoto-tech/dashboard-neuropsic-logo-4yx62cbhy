@@ -1,4 +1,5 @@
 import { generateAuditTrace } from './audit'
+import { generateMetaAnalyticEvidence } from './evidence'
 import {
   calculateFunctionalRisk,
   generateInterventionPhases,
@@ -6,8 +7,12 @@ import {
   mapQEEGMarkers,
   mapSignalsToFunctions,
   mapSignalsToNetworks,
+  mapSourceLocalization,
 } from './maps'
+import { renderProfiledReport, type ProfileRenderContext } from './profiles'
 import { renderReport } from './renderers/markdown-renderer'
+import { runReportSafetyGuard } from './safety'
+import { calculateClinicalConfidenceScore } from './scoring'
 import type {
   BrainEnergy,
   ClinicalSignal,
@@ -15,13 +20,15 @@ import type {
   FunctionalHypothesis,
   NetworkIntegration,
   NeurofunctionalContext,
-  NeurofunctionalState,
   NormalizedQuickReportInput,
   Organization,
   QEEGMarker,
   QEEGStructuredMarker,
   QuickReportInput,
+  QuickReportOptions,
   QuickReportOutput,
+  SafetyGuardResult,
+  SourceLocalizationMarker,
 } from './types'
 
 const HYPERAROUSAL_TERMS = [
@@ -49,6 +56,14 @@ const INSTABILITY_TERMS = [
   'desregulacao',
   'desregulação',
 ]
+
+const PENDING_SAFETY_GUARD: SafetyGuardResult = {
+  passed: false,
+  findings: [],
+  sanitizedMarkdown: '',
+  sanitizedTerms: [],
+  limitationsAdded: [],
+}
 
 function compactList(items?: string[]): string[] {
   return (items || []).map((item) => item.trim()).filter(Boolean)
@@ -180,7 +195,7 @@ export function extractQeegMarkers(input: NormalizedQuickReportInput): QEEGMarke
 }
 
 export function mapToDomains(
-  context: Pick<NeurofunctionalContext, 'signals' | 'qeegMarkers' | 'qeegStructuredMarkers'>,
+  context: Pick<NeurofunctionalContext, 'signals' | 'qeegMarkers' | 'qeegStructuredMarkers' | 'sourceLocalizationMarkers'>,
 ): DomainMapping {
   const rdocMappings = mapClinicalSignalsToRDoC(context.signals)
   const networkMappings = mapSignalsToNetworks(context.signals, context.qeegMarkers)
@@ -203,12 +218,14 @@ export function mapToDomains(
     networkMappings,
     functionalMappings,
     qeegStructuredMarkers: context.qeegStructuredMarkers,
+    sourceLocalizationMarkers: context.sourceLocalizationMarkers,
   }
 }
 
 export function classifyNeurofunctionalState(
   input: NormalizedQuickReportInput,
   qeegStructuredMarkers: QEEGStructuredMarker[] = [],
+  sourceLocalizationMarkers: SourceLocalizationMarker[] = [],
 ): QuickReportOutput['neurofunctionalState'] {
   const text = input.allFindings.join(' ').toLowerCase()
   const hyperScore = countMatches(text, HYPERAROUSAL_TERMS)
@@ -224,6 +241,7 @@ export function classifyNeurofunctionalState(
     (marker) => marker.energyImpact !== 'uncertain',
   )?.energyImpact
   if (qEEGEnergy && qEEGEnergy !== 'uncertain') brainEnergy = qEEGEnergy
+  else if (sourceEnergy && sourceEnergy !== 'uncertain') brainEnergy = sourceEnergy
 
   let networkIntegration: NetworkIntegration = 'coupled'
   if (includesAny(text, ['fragmentacao', 'fragmentação', 'desorganizacao', 'desorganização']))
@@ -246,6 +264,7 @@ export function classifyNeurofunctionalState(
     (marker) => marker.organizationImpact !== 'uncertain',
   )?.organizationImpact
   if (qEEGOrganization && qEEGOrganization !== 'uncertain') organization = qEEGOrganization
+  else if (sourceOrganization && sourceOrganization !== 'uncertain') organization = sourceOrganization
 
   return { brainEnergy, networkIntegration, organization }
 }
@@ -265,7 +284,7 @@ export function generateHypotheses(params: {
     params.domains.cognitiveFunctions.join(', ') ||
     'funcoes cognitivas/emocionais ainda pouco especificadas'
 
-  const dominantHypothesis = `Os achados sugerem uma hipotese dimensional de disfuncao neurofuncional envolvendo ${domains}, com participacao provavel de ${networks} e impacto em ${functions}. Necessita correlacao clinica e complementar.`
+  const dominantHypothesis = `Os achados sugerem uma hipotese dimensional de disfuncao neurofuncional envolvendo ${domains}, com participacao provavel de ${networks} e impacto em ${functions}. Achados de localizacao de fonte, evidencia meta-analitica e grau de convergencia clinica, quando presentes, representam sustentacao funcional aproximada e necessitam correlacao clinica e complementar.`
 
   const differentialHypotheses = [
     'Perfil atencional/executivo secundario a desregulacao emocional ou sono insuficiente.',
@@ -313,19 +332,22 @@ export function calculateConfidence(input: NormalizedQuickReportInput): number {
   return Math.min(0.95, Math.max(0.15, availableSignals / 8))
 }
 
-export function generateQuickReport(input: QuickReportInput): QuickReportOutput {
+export function generateQuickReport(input: QuickReportInput, options: QuickReportOptions = {}): QuickReportOutput {
+  const profile = options.profile || 'clinical'
   const normalized = normalizeInput(input)
   const clinicalSignals = extractClinicalSignals(normalized)
   const qeegMarkers = extractQeegMarkers(normalized)
   const qeegStructuredMarkers = mapQEEGMarkers(qeegMarkers)
-  const neurofunctionalState = classifyNeurofunctionalState(normalized, qeegStructuredMarkers)
-  const partialContext = { signals: clinicalSignals, qeegMarkers, qeegStructuredMarkers }
+  const sourceLocalizationMarkers = mapSourceLocalization(normalized.sourceLocalization)
+  const neurofunctionalState = classifyNeurofunctionalState(normalized, qeegStructuredMarkers, sourceLocalizationMarkers)
+  const partialContext = { signals: clinicalSignals, qeegMarkers, qeegStructuredMarkers, sourceLocalizationMarkers }
   const domainMapping = mapToDomains(partialContext)
   const context: NeurofunctionalContext = {
     input: normalized,
     signals: clinicalSignals,
     qeegMarkers,
     qeegStructuredMarkers,
+    sourceLocalizationMarkers,
     rdocMappings: domainMapping.rdocMappings || [],
     networkMappings: domainMapping.networkMappings || [],
     functionalMappings: domainMapping.functionalMappings || [],
@@ -339,49 +361,106 @@ export function generateQuickReport(input: QuickReportInput): QuickReportOutput 
   const confidenceLevel = calculateConfidence(normalized)
   const riskAssessment = calculateFunctionalRisk(context)
   const interventionPlan = generateInterventionPhases(context)
+  const scoringContext: NeurofunctionalContext = { ...context, metaAnalyticEvidence, riskAssessment, interventionPlan }
+  const clinicalConfidenceScore = calculateClinicalConfidenceScore(scoringContext)
+  const enrichedDomainMapping: DomainMapping = { ...domainMapping, metaAnalyticEvidence, clinicalConfidenceScore }
+  const hypotheses = generateHypotheses({ input: normalized, domains: enrichedDomainMapping, state: neurofunctionalState })
+  const confidenceLevel = clinicalConfidenceScore.score / 100
   const inferenceTrace = [
     'Entrada clinica bruta normalizada semanticamente.',
     'Sinais clinicos extraidos sem conclusao direta por sintoma isolado.',
     'Achados qEEG convertidos em marcadores estruturados com banda, topografia, rede, funcao, energia e limitacoes.',
+    'Achados de localizacao de fonte convertidos em marcadores estruturados por regiao/Brodmann explicitos, sem inferir anatomia por coordenada isolada sem atlas.',
+    'Evidencia meta-analitica offline gerada por InternalMap, sem chamada externa e sem funcao diagnostica.',
+    'Grau de convergencia clinica calculado como consistencia dimensional multimodal, sem finalidade diagnostica automatica.',
+    `Perfil de renderizacao aplicado: ${profile}.`,
     'Achados mapeados por modulos dedicados de RDoC, redes funcionais e funcoes neuropsicologicas.',
-    'Estado neurofuncional modulado por convergencia clinica e marcadores qEEG.',
+    'Estado neurofuncional modulado por convergencia clinica, marcadores qEEG e localizacao de fonte.',
     'Risco funcional e intervencao por fases calculados por mapas clinicos separados.',
     'Hipoteses dimensionais e confianca calculadas com trilha auditavel.',
   ]
-  const auditTrace = generateAuditTrace({
+  const initialAuditTrace = generateAuditTrace({
     input: normalized,
     confidenceLevel,
     riskLevel: riskAssessment.level,
     inferenceTrace,
   })
 
-  const outputWithoutMarkdown: Omit<QuickReportOutput, 'reportMarkdown'> = {
+  const baseOutputWithoutMarkdown: Omit<QuickReportOutput, 'reportMarkdown'> = {
+    profile,
     structuredFindings: {
       nqlBlocks: {
         PatientContext: [normalized.patient],
         ClinicalSignal: clinicalSignals,
         QEEGMarker: qeegStructuredMarkers,
+        SourceLocalization: sourceLocalizationMarkers,
+        MetaAnalyticEvidence: metaAnalyticEvidence,
+        ClinicalConfidenceScore: [clinicalConfidenceScore],
+        SafetyGuard: [PENDING_SAFETY_GUARD],
         RDoCDomain: context.rdocMappings,
         NetworkState: context.networkMappings,
         FunctionalHypothesis: hypotheses.functionalHypotheses,
         RiskVector: [riskAssessment],
         InterventionPhase: [interventionPlan],
-        AuditTrace: [auditTrace],
+        AuditTrace: [initialAuditTrace],
       },
       clinicalSignals,
-      domainMapping,
+      domainMapping: enrichedDomainMapping,
       functionalHypotheses: hypotheses.functionalHypotheses,
+      clinicalConfidenceScore,
+      safetyGuard: PENDING_SAFETY_GUARD,
     },
     neurofunctionalState,
     dominantHypothesis: hypotheses.dominantHypothesis,
     differentialHypotheses: hypotheses.differentialHypotheses,
     riskLevel: riskAssessment.level,
     interventionPlan,
-    auditTrace,
+    clinicalConfidenceScore,
+    safetyGuard: PENDING_SAFETY_GUARD,
+    auditTrace: initialAuditTrace,
   }
 
+  const clinicalMarkdown = renderReport(normalized, baseOutputWithoutMarkdown)
+  const baseProfileContext: ProfileRenderContext = { ...scoringContext, output: baseOutputWithoutMarkdown, clinicalMarkdown }
+  const firstSafetyGuard = runReportSafetyGuard(renderProfiledReport(baseProfileContext, { profile }), scoringContext)
+  const finalAuditTrace = generateAuditTrace({
+    input: normalized,
+    confidenceLevel,
+    riskLevel: riskAssessment.level,
+    inferenceTrace,
+    safetyGuard: firstSafetyGuard,
+  })
+
+  const finalOutputWithoutMarkdown: Omit<QuickReportOutput, 'reportMarkdown'> = {
+    ...baseOutputWithoutMarkdown,
+    structuredFindings: {
+      ...baseOutputWithoutMarkdown.structuredFindings,
+      nqlBlocks: {
+        ...baseOutputWithoutMarkdown.structuredFindings.nqlBlocks,
+        SafetyGuard: [firstSafetyGuard],
+        AuditTrace: [finalAuditTrace],
+      },
+      safetyGuard: firstSafetyGuard,
+    },
+    safetyGuard: firstSafetyGuard,
+    auditTrace: finalAuditTrace,
+  }
+
+  const finalClinicalMarkdown = renderReport(normalized, finalOutputWithoutMarkdown)
+  const finalProfileContext: ProfileRenderContext = { ...scoringContext, output: finalOutputWithoutMarkdown, clinicalMarkdown: finalClinicalMarkdown }
+  const finalSafetyGuard = runReportSafetyGuard(renderProfiledReport(finalProfileContext, { profile }), scoringContext)
+
   return {
-    ...outputWithoutMarkdown,
-    reportMarkdown: renderReport(normalized, outputWithoutMarkdown),
+    ...finalOutputWithoutMarkdown,
+    structuredFindings: {
+      ...finalOutputWithoutMarkdown.structuredFindings,
+      nqlBlocks: {
+        ...finalOutputWithoutMarkdown.structuredFindings.nqlBlocks,
+        SafetyGuard: [finalSafetyGuard],
+      },
+      safetyGuard: finalSafetyGuard,
+    },
+    safetyGuard: finalSafetyGuard,
+    reportMarkdown: finalSafetyGuard.sanitizedMarkdown,
   }
 }

@@ -1,4 +1,11 @@
-import type { NormalizedQuickReportInput, QEEGStructuredMarker, QuickReportOutput } from '../types'
+import type { MetaAnalyticEvidence } from '../evidence'
+import type {
+  ClinicalConfidenceScore,
+  NormalizedQuickReportInput,
+  QEEGStructuredMarker,
+  QuickReportOutput,
+  SourceLocalizationMarker,
+} from '../types'
 
 const brainEnergyLabels = {
   hypoactive: 'hipoativa',
@@ -60,6 +67,9 @@ export function renderReport(
   const state = output.neurofunctionalState
   const audit = output.auditTrace
   const qeegStructuredMarkers = output.structuredFindings.domainMapping.qeegStructuredMarkers
+  const sourceLocalizationMarkers = output.structuredFindings.domainMapping.sourceLocalizationMarkers
+  const metaAnalyticEvidence = output.structuredFindings.domainMapping.metaAnalyticEvidence
+  const clinicalConfidenceScore = output.clinicalConfidenceScore
 
   return [
     '# Quick Report Neurofuncional',
@@ -70,6 +80,7 @@ export function renderReport(
     `Data de nascimento: ${input.patient.birthDate || 'Nao informada'}`,
     `Escola/ocupacao: ${input.patient.school || 'Nao informada'}`,
     `Responsavel: ${input.patient.guardian || 'Nao informado'}`,
+    `Perfil de renderizacao: ${output.profile}`,
     '',
     numberedTitle(2, 'Motivo do encaminhamento'),
     list(input.complaint),
@@ -108,6 +119,12 @@ export function renderReport(
           `- Achado: ${item.finding}\n  - Interpretacao: ${item.interpretation}\n  - Hipotese: ${item.hypothesis}\n  - Recomendacao: ${item.recommendation}`,
       )
       .join('\n'),
+    '',
+    '## Evidencia Meta-Analitica',
+    renderMetaAnalyticEvidence(metaAnalyticEvidence),
+    '',
+    '## Grau de Convergencia Clinica',
+    renderClinicalConfidence(clinicalConfidenceScore),
     '',
     numberedTitle(7, 'Hipotese dominante'),
     output.dominantHypothesis,
@@ -161,6 +178,10 @@ export function renderReport(
     `Nivel de confianca: ${Math.round(audit.confidenceLevel * 100)}%`,
     `Campos usados: ${audit.fieldsUsed.join(', ') || 'nenhum'}`,
     `Campos ausentes: ${audit.fieldsMissing.join(', ') || 'nenhum'}`,
+    `Safety Guard aprovado: ${audit.safetyGuardPassed ? 'sim' : 'nao'}`,
+    `Achados do Safety Guard: ${audit.safetyFindingsCount}`,
+    `Achados criticos do Safety Guard: ${audit.criticalFindingsCount}`,
+    `Termos sanitizados: ${audit.sanitizedTerms.length}`,
     'Rastreabilidade:',
     list(audit.inferenceTrace),
   ].join('\n')
