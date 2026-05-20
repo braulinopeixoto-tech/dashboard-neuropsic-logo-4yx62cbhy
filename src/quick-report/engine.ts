@@ -243,6 +243,11 @@ export function classifyNeurofunctionalState(
   const qEEGEnergy = qeegStructuredMarkers.find(
     (marker) => marker.energyImpact !== 'uncertain',
   )?.energyImpact
+
+  const sourceEnergy = (sourceLocalizationMarkers as any[]).find(
+    (marker) => marker.energyImpact && marker.energyImpact !== 'uncertain',
+  )?.energyImpact
+
   if (qEEGEnergy && qEEGEnergy !== 'uncertain') brainEnergy = qEEGEnergy
   else if (sourceEnergy && sourceEnergy !== 'uncertain') brainEnergy = sourceEnergy
 
@@ -266,6 +271,11 @@ export function classifyNeurofunctionalState(
   const qEEGOrganization = qeegStructuredMarkers.find(
     (marker) => marker.organizationImpact !== 'uncertain',
   )?.organizationImpact
+
+  const sourceOrganization = (sourceLocalizationMarkers as any[]).find(
+    (marker) => marker.organizationImpact && marker.organizationImpact !== 'uncertain',
+  )?.organizationImpact
+
   if (qEEGOrganization && qEEGOrganization !== 'uncertain') organization = qEEGOrganization
   else if (sourceOrganization && sourceOrganization !== 'uncertain')
     organization = sourceOrganization
@@ -369,32 +379,39 @@ export function generateQuickReport(
     functionalMappings: domainMapping.functionalMappings || [],
     neurofunctionalState,
   }
-  const hypotheses = generateHypotheses({
+
+  let hypotheses = generateHypotheses({
     input: normalized,
     domains: domainMapping,
     state: neurofunctionalState,
   })
-  const confidenceLevel = calculateConfidence(normalized)
+
+  let confidenceLevel = calculateConfidence(normalized)
   const riskAssessment = calculateFunctionalRisk(context)
   const interventionPlan = generateInterventionPhases(context)
+  const metaAnalyticEvidence = generateMetaAnalyticEvidence(context)
+
   const scoringContext: NeurofunctionalContext = {
     ...context,
     metaAnalyticEvidence,
     riskAssessment,
     interventionPlan,
   }
+
   const clinicalConfidenceScore = calculateClinicalConfidenceScore(scoringContext)
   const enrichedDomainMapping: DomainMapping = {
     ...domainMapping,
     metaAnalyticEvidence,
     clinicalConfidenceScore,
   }
-  const hypotheses = generateHypotheses({
+
+  hypotheses = generateHypotheses({
     input: normalized,
     domains: enrichedDomainMapping,
     state: neurofunctionalState,
   })
-  const confidenceLevel = clinicalConfidenceScore.score / 100
+
+  confidenceLevel = clinicalConfidenceScore.score / 100
   const inferenceTrace = [
     'Entrada clinica bruta normalizada semanticamente.',
     'Sinais clinicos extraidos sem conclusao direta por sintoma isolado.',
