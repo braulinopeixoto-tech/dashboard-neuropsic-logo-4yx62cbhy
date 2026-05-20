@@ -41,15 +41,19 @@ import { toast } from 'sonner'
 import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
 import { Skeleton } from '@/components/ui/skeleton'
-import { generateQuickReport } from '@/quick-report/engine'
-import type { QuickReportOutput } from '@/quick-report/types'
+import { generateQuickReport, type QuickReportInput, type QuickReportOutput, type ReportProfile } from '@/quick-report'
 import { parseNQL } from '@/quick-report/nql-parser'
+import { runQuickReportFromRawText } from '@/services/quick-report-engine-adapter'
 import { MarkdownRenderer } from '@/components/MarkdownRenderer'
+
+type InputMode = 'raw' | 'nql'
 
 const emptyForm = {
   paciente_id: '',
   titulo: '',
-  profile: 'clinical' as const,
+  profile: 'clinical' as ReportProfile,
+  inputMode: 'raw' as InputMode,
+  rawText: '',
   nqlInput: '',
 }
 
@@ -62,6 +66,7 @@ export default function QuickReport() {
   const [openCreateDialog, setOpenCreateDialog] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [generatedReport, setGeneratedReport] = useState<QuickReportOutput | null>(null)
+  const [parsedInput, setParsedInput] = useState<QuickReportInput | null>(null)
   const [useTruncated, setUseTruncated] = useState(false)
 
   const truncateMarkdown = (markdown: string) => {
@@ -99,28 +104,47 @@ export default function QuickReport() {
     setForm((current) => ({ ...current, [field]: value }))
   }
 
+  const clearGeneratedState = () => {
+    setGeneratedReport(null)
+    setParsedInput(null)
+    setUseTruncated(false)
+  }
+
   const handleGeneratePreview = () => {
-    if (!form.paciente_id || !form.nqlInput.trim()) {
-      toast.error('Preencha o paciente e os dados NQL.')
+    const rawText = form.rawText.trim()
+    const nqlText = form.nqlInput.trim()
+    const textToProcess = form.inputMode === 'raw' ? rawText : nqlText
+
+    if (!textToProcess) {
+      toast.error('Insira o texto antes de gerar o relatório avançado.')
       return
     }
 
     try {
       const patient = patients.find((p) => p.id === form.paciente_id)
-      const input = parseNQL(form.nqlInput, patient)
-      const report = generateQuickReport(input, { profile: form.profile as any })
-      setGeneratedReport(report)
+      const adapterResult =
+        form.inputMode === 'raw'
+          ? runQuickReportFromRawText(rawText, form.profile)
+          : (() => {
+              const input = parseNQL(nqlText, patient)
+              return { parsedInput: input, result: generateQuickReport(input, { profile: form.profile }) }
+            })()
+
+      console.log('NQL_PARSED_INPUT', adapterResult.parsedInput)
+      console.log('NQL_REPORT_RESULT', adapterResult.result)
+      setParsedInput(adapterResult.parsedInput)
+      setGeneratedReport(adapterResult.result)
       setUseTruncated(false)
-      toast.success('Relatório gerado e avaliado pelo Engine!')
+      toast.success('Relatório avançado gerado pelo pipeline NQL.')
     } catch (err) {
       console.error(err)
-      toast.error('Erro ao processar dados NQL. Verifique a sintaxe.')
+      toast.error('Erro ao processar o relatório. Revise a entrada e tente novamente.')
     }
   }
 
   const handleCreateReport = async () => {
     if (!form.paciente_id || !form.titulo.trim() || !generatedReport) {
-      toast.error('Preencha título e gere o relatório antes de salvar.')
+      toast.error('Para salvar, selecione paciente, informe título e gere o relatório antes.')
       return
     }
 
@@ -150,7 +174,7 @@ export default function QuickReport() {
       toast.success('Quick Report criado com sucesso.')
       setOpenCreateDialog(false)
       setForm(emptyForm)
-      setGeneratedReport(null)
+      clearGeneratedState()
       await loadData(true)
     } catch (err) {
       console.error(err)
@@ -162,8 +186,8 @@ export default function QuickReport() {
 
   const resetDialog = () => {
     setOpenCreateDialog(false)
-    setGeneratedReport(null)
     setForm(emptyForm)
+    clearGeneratedState()
   }
 
   if (loading) {
@@ -178,9 +202,14 @@ export default function QuickReport() {
     <div className="space-y-6 animate-fade-in-up pb-10">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Quick Reports</h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Quick Reports</h1>
+            <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border border-emerald-200">
+              Quick Report Engine: NQL Advanced Pipeline Active
+            </Badge>
+          </div>
           <p className="text-slate-500 mt-1">
-            Engine de Relatórios Neurofuncionais Rápidos e Anotações Clínicas.
+            Texto bruto, NQL manual, parser semântico e relatório neurofuncional auditável.
           </p>
         </div>
         <Button onClick={() => setOpenCreateDialog(true)}>
@@ -227,26 +256,25 @@ export default function QuickReport() {
       </div>
 
       <Dialog open={openCreateDialog} onOpenChange={(open) => !open && resetDialog()}>
-        <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden">
+        <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 overflow-hidden">
           <DialogHeader className="p-6 pb-2 shrink-0 border-b">
             <DialogTitle>Gerar Quick Report NQL</DialogTitle>
             <DialogDescription>
-              Escreva anotações usando blocos NQL (ex: [queixa], [qeeg]) para processamento
-              analítico.
+              Gere preview local sem paciente cadastrado. O paciente só é obrigatório para salvar no prontuário.
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-2">
             <div className="p-6 border-r overflow-y-auto space-y-4 bg-slate-50/50">
               <div className="space-y-2">
-                <Label>Paciente</Label>
+                <Label>Paciente para vínculo ao salvar</Label>
                 <Select
                   value={form.paciente_id}
                   onValueChange={(value) => updateForm('paciente_id', value)}
                   disabled={patients.length === 0 || saving}
                 >
                   <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="Selecione o paciente" />
+                    <SelectValue placeholder="Selecione o paciente apenas para salvar" />
                   </SelectTrigger>
                   <SelectContent>
                     {patients.map((patient) => (
@@ -258,86 +286,124 @@ export default function QuickReport() {
                 </Select>
                 {patients.length === 0 && (
                   <p className="text-sm text-amber-600">
-                    Cadastre um paciente ativo antes de criar um Quick Report.
+                    Sem paciente ativo: o preview local continua liberado; salvar no PocketBase permanece bloqueado.
                   </p>
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="quick-report-title">Título do Relatório</Label>
-                <Input
-                  id="quick-report-title"
-                  value={form.titulo}
-                  onChange={(event) => updateForm('titulo', event.target.value)}
-                  disabled={saving}
-                  placeholder="Ex.: Análise Neurofuncional Inicial"
-                  className="bg-white"
-                />
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="quick-report-title">Título do Relatório</Label>
+                  <Input
+                    id="quick-report-title"
+                    value={form.titulo}
+                    onChange={(event) => updateForm('titulo', event.target.value)}
+                    disabled={saving}
+                    placeholder="Ex.: Análise Neurofuncional Inicial"
+                    className="bg-white"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Perfil do Relatório</Label>
+                  <Select
+                    value={form.profile}
+                    onValueChange={(value) => updateForm('profile', value)}
+                    disabled={saving}
+                  >
+                    <SelectTrigger className="bg-white">
+                      <SelectValue placeholder="Selecione o perfil" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="clinical">Clínico (Padrão)</SelectItem>
+                      <SelectItem value="family">Familiar (Acessível)</SelectItem>
+                      <SelectItem value="legal">Jurídico (Pericial)</SelectItem>
+                      <SelectItem value="school">Escolar (Adaptações)</SelectItem>
+                      <SelectItem value="evolution">Evolução (Acompanhamento)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="space-y-2">
-                <Label>Perfil do Relatório</Label>
+                <Label>Modo de entrada</Label>
                 <Select
-                  value={form.profile}
-                  onValueChange={(value) => updateForm('profile', value)}
+                  value={form.inputMode}
+                  onValueChange={(value) => {
+                    updateForm('inputMode', value)
+                    clearGeneratedState()
+                  }}
                   disabled={saving}
                 >
                   <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="Selecione o perfil" />
+                    <SelectValue placeholder="Selecione o modo" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="clinical">Clínico (Padrão)</SelectItem>
-                    <SelectItem value="family">Familiar (Acessível)</SelectItem>
-                    <SelectItem value="legal">Jurídico (Pericial)</SelectItem>
-                    <SelectItem value="school">Escolar (Adaptações)</SelectItem>
-                    <SelectItem value="evolution">Evolução (Acompanhamento)</SelectItem>
+                    <SelectItem value="raw">Modo A - Texto bruto do relatório</SelectItem>
+                    <SelectItem value="nql">Modo B - Entrada NQL manual</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-2 flex flex-col h-full">
-                <div className="flex justify-between items-center">
-                  <Label htmlFor="quick-report-content">
-                    Entrada NQL (Neurofunctional Quick Language)
-                  </Label>
-                  <div className="flex gap-1">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-6 text-[10px] px-2"
-                      onClick={() =>
-                        updateForm('nqlInput', form.nqlInput + '\n\n[qeeg]\n- Fp1 elevado teta')
-                      }
-                    >
-                      + qEEG
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-6 text-[10px] px-2"
-                      onClick={() =>
-                        updateForm('nqlInput', form.nqlInput + '\n\n[source]\n- Cingulado Anterior')
-                      }
-                    >
-                      + LORETA
-                    </Button>
-                  </div>
+              {form.inputMode === 'raw' ? (
+                <div className="space-y-2 flex flex-col h-full">
+                  <Label htmlFor="quick-report-raw-text">Texto bruto do relatório</Label>
+                  <Textarea
+                    id="quick-report-raw-text"
+                    value={form.rawText}
+                    onChange={(event) => {
+                      updateForm('rawText', event.target.value)
+                      clearGeneratedState()
+                    }}
+                    disabled={saving}
+                    placeholder="Cole aqui o relatório bruto completo: identificação, histórico, qEEG, source localization, recomendações e limitações."
+                    className="min-h-[340px] font-mono text-sm bg-white resize-y flex-1"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    Fluxo: texto bruto -> parseRawClinicalReport -> generateQuickReport -> reportMarkdown.
+                  </p>
                 </div>
-                <Textarea
-                  id="quick-report-content"
-                  value={form.nqlInput}
-                  onChange={(event) => updateForm('nqlInput', event.target.value)}
-                  disabled={saving}
-                  placeholder={`[queixa]\nDesatenção e hiperatividade\n\n[qeeg]\nFp1 elevado teta\n\n[psicometrico]\nBaixo desempenho executivo`}
-                  className="min-h-[300px] font-mono text-sm bg-white resize-y flex-1"
-                />
-                <p className="text-xs text-slate-500 mt-1">
-                  Use os blocos NQL para estruturar o relatório: [queixa], [clinico],
-                  [desenvolvimento], [escolar], [comportamento], [psicometrico], [qeeg], [source]
-                </p>
-              </div>
+              ) : (
+                <div className="space-y-2 flex flex-col h-full">
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor="quick-report-nql-input">Entrada NQL manual</Label>
+                    <div className="flex gap-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-6 text-[10px] px-2"
+                        onClick={() => updateForm('nqlInput', form.nqlInput + '\n\n[qeeg]\n- Fp1 elevado teta')}
+                      >
+                        + qEEG
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-6 text-[10px] px-2"
+                        onClick={() => updateForm('nqlInput', form.nqlInput + '\n\n[source]\n- Cingulado Anterior')}
+                      >
+                        + LORETA
+                      </Button>
+                    </div>
+                  </div>
+                  <Textarea
+                    id="quick-report-nql-input"
+                    value={form.nqlInput}
+                    onChange={(event) => {
+                      updateForm('nqlInput', event.target.value)
+                      clearGeneratedState()
+                    }}
+                    disabled={saving}
+                    placeholder={`[queixa]\nDesatenção e hiperatividade\n\n[qeeg]\nFp1 elevado teta\n\n[psicometrico]\nBaixo desempenho executivo`}
+                    className="min-h-[340px] font-mono text-sm bg-white resize-y flex-1"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    Use blocos: [queixa], [clinico], [desenvolvimento], [escolar], [comportamento], [psicometrico], [qeeg], [source].
+                  </p>
+                </div>
+              )}
 
               <Button
                 type="button"
@@ -346,7 +412,7 @@ export default function QuickReport() {
                 variant="secondary"
               >
                 <Brain className="w-4 h-4 mr-2" />
-                Processar Engine & Gerar Preview
+                Gerar Relatório Avançado
               </Button>
             </div>
 
@@ -411,12 +477,22 @@ export default function QuickReport() {
                       </div>
                       {generatedReport.safetyGuard.findings.length > 0 && (
                         <p className="text-xs text-slate-500 mt-2">
-                          {generatedReport.safetyGuard.findings.length} correção(ões) de linguagem
-                          clínica aplicadas.
+                          {generatedReport.safetyGuard.findings.length} correção(ões) de linguagem clínica aplicadas.
                         </p>
                       )}
                     </div>
                   </div>
+
+                  {parsedInput && (
+                    <div>
+                      <h3 className="text-sm font-semibold flex items-center gap-2 border-b pb-2 mb-3">
+                        <Brain className="w-4 h-4 text-slate-500" /> NQL Parsed Input
+                      </h3>
+                      <pre className="max-h-72 overflow-auto rounded-lg bg-slate-950 p-4 text-xs text-slate-100">
+                        {JSON.stringify(parsedInput, null, 2)}
+                      </pre>
+                    </div>
+                  )}
 
                   <div>
                     <div className="flex items-center justify-between border-b pb-2 mb-3">
@@ -470,8 +546,7 @@ export default function QuickReport() {
                 <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 p-8">
                   <Brain className="w-12 h-12 mb-4 text-slate-200" />
                   <p className="text-sm">
-                    Insira os dados no formato NQL e clique em "Processar Engine" para extrair
-                    insights estruturados e visualizar o relatório.
+                    Escolha Texto bruto ou NQL manual e clique em "Gerar Relatório Avançado" para ver o input estruturado, score, Safety Guard e markdown final.
                   </p>
                 </div>
               )}
@@ -486,6 +561,8 @@ export default function QuickReport() {
               onClick={handleCreateReport}
               disabled={
                 saving ||
+                !form.paciente_id ||
+                !form.titulo.trim() ||
                 !generatedReport ||
                 (generatedReport.reportMarkdown.length > 5000 && !useTruncated)
               }
