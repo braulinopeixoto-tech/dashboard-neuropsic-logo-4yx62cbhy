@@ -9,6 +9,7 @@ import {
   mapSignalsToNetworks,
   mapSourceLocalization,
 } from './maps'
+import { parseRawClinicalReport } from './parsers'
 import { renderProfiledReport, type ProfileRenderContext } from './profiles'
 import { renderReport } from './renderers/markdown-renderer'
 import { runReportSafetyGuard } from './safety'
@@ -68,6 +69,7 @@ export function normalizeInput(input: QuickReportInput): NormalizedQuickReportIn
     schoolHistory: compactList(input.schoolHistory),
     behavioralFindings: compactList(input.behavioralFindings),
     psychometricFindings: compactList(input.psychometricFindings),
+    recommendationsRaw: compactList(input.recommendationsRaw),
     qeeg: input.qeeg
       ? {
           ...input.qeeg,
@@ -259,8 +261,9 @@ export function calculateConfidence(input: NormalizedQuickReportInput): number {
   return Math.min(0.95, Math.max(0.15, availableSignals / 8))
 }
 
-export function generateQuickReport(input: QuickReportInput, options: QuickReportOptions = {}): QuickReportOutput {
+export function generateQuickReport(inputOrRawText: QuickReportInput | string, options: QuickReportOptions = {}): QuickReportOutput {
   const profile = options.profile || 'clinical'
+  const input = typeof inputOrRawText === 'string' ? parseRawClinicalReport(inputOrRawText) : inputOrRawText
   const normalized = normalizeInput(input)
   const clinicalSignals = extractClinicalSignals(normalized)
   const qeegMarkers = extractQeegMarkers(normalized)
@@ -289,7 +292,9 @@ export function generateQuickReport(input: QuickReportInput, options: QuickRepor
   const hypotheses = generateHypotheses({ input: normalized, domains: enrichedDomainMapping, state: neurofunctionalState })
   const confidenceLevel = clinicalConfidenceScore.score / 100
   const inferenceTrace = [
-    'Entrada clinica bruta normalizada semanticamente.',
+    typeof inputOrRawText === 'string'
+      ? 'Relatorio bruto convertido em QuickReportInput estruturado antes do pipeline NQL.'
+      : 'Entrada estruturada normalizada semanticamente.',
     'Sinais clinicos extraidos sem conclusao direta por sintoma isolado.',
     'Achados qEEG convertidos em marcadores estruturados com banda, topografia, rede, funcao, energia e limitacoes.',
     'Achados de localizacao de fonte convertidos em marcadores estruturados por regiao/Brodmann explicitos, sem inferir anatomia por coordenada isolada sem atlas.',
