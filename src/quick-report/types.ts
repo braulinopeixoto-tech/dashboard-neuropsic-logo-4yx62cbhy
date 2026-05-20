@@ -76,14 +76,7 @@ export type EEGLocation10_20 =
   | 'O2'
   | 'Fz'
 
-export type EEGFrequencyBand =
-  | 'delta'
-  | 'theta'
-  | 'alpha'
-  | 'beta'
-  | 'high_beta'
-  | 'gamma'
-  | 'unknown'
+export type EEGFrequencyBand = 'delta' | 'theta' | 'alpha' | 'beta' | 'high_beta' | 'gamma' | 'unknown'
 
 export type NqlBlockType =
   | 'PatientContext'
@@ -109,6 +102,7 @@ export type QuickReportInput = {
     birthDate?: string
     school?: string
     guardian?: string
+    city?: string
   }
   complaint: string[]
   developmentalHistory?: string[]
@@ -116,6 +110,9 @@ export type QuickReportInput = {
   schoolHistory?: string[]
   behavioralFindings?: string[]
   psychometricFindings?: string[]
+  recommendationsRaw?: string[]
+  responsibleProfessional?: string
+  documentPurpose?: string
   qeeg?: {
     findings: string[]
     bands?: string[]
