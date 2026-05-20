@@ -18,6 +18,10 @@ export type CoordinateSystem = 'MNI' | 'Talairach'
 export type ConfidenceTier = 'low' | 'moderate' | 'high' | 'insufficient'
 export type SafetySeverity = 'info' | 'warning' | 'critical'
 
+export type QuickReportOptions = {
+  profile?: import('./profiles/profile-types').ReportProfile
+}
+
 export type BrainCoordinate = {
   system: CoordinateSystem
   x: number
@@ -265,6 +269,7 @@ export type NeurofunctionalContext = {
 
 export type QuickReportOutput = {
   reportMarkdown: string
+  profile: import('./profiles/profile-types').ReportProfile
   structuredFindings: {
     nqlBlocks: Partial<Record<NqlBlockType, unknown[]>>
     clinicalSignals: ClinicalSignal[]
