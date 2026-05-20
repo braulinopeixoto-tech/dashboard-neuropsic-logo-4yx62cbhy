@@ -37,6 +37,11 @@ function numberedTitle(index: number, title: string): string {
   return `## ${index}. ${title}`
 }
 
+function percent(value: number): string {
+  const normalized = value <= 1 ? value * 100 : value
+  return `${Math.max(0, Math.min(100, Math.round(normalized)))}%`
+}
+
 function renderQeegMarkers(markers?: QEEGStructuredMarker[]): string {
   if (!markers?.length) return 'Nao informado.'
 
@@ -53,7 +58,7 @@ function renderQeegMarkers(markers?: QEEGStructuredMarker[]): string {
         `- Impacto na energia cerebral: ${marker.energyImpact}`,
         `- Impacto na organizacao: ${marker.organizationImpact}`,
         `- Evidencias: ${marker.evidence.join(' | ') || 'nao informadas'}`,
-        `- Confianca: ${Math.round(marker.confidence * 100)}%`,
+        `- Confianca: ${percent(marker.confidence)}`,
         `- Limitacoes: ${marker.limitations.join(' | ')}`,
       ].join('\n')
     })
@@ -85,7 +90,7 @@ function renderSourceLocalization(markers?: SourceLocalizationMarker[]): string 
           `- Impacto na energia cerebral: ${marker.energyImpact || 'uncertain'}`,
           `- Impacto na organizacao: ${marker.organizationImpact || 'uncertain'}`,
           `- Evidencias: ${marker.evidence.join(' | ') || 'nao informadas'}`,
-          `- Confianca: ${Math.round(marker.confidence * 100)}%`,
+          `- Confianca: ${percent(marker.confidence)}`,
           `- Limitacoes: ${marker.limitations.join(' | ')}`,
         ].join('\n'),
       )
@@ -107,7 +112,7 @@ function renderMetaAnalyticEvidence(items?: MetaAnalyticEvidence[]): string {
         `- Funcoes associadas: ${item.associatedFunctions.join(', ') || 'nao informadas'}`,
         `- Redes relacionadas: ${item.relatedNetworks.join(', ') || 'nao informadas'}`,
         `- Peso de evidencia: ${item.evidenceWeight}`,
-        `- Confianca: ${Math.round(item.confidence * 100)}%`,
+        `- Confianca: ${percent(item.confidence)}`,
         `- Limitacoes: ${item.limitations.join(' | ')}`,
         `- Referencias: ${item.references?.join(', ') || 'nao informadas'}`,
       ].join('\n'),
@@ -148,8 +153,11 @@ export function renderReport(input: NormalizedQuickReportInput, output: Omit<Qui
     `Paciente: ${input.patient.name}`,
     `Idade: ${input.patient.age || 'Nao informada'}`,
     `Data de nascimento: ${input.patient.birthDate || 'Nao informada'}`,
+    `Municipio: ${input.patient.city || 'Nao informado'}`,
     `Escola/ocupacao: ${input.patient.school || 'Nao informada'}`,
     `Responsavel: ${input.patient.guardian || 'Nao informado'}`,
+    `Responsavel tecnico: ${input.responsibleProfessional || 'Nao informado'}`,
+    `Finalidade: ${input.documentPurpose || input.requestedPurpose}`,
     `Perfil de renderizacao: ${output.profile}`,
     '',
     numberedTitle(2, 'Motivo do encaminhamento'),
@@ -203,6 +211,7 @@ export function renderReport(input: NormalizedQuickReportInput, output: Omit<Qui
       'Correlacionar os achados com entrevista clinica, observacao e instrumentos padronizados.',
       'Evitar conclusoes diagnosticas absolutas sem confirmacao interdisciplinar.',
       ...(audit.riskAlerts.length ? ['Considerar avaliacao medica complementar diante dos alertas identificados.'] : []),
+      ...(input.recommendationsRaw || []),
     ]),
     '',
     numberedTitle(12, 'Intervencao por fases'),
@@ -229,7 +238,7 @@ export function renderReport(input: NormalizedQuickReportInput, output: Omit<Qui
     `Hash do input: ${audit.inputHash}`,
     `Gerado em: ${audit.generatedAt}`,
     `Versao do motor: ${audit.engineVersion}`,
-    `Nivel de confianca: ${Math.round(audit.confidenceLevel * 100)}%`,
+    `Nivel de confianca: ${percent(audit.confidenceLevel)}`,
     `Campos usados: ${audit.fieldsUsed.join(', ') || 'nenhum'}`,
     `Campos ausentes: ${audit.fieldsMissing.join(', ') || 'nenhum'}`,
     `Safety Guard aprovado: ${audit.safetyGuardPassed ? 'sim' : 'nao'}`,
