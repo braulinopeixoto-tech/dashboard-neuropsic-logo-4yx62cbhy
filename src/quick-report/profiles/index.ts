@@ -1,3 +1,4 @@
+import type { NeurofunctionalContext } from '../types'
 import { renderClinicalProfile } from './clinical-profile'
 import { renderEvolutionProfile } from './evolution-profile'
 import { renderFamilyProfile } from './family-profile'
@@ -12,18 +13,20 @@ export * from './legal-profile'
 export * from './school-profile'
 export * from './evolution-profile'
 
-export function renderProfiledReport(context: ProfileRenderContext, options: ProfileRenderOptions): string {
+export function renderProfiledReport(context: NeurofunctionalContext, options: ProfileRenderOptions): string {
+  const profileContext = context as ProfileRenderContext
+
   switch (options.profile) {
     case 'family':
-      return renderFamilyProfile(context)
+      return renderFamilyProfile(profileContext)
     case 'legal':
-      return renderLegalProfile(context)
+      return renderLegalProfile(profileContext)
     case 'school':
-      return renderSchoolProfile(context)
+      return renderSchoolProfile(profileContext)
     case 'evolution':
-      return renderEvolutionProfile(context)
+      return renderEvolutionProfile(profileContext)
     case 'clinical':
     default:
-      return renderClinicalProfile(context)
+      return renderClinicalProfile(profileContext)
   }
 }
