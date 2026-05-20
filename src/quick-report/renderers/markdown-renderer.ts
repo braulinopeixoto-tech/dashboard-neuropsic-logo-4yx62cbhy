@@ -150,6 +150,7 @@ export function renderReport(input: NormalizedQuickReportInput, output: Omit<Qui
     `Data de nascimento: ${input.patient.birthDate || 'Nao informada'}`,
     `Escola/ocupacao: ${input.patient.school || 'Nao informada'}`,
     `Responsavel: ${input.patient.guardian || 'Nao informado'}`,
+    `Perfil de renderizacao: ${output.profile}`,
     '',
     numberedTitle(2, 'Motivo do encaminhamento'),
     list(input.complaint),
