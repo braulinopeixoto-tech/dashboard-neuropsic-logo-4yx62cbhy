@@ -67,8 +67,8 @@ export default function QuickReport() {
 
   const truncateMarkdown = (markdown: string) => {
     let truncated = markdown.split('## 14. Limitacoes do relatorio')[0]
-    if (truncated.length > 4900) {
-      truncated = truncated.substring(0, 4900)
+    if (truncated.length > 49000) {
+      truncated = truncated.substring(0, 49000)
     }
     return (
       truncated.trim() + '\n\n*(Relatório truncado para caber no limite de caracteres do sistema)*'
@@ -126,12 +126,12 @@ export default function QuickReport() {
     }
 
     let finalMarkdown = generatedReport.reportMarkdown
-    if (finalMarkdown.length > 5000) {
+    if (finalMarkdown.length > 50000) {
       if (useTruncated) {
         finalMarkdown = truncateMarkdown(finalMarkdown)
       } else {
         toast.error(
-          'Relatório excede o limite de 5000 caracteres. Aceite truncar os anexos metodológicos.',
+          'Relatório excede o limite de 50.000 caracteres. Aceite truncar os anexos metodológicos.',
         )
         return
       }
@@ -153,10 +153,22 @@ export default function QuickReport() {
       setForm(emptyForm)
       setGeneratedReport(null)
       await loadData(true)
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
-      const errorMsg = getErrorMessage(err)
-      toast.error(`Erro ao salvar relatório: ${errorMsg}`)
+
+      const isMaxConstraintError =
+        err?.response?.data?.conteudo?.code === 'validation_max_text_constraint' ||
+        getErrorMessage(err).includes('maximum allowed length') ||
+        getErrorMessage(err).includes('limite de caracteres')
+
+      if (isMaxConstraintError) {
+        toast.error(
+          'Erro: O relatório excede o limite de caracteres permitido. Por favor, resuma o conteúdo ou entre em contato com o suporte.',
+        )
+      } else {
+        const errorMsg = getErrorMessage(err)
+        toast.error(`Erro ao salvar relatório: ${errorMsg}`)
+      }
     } finally {
       setSaving(false)
     }
@@ -425,21 +437,35 @@ export default function QuickReport() {
                       <h3 className="text-sm font-semibold flex items-center gap-2">
                         <FileText className="w-4 h-4 text-slate-500" /> Preview do Relatório
                       </h3>
-                      <div className="text-xs text-slate-500">
-                        {useTruncated
-                          ? truncateMarkdown(generatedReport.reportMarkdown).length
-                          : generatedReport.reportMarkdown.length}{' '}
-                        / 5000 chars
+                      <div className="text-xs font-medium">
+                        <span
+                          className={
+                            (useTruncated
+                              ? truncateMarkdown(generatedReport.reportMarkdown).length
+                              : generatedReport.reportMarkdown.length) > 50000
+                              ? 'text-rose-500'
+                              : (useTruncated
+                                    ? truncateMarkdown(generatedReport.reportMarkdown).length
+                                    : generatedReport.reportMarkdown.length) >= 40000
+                                ? 'text-amber-500'
+                                : 'text-slate-500'
+                          }
+                        >
+                          {useTruncated
+                            ? truncateMarkdown(generatedReport.reportMarkdown).length
+                            : generatedReport.reportMarkdown.length}
+                        </span>
+                        <span className="text-slate-500"> / 50000 chars</span>
                       </div>
                     </div>
 
-                    {generatedReport.reportMarkdown.length > 5000 && (
+                    {generatedReport.reportMarkdown.length > 50000 && (
                       <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
                         <div className="flex items-start gap-2">
                           <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
                           <div>
                             <p className="font-medium mb-1">
-                              O relatório excede o limite de 5000 caracteres.
+                              O relatório excede o limite de 50.000 caracteres.
                             </p>
                             <label className="flex items-center gap-2 mt-2 cursor-pointer">
                               <input
@@ -489,7 +515,7 @@ export default function QuickReport() {
               disabled={
                 saving ||
                 !generatedReport ||
-                (generatedReport.reportMarkdown.length > 5000 && !useTruncated)
+                (generatedReport.reportMarkdown.length > 50000 && !useTruncated)
               }
             >
               {saving ? 'Salvando...' : 'Salvar no Prontuário'}
