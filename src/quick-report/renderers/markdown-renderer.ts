@@ -37,7 +37,7 @@ function numberedTitle(index: number, title: string): string {
   return `## ${index}. ${title}`
 }
 
-function renderMetaAnalyticEvidence(evidence?: any[]): string {
+export function renderMetaAnalyticEvidence(evidence?: any[]): string {
   if (!evidence?.length) return 'Nenhuma evidencia meta-analitica reportada.'
 
   return evidence

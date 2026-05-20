@@ -49,6 +49,7 @@ import { MarkdownRenderer } from '@/components/MarkdownRenderer'
 const emptyForm = {
   paciente_id: '',
   titulo: '',
+  profile: 'clinical' as const,
   nqlInput: '',
 }
 
@@ -61,6 +62,17 @@ export default function QuickReport() {
   const [openCreateDialog, setOpenCreateDialog] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [generatedReport, setGeneratedReport] = useState<QuickReportOutput | null>(null)
+  const [useTruncated, setUseTruncated] = useState(false)
+
+  const truncateMarkdown = (markdown: string) => {
+    let truncated = markdown.split('## 14. Limitacoes do relatorio')[0]
+    if (truncated.length > 4900) {
+      truncated = truncated.substring(0, 4900)
+    }
+    return (
+      truncated.trim() + '\n\n*(Relatório truncado para caber no limite de caracteres do sistema)*'
+    )
+  }
 
   const loadData = useCallback(async (silent = false) => {
     try {
@@ -96,8 +108,9 @@ export default function QuickReport() {
     try {
       const patient = patients.find((p) => p.id === form.paciente_id)
       const input = parseNQL(form.nqlInput, patient)
-      const report = generateQuickReport(input, { profile: 'clinical' })
+      const report = generateQuickReport(input, { profile: form.profile as any })
       setGeneratedReport(report)
+      setUseTruncated(false)
       toast.success('Relatório gerado e avaliado pelo Engine!')
     } catch (err) {
       console.error(err)
@@ -111,12 +124,24 @@ export default function QuickReport() {
       return
     }
 
+    let finalMarkdown = generatedReport.reportMarkdown
+    if (finalMarkdown.length > 5000) {
+      if (useTruncated) {
+        finalMarkdown = truncateMarkdown(finalMarkdown)
+      } else {
+        toast.error(
+          'Relatório excede o limite de 5000 caracteres. Aceite truncar os anexos metodológicos.',
+        )
+        return
+      }
+    }
+
     try {
       setSaving(true)
       const payload: any = {
         paciente_id: form.paciente_id,
         titulo: form.titulo.trim(),
-        conteudo: generatedReport.reportMarkdown,
+        conteudo: finalMarkdown,
       }
 
       if (user?.id) payload.usuario_id = user.id
@@ -251,11 +276,54 @@ export default function QuickReport() {
               </div>
 
               <div className="space-y-2">
+                <Label>Perfil do Relatório</Label>
+                <Select
+                  value={form.profile}
+                  onValueChange={(value) => updateForm('profile', value)}
+                  disabled={saving}
+                >
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Selecione o perfil" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="clinical">Clínico (Padrão)</SelectItem>
+                    <SelectItem value="family">Familiar (Acessível)</SelectItem>
+                    <SelectItem value="legal">Jurídico (Pericial)</SelectItem>
+                    <SelectItem value="school">Escolar (Adaptações)</SelectItem>
+                    <SelectItem value="evolution">Evolução (Acompanhamento)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2 flex flex-col h-full">
                 <div className="flex justify-between items-center">
                   <Label htmlFor="quick-report-content">
                     Entrada NQL (Neurofunctional Quick Language)
                   </Label>
-                  <span className="text-[10px] text-slate-400">@queixa, @qeeg, @psicometrico</span>
+                  <div className="flex gap-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-6 text-[10px] px-2"
+                      onClick={() =>
+                        updateForm('nqlInput', form.nqlInput + '\n\n[qeeg]\n- Fp1 elevado teta')
+                      }
+                    >
+                      + qEEG
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-6 text-[10px] px-2"
+                      onClick={() =>
+                        updateForm('nqlInput', form.nqlInput + '\n\n[source]\n- Cingulado Anterior')
+                      }
+                    >
+                      + LORETA
+                    </Button>
+                  </div>
                 </div>
                 <Textarea
                   id="quick-report-content"
@@ -263,8 +331,12 @@ export default function QuickReport() {
                   onChange={(event) => updateForm('nqlInput', event.target.value)}
                   disabled={saving}
                   placeholder={`[queixa]\nDesatenção e hiperatividade\n\n[qeeg]\nFp1 elevado teta\n\n[psicometrico]\nBaixo desempenho executivo`}
-                  className="min-h-[300px] font-mono text-sm bg-white resize-y"
+                  className="min-h-[300px] font-mono text-sm bg-white resize-y flex-1"
                 />
+                <p className="text-xs text-slate-500 mt-1">
+                  Use os blocos NQL para estruturar o relatório: [queixa], [clinico],
+                  [desenvolvimento], [escolar], [comportamento], [psicometrico], [qeeg], [source]
+                </p>
               </div>
 
               <Button
@@ -347,11 +419,50 @@ export default function QuickReport() {
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2 border-b pb-2">
-                      <FileText className="w-4 h-4 text-slate-500" /> Preview do Relatório
-                    </h3>
-                    <div className="p-4 border rounded-lg bg-slate-50/50">
-                      <MarkdownRenderer content={generatedReport.reportMarkdown} />
+                    <div className="flex items-center justify-between border-b pb-2 mb-3">
+                      <h3 className="text-sm font-semibold flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-slate-500" /> Preview do Relatório
+                      </h3>
+                      <div className="text-xs text-slate-500">
+                        {useTruncated
+                          ? truncateMarkdown(generatedReport.reportMarkdown).length
+                          : generatedReport.reportMarkdown.length}{' '}
+                        / 5000 chars
+                      </div>
+                    </div>
+
+                    {generatedReport.reportMarkdown.length > 5000 && (
+                      <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                          <div>
+                            <p className="font-medium mb-1">
+                              O relatório excede o limite de 5000 caracteres.
+                            </p>
+                            <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                className="rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                                checked={useTruncated}
+                                onChange={(e) => setUseTruncated(e.target.checked)}
+                              />
+                              <span>
+                                Truncar seções de auditoria e limitações para salvar no prontuário.
+                              </span>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="p-4 border rounded-lg bg-slate-50/50 text-sm">
+                      <MarkdownRenderer
+                        content={
+                          useTruncated
+                            ? truncateMarkdown(generatedReport.reportMarkdown)
+                            : generatedReport.reportMarkdown
+                        }
+                      />
                     </div>
                   </div>
                 </div>
@@ -371,7 +482,14 @@ export default function QuickReport() {
             <Button type="button" variant="outline" onClick={resetDialog} disabled={saving}>
               Cancelar
             </Button>
-            <Button onClick={handleCreateReport} disabled={saving || !generatedReport}>
+            <Button
+              onClick={handleCreateReport}
+              disabled={
+                saving ||
+                !generatedReport ||
+                (generatedReport.reportMarkdown.length > 5000 && !useTruncated)
+              }
+            >
               {saving ? 'Salvando...' : 'Salvar no Prontuário'}
             </Button>
           </DialogFooter>
