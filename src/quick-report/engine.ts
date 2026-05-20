@@ -380,13 +380,13 @@ export function generateQuickReport(
     neurofunctionalState,
   }
 
-  let hypotheses = generateHypotheses({
+  const initialHypotheses = generateHypotheses({
     input: normalized,
     domains: domainMapping,
     state: neurofunctionalState,
   })
 
-  let confidenceLevel = calculateConfidence(normalized)
+  const initialConfidenceLevel = calculateConfidence(normalized)
   const riskAssessment = calculateFunctionalRisk(context)
   const interventionPlan = generateInterventionPhases(context)
   const metaAnalyticEvidence = generateMetaAnalyticEvidence(context)
@@ -405,13 +405,13 @@ export function generateQuickReport(
     clinicalConfidenceScore,
   }
 
-  hypotheses = generateHypotheses({
+  const finalHypotheses = generateHypotheses({
     input: normalized,
     domains: enrichedDomainMapping,
     state: neurofunctionalState,
   })
 
-  confidenceLevel = clinicalConfidenceScore.score / 100
+  const finalConfidenceLevel = clinicalConfidenceScore.score / 100
   const inferenceTrace = [
     'Entrada clinica bruta normalizada semanticamente.',
     'Sinais clinicos extraidos sem conclusao direta por sintoma isolado.',
@@ -427,7 +427,7 @@ export function generateQuickReport(
   ]
   const initialAuditTrace = generateAuditTrace({
     input: normalized,
-    confidenceLevel,
+    confidenceLevel: finalConfidenceLevel,
     riskLevel: riskAssessment.level,
     inferenceTrace,
   })
@@ -445,20 +445,20 @@ export function generateQuickReport(
         SafetyGuard: [PENDING_SAFETY_GUARD],
         RDoCDomain: context.rdocMappings,
         NetworkState: context.networkMappings,
-        FunctionalHypothesis: hypotheses.functionalHypotheses,
+        FunctionalHypothesis: finalHypotheses.functionalHypotheses,
         RiskVector: [riskAssessment],
         InterventionPhase: [interventionPlan],
         AuditTrace: [initialAuditTrace],
       },
       clinicalSignals,
       domainMapping: enrichedDomainMapping,
-      functionalHypotheses: hypotheses.functionalHypotheses,
+      functionalHypotheses: finalHypotheses.functionalHypotheses,
       clinicalConfidenceScore,
       safetyGuard: PENDING_SAFETY_GUARD,
     },
     neurofunctionalState,
-    dominantHypothesis: hypotheses.dominantHypothesis,
-    differentialHypotheses: hypotheses.differentialHypotheses,
+    dominantHypothesis: finalHypotheses.dominantHypothesis,
+    differentialHypotheses: finalHypotheses.differentialHypotheses,
     riskLevel: riskAssessment.level,
     interventionPlan,
     clinicalConfidenceScore,
@@ -478,7 +478,7 @@ export function generateQuickReport(
   )
   const finalAuditTrace = generateAuditTrace({
     input: normalized,
-    confidenceLevel,
+    confidenceLevel: finalConfidenceLevel,
     riskLevel: riskAssessment.level,
     inferenceTrace,
     safetyGuard: firstSafetyGuard,
