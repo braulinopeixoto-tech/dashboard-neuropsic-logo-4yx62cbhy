@@ -114,24 +114,44 @@ export default function NovoPaciente() {
   }
 
   const onSubmit = async (data: FormValues) => {
-    if (!data.nome || !data.endereco || !data.documento) {
+    if (!data.nome?.trim() || !data.endereco?.trim() || !data.documento?.trim()) {
       return toast.error('Os campos Nome, Endereço e Documento são obrigatórios.')
     }
     if (!user?.id) {
       return toast.error('Usuário não autenticado.')
     }
-    if (files.length > 0 && !data.examesConfirmados)
+    if (files.length > 0 && !data.examesConfirmados) {
       return toast.error('Confirme a anexação dos exames.')
+    }
     try {
       const fd = new FormData()
-      Object.entries(data).forEach(([k, v]) => {
-        if (v !== undefined && v !== '' && k !== 'examesConfirmados') {
-          fd.append(k, k === 'data_nascimento' ? `${v} 12:00:00.000Z` : String(v))
-        }
-      })
-      fd.append('ativo', 'true')
+
+      // Validação de Integridade e Relacionamento (Mandatory)
       fd.append('usuario_id', user.id)
-      files.forEach((f) => fd.append('exames', f))
+      fd.append('nome', data.nome.trim())
+      fd.append('endereco', data.endereco.trim())
+      fd.append('documento', data.documento.trim())
+      fd.append('ativo', 'true') // Boolean via FormData sempre será enviado como string correspondente
+
+      // Optional fields
+      if (data.email?.trim()) fd.append('email', data.email.trim())
+      if (data.telefone?.trim()) fd.append('telefone', data.telefone.trim())
+      if (data.unidade?.trim()) fd.append('unidade', data.unidade.trim())
+      if (data.queixa_principal?.trim()) fd.append('queixa_principal', data.queixa_principal.trim())
+      if (data.historico_medico?.trim()) fd.append('historico_medico', data.historico_medico.trim())
+      if (data.medicacoes_atuais?.trim())
+        fd.append('medicacoes_atuais', data.medicacoes_atuais.trim())
+
+      // Data Type Compliance: ISO string para compatibilidade com Date do PocketBase
+      if (data.data_nascimento) {
+        const dateIso = new Date(`${data.data_nascimento}T12:00:00.000Z`).toISOString()
+        fd.append('data_nascimento', dateIso)
+      }
+
+      // File Upload Handling
+      if (files.length > 0) {
+        files.forEach((f) => fd.append('exames', f))
+      }
 
       await pb.collection('pacientes').create(fd)
       toast.success('Paciente cadastrado com sucesso!', {
@@ -142,6 +162,7 @@ export default function NovoPaciente() {
       if (err.status === 0 || err.message === 'Failed to fetch' || err.isAbort) {
         toast.error('Falha na conexão com o servidor. Verifique sua internet e tente novamente.')
       } else if (err.status === 400) {
+        // Backend Error Feedback com extractFieldErrors
         const fieldErrors = extractFieldErrors(err)
         let hasFieldErrors = false
 
@@ -150,12 +171,18 @@ export default function NovoPaciente() {
           if (field === 'email' && message.toLowerCase().includes('unique')) {
             translatedMessage = 'Este e-mail já está em uso'
           }
-          form.setError(field as any, { type: 'server', message: translatedMessage })
+          if (field === 'usuario_id') {
+            toast.error(
+              'Erro de integridade no relacionamento do usuário. Tente fazer login novamente.',
+            )
+          } else {
+            form.setError(field as any, { type: 'server', message: translatedMessage })
+          }
           hasFieldErrors = true
         })
 
         if (hasFieldErrors) {
-          toast.error('Verifique os erros nos campos destacados.')
+          toast.error('Verifique os erros apontados nos campos destacados.')
           if (
             step === 2 &&
             (fieldErrors.nome ||
@@ -169,9 +196,7 @@ export default function NovoPaciente() {
             setStep(1)
           }
         } else {
-          toast.error(
-            'Erro ao cadastrar paciente. Verifique se todos os campos obrigatórios foram preenchidos corretamente.',
-          )
+          toast.error('Erro de validação no servidor. Verifique os campos e tente novamente.')
         }
       } else {
         toast.error('Erro ao salvar os dados do paciente. Tente novamente mais tarde.')

@@ -34,3 +34,10 @@ screenshot.png
 
 # Environment variables
 .env*
+
+# Generated output, caches, and crash artifacts (Skip-managed)
+*.bak-*
+*.legacy-bak-*
+*.failed-*
+*.tmp
+core.[0-9]*
