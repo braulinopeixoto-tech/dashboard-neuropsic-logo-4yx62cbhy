@@ -32,13 +32,11 @@
     "README.md"
   ],
   "deployment": {
-    "lastDevBuildRef": "68ccbae"
+    "lastDevBuildRef": "3af15f5"
   },
   "migrations": {
     "applied": [
-      "0001-pnpm-workspace-allow-builds",
-      "0002-package-json-pnpm-field",
-      "0003-ignore-generated-in-lint-format"
+      "0001-pnpm-workspace-allow-builds"
     ]
   }
 }

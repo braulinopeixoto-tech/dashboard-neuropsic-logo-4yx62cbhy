@@ -7,47 +7,10 @@
   "env": {
     "builtin": true
   },
-  "ignorePatterns": [
-    "dist",
-    "**/*.d.ts",
-    "tests/**/*",
-    "logs",
-    "*.log",
-    "npm-debug.log*",
-    "yarn-debug.log*",
-    "yarn-error.log*",
-    "pnpm-debug.log*",
-    "lerna-debug.log*",
-    "node_modules",
-    "dist-ssr",
-    "dev-dist",
-    "dev-dist-ssr",
-    "*.local",
-    ".pnpm-store",
-    ".pnpm",
-    "*.bak-*",
-    "*.legacy-bak-*",
-    "*.failed-*",
-    "*.tmp",
-    ".vscode/*",
-    ".idea",
-    ".DS_Store",
-    "*.suo",
-    "*.ntvs*",
-    "*.njsproj",
-    "*.sln",
-    "*.sw?",
-    "screenshot.png",
-    ".eslintcache",
-    ".oxlintcache",
-    ".env*",
-    "core.[0-9]*"
-  ],
+  "ignorePatterns": ["dist", "**/*.d.ts", "tests/**/*"],
   "overrides": [
     {
-      "files": [
-        "**/*.{ts,tsx}"
-      ],
+      "files": ["**/*.{ts,tsx}"],
       "rules": {
         "for-direction": "error",
         "no-async-promise-executor": "error",
@@ -106,9 +69,7 @@
       }
     },
     {
-      "files": [
-        "**/*.{ts,tsx}"
-      ],
+      "files": ["**/*.{ts,tsx}"],
       "rules": {
         "no-class-assign": "off",
         "no-const-assign": "off",
@@ -129,9 +90,7 @@
       }
     },
     {
-      "files": [
-        "**/*.{ts,tsx}"
-      ],
+      "files": ["**/*.{ts,tsx}"],
       "rules": {
         "@typescript-eslint/ban-ts-comment": "error",
         "no-array-constructor": "error",
@@ -154,14 +113,10 @@
         "@typescript-eslint/prefer-namespace-keyword": "error",
         "@typescript-eslint/triple-slash-reference": "error"
       },
-      "plugins": [
-        "typescript"
-      ]
+      "plugins": ["typescript"]
     },
     {
-      "files": [
-        "**/*.{ts,tsx}"
-      ],
+      "files": ["**/*.{ts,tsx}"],
       "rules": {
         "react-hooks/rules-of-hooks": "error",
         "react-hooks/exhaustive-deps": "warn",
@@ -190,10 +145,7 @@
         "node": true,
         "shared-node-browser": true
       },
-      "plugins": [
-        "react",
-        "typescript"
-      ]
+      "plugins": ["react", "typescript"]
     }
   ]
 }
