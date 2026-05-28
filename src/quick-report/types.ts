@@ -109,6 +109,7 @@ export type QuickReportInput = {
     birthDate?: string
     school?: string
     guardian?: string
+    city?: string
   }
   complaint: string[]
   developmentalHistory?: string[]
@@ -116,6 +117,9 @@ export type QuickReportInput = {
   schoolHistory?: string[]
   behavioralFindings?: string[]
   psychometricFindings?: string[]
+  recommendationsRaw?: string[]
+  responsibleProfessional?: string
+  documentPurpose?: string
   qeeg?: {
     findings: string[]
     bands?: string[]
