@@ -68,7 +68,8 @@ export function calculateFunctionalRisk(context: NeurofunctionalContext): RiskAs
   const moderateEvidence = MODERATE_RISK_TERMS.filter((term) => text.includes(term))
   const pediatricMarkers = PEDIATRIC_NEURODEVELOPMENTAL_TERMS.filter((term) => text.includes(term))
   const ageYears = parseAgeYears(context.input.patient.age)
-  const hasPediatricModerateRisk = ageYears !== undefined && ageYears <= 6 && pediatricMarkers.length >= 2
+  const hasPediatricModerateRisk =
+    ageYears !== undefined && ageYears <= 6 && pediatricMarkers.length >= 2
   const deltaWakeMarkers = context.qeegStructuredMarkers.filter(
     (marker) => marker.band === 'delta' && marker.energyImpact === 'hypoactive',
   )

@@ -1,12 +1,26 @@
 const SECTION_ALIASES: Array<{ key: string; patterns: string[] }> = [
-  { key: 'development', patterns: ['historico clinico e do neurodesenvolvimento', 'histórico clínico e do neurodesenvolvimento'] },
+  {
+    key: 'development',
+    patterns: [
+      'historico clinico e do neurodesenvolvimento',
+      'histórico clínico e do neurodesenvolvimento',
+    ],
+  },
   { key: 'language', patterns: ['comunicacao e linguagem', 'comunicação e linguagem'] },
   { key: 'social', patterns: ['interacao social', 'interação social'] },
   { key: 'restricted', patterns: ['comportamentos restritivos e repetitivos'] },
   { key: 'sensory', patterns: ['integracao sensorial', 'integração sensorial'] },
   { key: 'sleep', patterns: ['sono e regulacao', 'sono e regulação'] },
   { key: 'qeeg', patterns: ['analise neurofuncional', 'análise neurofuncional', 'qeeg', 'qEEG'] },
-  { key: 'source', patterns: ['coordenada neurofuncional', 'source localization', 'localizacao de fonte', 'localização de fonte'] },
+  {
+    key: 'source',
+    patterns: [
+      'coordenada neurofuncional',
+      'source localization',
+      'localizacao de fonte',
+      'localização de fonte',
+    ],
+  },
   { key: 'recommendations', patterns: ['recomendacoes', 'recomendações'] },
 ]
 
@@ -66,7 +80,9 @@ export function isNoiseLine(line: string): boolean {
   if (!cleaned) return true
   if (NOISE_PATTERNS.some((pattern) => pattern.test(cleaned))) return true
   if (metadataLabel(cleaned)) return true
-  return SECTION_ALIASES.some((section) => section.patterns.some((pattern) => normalize(cleaned) === normalize(pattern)))
+  return SECTION_ALIASES.some((section) =>
+    section.patterns.some((pattern) => normalize(cleaned) === normalize(pattern)),
+  )
 }
 
 export function cleanClinicalLine(line: string): string {
@@ -75,7 +91,9 @@ export function cleanClinicalLine(line: string): string {
 
 export function getSectionKey(line: string): string | undefined {
   const cleaned = normalize(stripMarkdown(line).replace(/:$/, ''))
-  const section = SECTION_ALIASES.find((item) => item.patterns.some((pattern) => cleaned.includes(normalize(pattern))))
+  const section = SECTION_ALIASES.find((item) =>
+    item.patterns.some((pattern) => cleaned.includes(normalize(pattern))),
+  )
   return section?.key
 }
 

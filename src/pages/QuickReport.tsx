@@ -42,7 +42,12 @@ import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { Skeleton } from '@/components/ui/skeleton'
-import { generateQuickReport, type QuickReportInput, type QuickReportOutput, type ReportProfile } from '@/quick-report'
+import {
+  generateQuickReport,
+  type QuickReportInput,
+  type QuickReportOutput,
+  type ReportProfile,
+} from '@/quick-report'
 import { parseNQL } from '@/quick-report/nql-parser'
 import { runQuickReportFromRawText } from '@/services/quick-report-engine-adapter'
 import { MarkdownRenderer } from '@/components/MarkdownRenderer'
@@ -232,7 +237,10 @@ export default function QuickReport() {
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Quick Reports</h1>
-            <Badge variant="secondary" className="border border-emerald-200 bg-emerald-50 text-emerald-700">
+            <Badge
+              variant="secondary"
+              className="border border-emerald-200 bg-emerald-50 text-emerald-700"
+            >
               Quick Report Engine: NQL Advanced Pipeline Active
             </Badge>
           </div>
@@ -283,12 +291,16 @@ export default function QuickReport() {
         )}
       </div>
 
-      <Dialog open={openCreateDialog} onOpenChange={(open) => (open ? setOpenCreateDialog(true) : resetDialog())}>
+      <Dialog
+        open={openCreateDialog}
+        onOpenChange={(open) => (open ? setOpenCreateDialog(true) : resetDialog())}
+      >
         <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 overflow-hidden">
           <DialogHeader className="p-6 pb-2 shrink-0 border-b">
             <DialogTitle>Gerar Quick Report Avançado</DialogTitle>
             <DialogDescription>
-              Gere preview local sem paciente cadastrado. O paciente só é obrigatório para salvar no PocketBase e vincular ao prontuário.
+              Gere preview local sem paciente cadastrado. O paciente só é obrigatório para salvar no
+              PocketBase e vincular ao prontuário.
             </DialogDescription>
           </DialogHeader>
 
@@ -314,7 +326,8 @@ export default function QuickReport() {
                 </Select>
                 {patients.length === 0 && (
                   <p className="text-sm text-amber-600">
-                    Sem paciente ativo: o preview local continua liberado; salvar no PocketBase permanece bloqueado.
+                    Sem paciente ativo: o preview local continua liberado; salvar no PocketBase
+                    permanece bloqueado.
                   </p>
                 )}
               </div>
@@ -385,7 +398,8 @@ export default function QuickReport() {
                     className="min-h-[340px] text-sm bg-white resize-y flex-1"
                   />
                   <p className="text-xs text-slate-500">
-                    Fluxo: texto bruto -&gt; parseRawClinicalReport -&gt; generateQuickReport -&gt; reportMarkdown.
+                    Fluxo: texto bruto -&gt; parseRawClinicalReport -&gt; generateQuickReport -&gt;
+                    reportMarkdown.
                   </p>
                 </div>
               ) : (
@@ -410,7 +424,10 @@ export default function QuickReport() {
                         size="sm"
                         className="h-6 text-[10px] px-2"
                         onClick={() =>
-                          updateForm('nqlInput', form.nqlInput + '\n\n[source]\n- Cingulado Anterior')
+                          updateForm(
+                            'nqlInput',
+                            form.nqlInput + '\n\n[source]\n- Cingulado Anterior',
+                          )
                         }
                       >
                         + LORETA
@@ -426,7 +443,8 @@ export default function QuickReport() {
                     className="min-h-[340px] font-mono text-sm bg-white resize-y flex-1"
                   />
                   <p className="text-xs text-slate-500">
-                    Use blocos NQL: [queixa], [clinico], [desenvolvimento], [escolar], [comportamento], [psicometrico], [qeeg], [source].
+                    Use blocos NQL: [queixa], [clinico], [desenvolvimento], [escolar],
+                    [comportamento], [psicometrico], [qeeg], [source].
                   </p>
                 </div>
               )}
@@ -503,7 +521,8 @@ export default function QuickReport() {
                       </div>
                       {generatedReport.safetyGuard.findings.length > 0 && (
                         <p className="text-xs text-slate-500 mt-2">
-                          {generatedReport.safetyGuard.findings.length} correção(ões) de linguagem clínica aplicadas.
+                          {generatedReport.safetyGuard.findings.length} correção(ões) de linguagem
+                          clínica aplicadas.
                         </p>
                       )}
                     </div>
@@ -586,7 +605,8 @@ export default function QuickReport() {
                 <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 p-8">
                   <Brain className="w-12 h-12 mb-4 text-slate-200" />
                   <p className="text-sm">
-                    Escolha Texto bruto ou NQL manual e clique em "Gerar Relatório Avançado" para ver o parser, o engine e o Markdown final.
+                    Escolha Texto bruto ou NQL manual e clique em "Gerar Relatório Avançado" para
+                    ver o parser, o engine e o Markdown final.
                   </p>
                 </div>
               )}

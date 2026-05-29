@@ -20,7 +20,12 @@ const COORDINATE_ATLAS_LIMITATION =
 
 const ANATOMICAL_RULES: AnatomicalRule[] = [
   {
-    keys: ['area de broca', 'broca', 'cortex frontal inferior esquerdo', 'frontal inferior esquerdo'],
+    keys: [
+      'area de broca',
+      'broca',
+      'cortex frontal inferior esquerdo',
+      'frontal inferior esquerdo',
+    ],
     brodmannAreas: ['BA44', 'BA45'],
     probableNetwork: ['Language Network', 'Auditory Network', 'Social Processes Network'],
     probableFunction: ['linguagem expressiva', 'organizacao verbal', 'comunicacao social'],
@@ -127,7 +132,10 @@ function normalizeBrodmann(value?: string): string | undefined {
   return match ? match[0].replace(/\s+/g, '') : value.trim()
 }
 
-function inferHemisphere(coordinate?: BrainCoordinate, region?: string): SourceLocalizationMarker['hemisphere'] {
+function inferHemisphere(
+  coordinate?: BrainCoordinate,
+  region?: string,
+): SourceLocalizationMarker['hemisphere'] {
   const normalizedRegion = normalizeText(region)
   if (normalizedRegion.includes('bilateral')) return 'bilateral'
   if (normalizedRegion.includes('esquerdo') || normalizedRegion.includes('left')) return 'left'

@@ -20,7 +20,14 @@ export function parseRawClinicalReport(rawText: string): QuickReportInput {
 
   const developmentalHistory = sectionItems(sections, ['development'])
   const clinicalHistory = sectionItems(sections, ['development', 'sleep'])
-  const behavioralFindings = sectionItems(sections, ['development', 'language', 'social', 'restricted', 'sensory', 'sleep'])
+  const behavioralFindings = sectionItems(sections, [
+    'development',
+    'language',
+    'social',
+    'restricted',
+    'sensory',
+    'sleep',
+  ])
   const psychometricFindings = sectionItems(sections, ['language'])
   const recommendationsRaw = sectionItems(sections, ['recommendations'])
 

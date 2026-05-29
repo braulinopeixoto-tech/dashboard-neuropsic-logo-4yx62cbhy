@@ -8,15 +8,32 @@ function includesAny(text: string, terms: string[]): boolean {
 }
 
 function extractBrodmann(text: string): string[] {
-  return [...new Set((text.match(/BA\s*(44|45|46|32|24|7|31)/gi) || []).map((item) => item.toUpperCase().replace(/\s+/g, '')))]
+  return [
+    ...new Set(
+      (text.match(/BA\s*(44|45|46|32|24|7|31)/gi) || []).map((item) =>
+        item.toUpperCase().replace(/\s+/g, ''),
+      ),
+    ),
+  ]
 }
 
-export function extractSourceLocalization(rawText: string, sourceSection: string[] = []): SourceExtraction | undefined {
+export function extractSourceLocalization(
+  rawText: string,
+  sourceSection: string[] = [],
+): SourceExtraction | undefined {
   const text = `${sourceSection.join('\n')}\n${rawText}`
   const regions: string[] = []
   const brodmannAreas = extractBrodmann(text)
 
-  if (includesAny(text, ['area de broca', 'área de broca', 'broca', 'cortex frontal inferior esquerdo', 'córtex frontal inferior esquerdo'])) {
+  if (
+    includesAny(text, [
+      'area de broca',
+      'área de broca',
+      'broca',
+      'cortex frontal inferior esquerdo',
+      'córtex frontal inferior esquerdo',
+    ])
+  ) {
     regions.push('cortex frontal inferior esquerdo')
     if (!brodmannAreas.includes('BA44')) brodmannAreas.push('BA44')
     if (!brodmannAreas.includes('BA45')) brodmannAreas.push('BA45')
@@ -38,7 +55,11 @@ export function extractSourceLocalization(rawText: string, sourceSection: string
   if (!uniqueRegions.length && !brodmannAreas.length) return undefined
 
   return {
-    method: includesAny(text, ['eloreta', 'eLORETA']) ? 'eLORETA' : includesAny(text, ['sloreta', 'sLORETA', 'loreta']) ? 'sLORETA' : 'other',
+    method: includesAny(text, ['eloreta', 'eLORETA'])
+      ? 'eLORETA'
+      : includesAny(text, ['sloreta', 'sLORETA', 'loreta'])
+        ? 'sLORETA'
+        : 'other',
     regions: uniqueRegions,
     brodmannAreas,
   }

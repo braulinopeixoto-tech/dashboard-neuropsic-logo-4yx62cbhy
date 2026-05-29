@@ -1,7 +1,10 @@
 import type { QuickReportInput } from '../types'
 
 function clean(value?: string): string | undefined {
-  const cleaned = (value || '').replace(/\*\*/g, '').replace(/^[-*]\s*/, '').trim()
+  const cleaned = (value || '')
+    .replace(/\*\*/g, '')
+    .replace(/^[-*]\s*/, '')
+    .trim()
   return cleaned || undefined
 }
 
@@ -20,7 +23,13 @@ function findLabel(rawText: string, labels: string[]): string | undefined {
 
 function inferPurpose(rawText: string): QuickReportInput['requestedPurpose'] {
   const text = rawText.toLowerCase()
-  if (text.includes('beneficio') || text.includes('benefício') || text.includes('juridico') || text.includes('jurídico')) return 'legal_social_benefit'
+  if (
+    text.includes('beneficio') ||
+    text.includes('benefício') ||
+    text.includes('juridico') ||
+    text.includes('jurídico')
+  )
+    return 'legal_social_benefit'
   if (text.includes('encaminhamento') || text.includes('diagnost')) return 'diagnostic_referral'
   if (text.includes('evolucao') || text.includes('evolução')) return 'evolution_report'
   if (text.includes('rastreamento')) return 'screening'

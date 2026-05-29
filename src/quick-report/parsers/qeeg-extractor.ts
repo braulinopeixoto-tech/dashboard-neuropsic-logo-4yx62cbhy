@@ -35,10 +35,15 @@ function extractLocations(line: string): string | undefined {
 }
 
 function isQeegLine(line: string): boolean {
-  return /qEEG|eeg|frequ[eê]ncia|pot[eê]ncia|amplitude|theta|teta|alpha|alfa|beta|delta|gamma|\bFp1\b|\bFp2\b|\bFz\b|\bCz\b|\bO1\b|\bO2\b/i.test(line)
+  return /qEEG|eeg|frequ[eê]ncia|pot[eê]ncia|amplitude|theta|teta|alpha|alfa|beta|delta|gamma|\bFp1\b|\bFp2\b|\bFz\b|\bCz\b|\bO1\b|\bO2\b/i.test(
+    line,
+  )
 }
 
-export function extractQeeg(rawText: string, qeegSection: string[] = []): QuickReportInput['qeeg'] | undefined {
+export function extractQeeg(
+  rawText: string,
+  qeegSection: string[] = [],
+): QuickReportInput['qeeg'] | undefined {
   const lines = [...qeegSection, ...rawText.split(/\r?\n/).filter(isQeegLine)]
   const findings: string[] = []
   const bands: string[] = []
@@ -73,6 +78,7 @@ export function extractQeeg(rawText: string, qeegSection: string[] = []): QuickR
     frequencyHz,
     location10_20,
     amplitude,
-    interpretation: 'Achados extraidos automaticamente de relatorio bruto; requerem revisao profissional.',
+    interpretation:
+      'Achados extraidos automaticamente de relatorio bruto; requerem revisao profissional.',
   }
 }
