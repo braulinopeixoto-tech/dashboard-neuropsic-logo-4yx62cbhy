@@ -36,6 +36,9 @@ import {
   Brain,
   ShieldAlert,
   FileBarChart,
+  Fingerprint,
+  UserCheck,
+  XCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/hooks/use-auth'
@@ -53,6 +56,7 @@ import { runQuickReportFromRawText } from '@/services/quick-report-engine-adapte
 import { MarkdownRenderer } from '@/components/MarkdownRenderer'
 
 type InputMode = 'raw' | 'nql'
+type HumanReviewDecision = 'PENDING' | 'APPROVED' | 'REJECTED'
 
 type QuickReportForm = {
   paciente_id: string
@@ -83,6 +87,8 @@ export default function QuickReport() {
   const [generatedReport, setGeneratedReport] = useState<QuickReportOutput | null>(null)
   const [parsedInput, setParsedInput] = useState<QuickReportInput | null>(null)
   const [useTruncated, setUseTruncated] = useState(false)
+  const [humanReviewDecision, setHumanReviewDecision] =
+    useState<HumanReviewDecision>('PENDING')
 
   const truncateMarkdown = (markdown: string) => {
     let truncated = markdown.split('## 14. Limitacoes do relatorio')[0]
@@ -123,6 +129,7 @@ export default function QuickReport() {
     setGeneratedReport(null)
     setParsedInput(null)
     setUseTruncated(false)
+    setHumanReviewDecision('PENDING')
   }
 
   const handleGeneratePreview = () => {
@@ -155,6 +162,7 @@ export default function QuickReport() {
       setParsedInput(input)
       setGeneratedReport(report)
       setUseTruncated(false)
+      setHumanReviewDecision('PENDING')
       toast.success('Relatório avançado gerado pelo pipeline NQL.')
     } catch (err) {
       console.error(err)
@@ -165,6 +173,10 @@ export default function QuickReport() {
   const handleCreateReport = async () => {
     if (!form.paciente_id || !form.titulo.trim() || !generatedReport) {
       toast.error('Selecione paciente, informe título e gere o relatório antes de salvar.')
+      return
+    }
+    if (humanReviewDecision !== 'APPROVED') {
+      toast.error('A revisão humana deve aprovar o preview antes da persistência.')
       return
     }
 
@@ -539,6 +551,110 @@ export default function QuickReport() {
                     </div>
                   )}
 
+                  <Card className="border-cyan-200 bg-cyan-50/40">
+                    <CardHeader className="pb-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <CardTitle className="flex items-center gap-2 text-base">
+                            <Fingerprint className="h-4 w-4 text-cyan-700" />
+                            AI Trust e revisão profissional
+                          </CardTitle>
+                          <CardDescription className="mt-1">
+                            Confira a trilha antes de autorizar a persistência no prontuário.
+                          </CardDescription>
+                        </div>
+                        <Badge
+                          variant={
+                            humanReviewDecision === 'APPROVED'
+                              ? 'default'
+                              : humanReviewDecision === 'REJECTED'
+                                ? 'destructive'
+                                : 'secondary'
+                          }
+                        >
+                          {humanReviewDecision === 'APPROVED'
+                            ? 'APROVADO'
+                            : humanReviewDecision === 'REJECTED'
+                              ? 'REJEITADO'
+                              : 'AGUARDANDO REVISÃO'}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <dl className="grid gap-3 text-xs sm:grid-cols-2">
+                        <div className="rounded-lg border bg-white p-3">
+                          <dt className="font-semibold text-slate-500">Fingerprint do input</dt>
+                          <dd className="mt-1 break-all font-mono text-slate-800">
+                            {generatedReport.auditTrace.inputHash}
+                          </dd>
+                        </div>
+                        <div className="rounded-lg border bg-white p-3">
+                          <dt className="font-semibold text-slate-500">Versão do motor</dt>
+                          <dd className="mt-1 font-medium text-slate-800">
+                            {generatedReport.auditTrace.engineVersion}
+                          </dd>
+                        </div>
+                        <div className="rounded-lg border bg-white p-3">
+                          <dt className="font-semibold text-slate-500">Campos utilizados</dt>
+                          <dd className="mt-1 text-slate-700">
+                            {generatedReport.auditTrace.fieldsUsed.join(', ') || 'Nenhum'}
+                          </dd>
+                        </div>
+                        <div className="rounded-lg border bg-white p-3">
+                          <dt className="font-semibold text-slate-500">Campos ausentes</dt>
+                          <dd className="mt-1 text-slate-700">
+                            {generatedReport.auditTrace.fieldsMissing.join(', ') || 'Nenhum'}
+                          </dd>
+                        </div>
+                      </dl>
+
+                      <div className="grid gap-3 lg:grid-cols-2">
+                        <div className="rounded-lg border bg-white p-3">
+                          <p className="text-xs font-semibold text-slate-500">Limitações</p>
+                          <ul className="mt-2 space-y-1 text-xs text-slate-700">
+                            {generatedReport.auditTrace.limitations.map((limitation) => (
+                              <li key={limitation}>• {limitation}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="rounded-lg border bg-white p-3">
+                          <p className="text-xs font-semibold text-slate-500">
+                            Trilha de inferência
+                          </p>
+                          <ul className="mt-2 space-y-1 text-xs text-slate-700">
+                            {generatedReport.auditTrace.inferenceTrace.map((entry) => (
+                              <li key={entry}>• {entry}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            setHumanReviewDecision('APPROVED')
+                            toast.success('Preview aprovado para persistência pelo profissional.')
+                          }}
+                        >
+                          <UserCheck className="mr-2 h-4 w-4" />
+                          Aprovar preview
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setHumanReviewDecision('REJECTED')
+                            toast.info('Preview rejeitado. O conteúdo foi preservado para revisão.')
+                          }}
+                        >
+                          <XCircle className="mr-2 h-4 w-4" />
+                          Rejeitar e revisar
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+
                   <div>
                     <div className="flex items-center justify-between border-b pb-2 mb-3">
                       <h3 className="text-sm font-semibold flex items-center gap-2">
@@ -624,6 +740,7 @@ export default function QuickReport() {
                 !form.paciente_id ||
                 !form.titulo.trim() ||
                 !generatedReport ||
+                humanReviewDecision !== 'APPROVED' ||
                 (generatedReport.reportMarkdown.length > 50000 && !useTruncated)
               }
             >

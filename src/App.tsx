@@ -25,7 +25,7 @@ import RelatorioFinal from './pages/RelatorioFinal'
 import ResumoProntuario from './pages/ResumoProntuario'
 import RelatorioConformidade from './pages/RelatorioConformidade'
 import GestaoClinica from './pages/GestaoClinica'
-import QuickReport from './pages/QuickReport'
+import NeuropsychologistExpertDashboard from './features/quick-report-expert-dashboard/NeuropsychologistExpertDashboard'
 
 const App = () => (
   <AuthProvider>
@@ -54,7 +54,7 @@ const App = () => (
             <Route path="/relatorios" element={<Relatorios />} />
             <Route path="/relatorio-conformidade" element={<RelatorioConformidade />} />
             <Route path="/gestao-clinica" element={<GestaoClinica />} />
-            <Route path="/quick-report" element={<QuickReport />} />
+            <Route path="/quick-report" element={<NeuropsychologistExpertDashboard />} />
             <Route path="/auditoria" element={<Auditoria />} />
             <Route path="/compliance" element={<Compliance />} />
             <Route path="/configuracoes" element={<Configuracoes />} />
