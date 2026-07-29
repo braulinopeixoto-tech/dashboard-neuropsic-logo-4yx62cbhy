@@ -22,17 +22,17 @@ adds:
 
 ## Runtime truth
 
-| Capability | Actual state |
-|---|---|
-| Raw/NQL parsing | Implemented |
+| Capability                        | Actual state               |
+| --------------------------------- | -------------------------- |
+| Raw/NQL parsing                   | Implemented                |
 | Neurofunctional report generation | Deterministic local engine |
-| Safety Guard | Implemented |
-| Input fingerprint | Implemented |
-| AuditTrace | Implemented |
-| Human approve/reject | Implemented in this port |
-| Real LLM | Not demonstrated |
-| Real vector retrieval | Not demonstrated |
-| Production deployment | Not performed |
+| Safety Guard                      | Implemented                |
+| Input fingerprint                 | Implemented                |
+| AuditTrace                        | Implemented                |
+| Human approve/reject              | Implemented in this port   |
+| Real LLM                          | Not demonstrated           |
+| Real vector retrieval             | Not demonstrated           |
+| Production deployment             | Not performed              |
 
 No deterministic or mocked behavior may be reported as evidence of a real LLM
 or real retrieval.

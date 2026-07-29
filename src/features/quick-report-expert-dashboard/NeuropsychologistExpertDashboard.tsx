@@ -67,9 +67,9 @@ export default function NeuropsychologistExpertDashboard() {
               Quick Report clínico com AI Trust verificável
             </h1>
             <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-300 md:text-base">
-              O pipeline pode estruturar evidências e propor sínteses prudentes. A
-              responsabilidade, aprovação e persistência do documento continuam sob
-              controle explícito do profissional.
+              O pipeline pode estruturar evidências e propor sínteses prudentes. A responsabilidade,
+              aprovação e persistência do documento continuam sob controle explícito do
+              profissional.
             </p>
           </div>
 

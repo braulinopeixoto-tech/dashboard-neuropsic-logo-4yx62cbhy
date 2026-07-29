@@ -87,8 +87,7 @@ export default function QuickReport() {
   const [generatedReport, setGeneratedReport] = useState<QuickReportOutput | null>(null)
   const [parsedInput, setParsedInput] = useState<QuickReportInput | null>(null)
   const [useTruncated, setUseTruncated] = useState(false)
-  const [humanReviewDecision, setHumanReviewDecision] =
-    useState<HumanReviewDecision>('PENDING')
+  const [humanReviewDecision, setHumanReviewDecision] = useState<HumanReviewDecision>('PENDING')
 
   const truncateMarkdown = (markdown: string) => {
     let truncated = markdown.split('## 14. Limitacoes do relatorio')[0]
