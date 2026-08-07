@@ -39,11 +39,12 @@ import {
   Fingerprint,
   UserCheck,
   XCircle,
+  Database,
+  Circle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
-import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   generateQuickReport,
@@ -54,9 +55,23 @@ import {
 import { parseNQL } from '@/quick-report/nql-parser'
 import { runQuickReportFromRawText } from '@/services/quick-report-engine-adapter'
 import { MarkdownRenderer } from '@/components/MarkdownRenderer'
+import { assemblePatientClinicalContext } from '@/services/clinical-context'
+import {
+  commitCanonicalQuickReport,
+  type CanonicalQuickReportCommitResult,
+} from '@/services/canonical-quick-report'
+import {
+  generateExpertQuickReport,
+  type ExpertQuickReportResult,
+} from '@/services/quick-report-expert'
+import {
+  createSubmissionKey,
+  getCanonicalCommitReadiness,
+  type ClinicalContextSnapshot,
+  type HumanReviewDecision,
+} from '@/features/clinical-records/canonical-contract'
 
 type InputMode = 'raw' | 'nql'
-type HumanReviewDecision = 'PENDING' | 'APPROVED' | 'REJECTED'
 
 type QuickReportForm = {
   paciente_id: string
@@ -81,6 +96,7 @@ export default function QuickReport() {
   const [reports, setReports] = useState<any[]>([])
   const [patients, setPatients] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [generating, setGenerating] = useState(false)
   const [saving, setSaving] = useState(false)
   const [openCreateDialog, setOpenCreateDialog] = useState(false)
   const [form, setForm] = useState<QuickReportForm>(emptyForm)
@@ -88,6 +104,11 @@ export default function QuickReport() {
   const [parsedInput, setParsedInput] = useState<QuickReportInput | null>(null)
   const [useTruncated, setUseTruncated] = useState(false)
   const [humanReviewDecision, setHumanReviewDecision] = useState<HumanReviewDecision>('PENDING')
+  const [contextSnapshot, setContextSnapshot] = useState<ClinicalContextSnapshot | null>(null)
+  const [commitResult, setCommitResult] = useState<CanonicalQuickReportCommitResult | null>(null)
+  const [submissionKey, setSubmissionKey] = useState(() => createSubmissionKey('report'))
+  const [expertRuntime, setExpertRuntime] = useState<ExpertQuickReportResult | null>(null)
+  const [expertRuntimeError, setExpertRuntimeError] = useState<string | null>(null)
 
   const truncateMarkdown = (markdown: string) => {
     let truncated = markdown.split('## 14. Limitacoes do relatorio')[0]
@@ -120,18 +141,24 @@ export default function QuickReport() {
     loadData()
   }, [loadData])
 
-  const updateForm = <K extends keyof QuickReportForm>(field: K, value: QuickReportForm[K]) => {
-    setForm((current) => ({ ...current, [field]: value }))
-  }
-
   const clearGeneratedState = () => {
     setGeneratedReport(null)
     setParsedInput(null)
     setUseTruncated(false)
     setHumanReviewDecision('PENDING')
+    setContextSnapshot(null)
+    setCommitResult(null)
+    setSubmissionKey(createSubmissionKey('report'))
+    setExpertRuntime(null)
+    setExpertRuntimeError(null)
   }
 
-  const handleGeneratePreview = () => {
+  const updateForm = <K extends keyof QuickReportForm>(field: K, value: QuickReportForm[K]) => {
+    setForm((current) => ({ ...current, [field]: value }))
+    if (field !== 'titulo') clearGeneratedState()
+  }
+
+  const handleGeneratePreview = async () => {
     const activeText = form.inputMode === 'raw' ? form.rawText.trim() : form.nqlInput.trim()
     if (!activeText) {
       toast.error(
@@ -143,6 +170,7 @@ export default function QuickReport() {
     }
 
     try {
+      setGenerating(true)
       let input: QuickReportInput
       let report: QuickReportOutput
 
@@ -156,26 +184,89 @@ export default function QuickReport() {
         report = generateQuickReport(input, { profile: form.profile })
       }
 
-      console.log('NQL_PARSED_INPUT', input)
-      console.log('NQL_REPORT_RESULT', report)
+      let assembledContext: ClinicalContextSnapshot | null = null
+      if (form.paciente_id) {
+        if (!user?.id) throw new Error('Sessão autenticada necessária para acessar o prontuário.')
+        const assembled = await assemblePatientClinicalContext(form.paciente_id, user.id, input)
+        input = assembled.enrichedInput
+        assembledContext = assembled.snapshot
+        report = generateQuickReport(input, { profile: form.profile })
+      }
+
+      let expertRuntimeVerified = false
+      try {
+        const expert = await generateExpertQuickReport({
+          rawNarrative: activeText,
+          profile: form.profile,
+          purpose: input.documentPurpose || input.requestedPurpose,
+          structuredFacts: input,
+          deterministicReport: report.reportMarkdown,
+        })
+
+        report = {
+          ...report,
+          reportMarkdown: expert.reportMarkdown,
+          auditTrace: {
+            ...report.auditTrace,
+            inputHash: expert.trust.sourceHash,
+            engineVersion: 'NEUROSTRATA-EXPERT-RUNTIME-1.0-SKIP-CLOUD',
+            limitations: [...report.auditTrace.limitations, ...expert.limitations],
+            inferenceTrace: [
+              ...report.auditTrace.inferenceTrace,
+              'LLM real executado pelo agente NeuroStrata no Skip Cloud.',
+              `Retrieval real: ${expert.trust.expertCitations.length} fragmento(s) de memória governada.`,
+              `Crítico independente: ${expert.critic.status}; fidelidade factual ${expert.critic.factualFidelity}%.`,
+              `Evidence Manifest: ${expert.trust.evidenceManifestId}.`,
+            ],
+          },
+        }
+        setExpertRuntime(expert)
+        setExpertRuntimeError(null)
+        expertRuntimeVerified = true
+      } catch (expertError) {
+        setExpertRuntime(null)
+        setExpertRuntimeError(
+          expertError instanceof Error ? expertError.message : 'Runtime especialista indisponível.',
+        )
+      }
+
       setParsedInput(input)
       setGeneratedReport(report)
+      setContextSnapshot(assembledContext)
       setUseTruncated(false)
       setHumanReviewDecision('PENDING')
-      toast.success('Relatório avançado gerado pelo pipeline NQL.')
-    } catch (err) {
-      console.error(err)
-      toast.error('Erro ao processar dados do Quick Report. Revise o texto de entrada.')
+      setCommitResult(null)
+      setSubmissionKey(createSubmissionKey('report'))
+      if (!expertRuntimeVerified) {
+        toast.warning('Preview determinístico gerado; LLM/retrieval real não foi certificado.')
+      } else {
+        toast.success('Quick Report Expert gerado com memória NeuroStrata e AI Trust.')
+      }
+    } catch (err: unknown) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : 'Erro ao processar dados do Quick Report. Revise o texto de entrada.',
+      )
+    } finally {
+      setGenerating(false)
     }
   }
 
   const handleCreateReport = async () => {
-    if (!form.paciente_id || !form.titulo.trim() || !generatedReport) {
-      toast.error('Selecione paciente, informe título e gere o relatório antes de salvar.')
-      return
-    }
-    if (humanReviewDecision !== 'APPROVED') {
-      toast.error('A revisão humana deve aprovar o preview antes da persistência.')
+    const readiness = getCanonicalCommitReadiness({
+      patientId: form.paciente_id,
+      title: form.titulo,
+      hasGeneratedReport: Boolean(generatedReport && parsedInput),
+      humanReviewDecision,
+      hasClinicalContext: Boolean(contextSnapshot),
+      exceedsContentLimit: Boolean(
+        generatedReport && generatedReport.reportMarkdown.length > 50000,
+      ),
+      truncationAccepted: useTruncated,
+    })
+    if (!readiness.ready || !generatedReport || !parsedInput || !contextSnapshot) {
+      toast.error(readiness.blockers[0] || 'Clinical Commit ainda não está pronto.')
       return
     }
 
@@ -193,40 +284,43 @@ export default function QuickReport() {
 
     try {
       setSaving(true)
-      const payload: any = {
-        paciente_id: form.paciente_id,
-        titulo: form.titulo.trim(),
-        conteudo: finalMarkdown,
-      }
-
-      if (user?.id) payload.usuario_id = user.id
-
-      await pb.collection('quick_reports').create(payload)
-      toast.success('Quick Report criado com sucesso.')
-      setOpenCreateDialog(false)
-      setForm(emptyForm)
-      clearGeneratedState()
+      const result = await commitCanonicalQuickReport({
+        patientId: form.paciente_id,
+        title: form.titulo,
+        profile: form.profile,
+        reportMarkdown: finalMarkdown,
+        parsedInput,
+        report: generatedReport,
+        contextSnapshot,
+        submissionKey,
+      })
+      setCommitResult(result)
+      toast.success(
+        result.idempotent
+          ? `Clinical Commit confirmado sem duplicação — versão ${result.version}.`
+          : `Relatório canônico salvo — versão ${result.version}.`,
+      )
       await loadData(true)
-    } catch (err: any) {
-      console.error(err)
-
-      const isMaxConstraintError =
-        err?.response?.data?.conteudo?.code === 'validation_max_text_constraint' ||
-        getErrorMessage(err).includes('maximum allowed length') ||
-        getErrorMessage(err).includes('limite de caracteres')
-
-      if (isMaxConstraintError) {
-        toast.error(
-          'Erro: O relatório excede o limite de caracteres permitido. Por favor, resuma o conteúdo ou entre em contato com o suporte.',
-        )
-      } else {
-        const errorMsg = getErrorMessage(err)
-        toast.error(`Erro ao salvar relatório: ${errorMsg}`)
-      }
+    } catch (err: unknown) {
+      toast.error(
+        err instanceof Error
+          ? `Clinical Commit não concluído: ${err.message}`
+          : 'Clinical Commit não concluído. Nenhuma versão foi ativada.',
+      )
     } finally {
       setSaving(false)
     }
   }
+
+  const commitReadiness = getCanonicalCommitReadiness({
+    patientId: form.paciente_id,
+    title: form.titulo,
+    hasGeneratedReport: Boolean(generatedReport && parsedInput),
+    humanReviewDecision,
+    hasClinicalContext: Boolean(contextSnapshot),
+    exceedsContentLimit: Boolean(generatedReport && generatedReport.reportMarkdown.length > 50000),
+    truncationAccepted: useTruncated,
+  })
 
   const resetDialog = () => {
     setOpenCreateDialog(false)
@@ -268,6 +362,12 @@ export default function QuickReport() {
         {reports.map((report) => (
           <Card key={report.id} className="transition-all hover:shadow-md flex flex-col">
             <CardHeader className="pb-3">
+              <div className="mb-2 flex flex-wrap gap-2">
+                <Badge variant={report.status === 'CANONICAL_COMMITTED' ? 'default' : 'secondary'}>
+                  {report.status || 'LEGACY'}
+                </Badge>
+                {report.version ? <Badge variant="outline">Versão {report.version}</Badge> : null}
+              </div>
               <CardTitle className="text-lg flex items-center gap-2 text-slate-800">
                 <FileBarChart className="h-5 w-5 text-indigo-500" />
                 {report.titulo}
@@ -310,8 +410,8 @@ export default function QuickReport() {
           <DialogHeader className="p-6 pb-2 shrink-0 border-b">
             <DialogTitle>Gerar Quick Report Avançado</DialogTitle>
             <DialogDescription>
-              Gere preview local sem paciente cadastrado. O paciente só é obrigatório para salvar no
-              PocketBase e vincular ao prontuário.
+              O preview pode ser local. O Clinical Commit exige paciente, contexto longitudinal,
+              fingerprint e aprovação profissional.
             </DialogDescription>
           </DialogHeader>
 
@@ -321,8 +421,11 @@ export default function QuickReport() {
                 <Label>Paciente para vínculo ao salvar</Label>
                 <Select
                   value={form.paciente_id}
-                  onValueChange={(value) => updateForm('paciente_id', value)}
-                  disabled={patients.length === 0 || saving}
+                  onValueChange={(value) => {
+                    updateForm('paciente_id', value)
+                    clearGeneratedState()
+                  }}
+                  disabled={patients.length === 0 || saving || generating}
                 >
                   <SelectTrigger className="bg-white">
                     <SelectValue placeholder="Opcional para preview; obrigatório para salvar" />
@@ -405,7 +508,7 @@ export default function QuickReport() {
                     value={form.rawText}
                     onChange={(event) => updateForm('rawText', event.target.value)}
                     disabled={saving}
-                    placeholder="Cole aqui o relatório clínico completo, incluindo identificação, seções, qEEG e localização de fonte."
+                    placeholder="Cole ou dite suas anotações como foram registradas. Não é necessário organizar ou corrigir previamente."
                     className="min-h-[340px] text-sm bg-white resize-y flex-1"
                   />
                   <p className="text-xs text-slate-500">
@@ -465,9 +568,10 @@ export default function QuickReport() {
                 onClick={handleGeneratePreview}
                 className="w-full"
                 variant="secondary"
+                disabled={saving || generating}
               >
                 <Brain className="w-4 h-4 mr-2" />
-                Gerar Relatório Avançado
+                {generating ? 'Montando contexto clínico...' : 'Gerar Relatório Avançado'}
               </Button>
             </div>
 
@@ -550,6 +654,48 @@ export default function QuickReport() {
                     </div>
                   )}
 
+                  <Card
+                    className={
+                      contextSnapshot
+                        ? 'border-emerald-200 bg-emerald-50/50'
+                        : 'border-amber-200 bg-amber-50/50'
+                    }
+                  >
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <Database className="h-4 w-4" />
+                        Contexto longitudinal NeuroStrata
+                      </CardTitle>
+                      <CardDescription>
+                        {contextSnapshot
+                          ? `${contextSnapshot.sourceIds.length} registros vinculados por proveniência.`
+                          : 'Preview local sem consulta ao prontuário; não elegível para Clinical Commit.'}
+                      </CardDescription>
+                    </CardHeader>
+                    {contextSnapshot ? (
+                      <CardContent className="space-y-3">
+                        <div className="flex flex-wrap gap-2">
+                          {contextSnapshot.sources.map((item) => (
+                            <Badge key={item.collection} variant="outline">
+                              {item.collection}: {item.count}
+                            </Badge>
+                          ))}
+                        </div>
+                        {contextSnapshot.limitations.length > 0 ? (
+                          <ul className="space-y-1 text-xs text-amber-800">
+                            {contextSnapshot.limitations.map((limitation) => (
+                              <li key={limitation}>• {limitation}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-xs text-emerald-700">
+                            Fontes longitudinais disponíveis e vinculadas ao preview.
+                          </p>
+                        )}
+                      </CardContent>
+                    ) : null}
+                  </Card>
+
                   <Card className="border-cyan-200 bg-cyan-50/40">
                     <CardHeader className="pb-3">
                       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -580,7 +726,111 @@ export default function QuickReport() {
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                      <div
+                        className={`rounded-xl border p-4 ${
+                          expertRuntime?.runtimeStatus === 'READY_FOR_HUMAN_REVIEW'
+                            ? 'border-emerald-200 bg-emerald-50'
+                            : expertRuntime
+                              ? 'border-amber-200 bg-amber-50'
+                              : 'border-slate-200 bg-slate-50'
+                        }`}
+                        data-testid="expert-runtime-status"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <p className="font-semibold text-slate-900">
+                              NeuroStrata Expert Runtime
+                            </p>
+                            <p className="mt-1 text-xs text-slate-600">
+                              {expertRuntime
+                                ? 'LLM real + retrieval real de memória governada + crítico independente.'
+                                : 'Fallback determinístico local, sem certificação de LLM ou retrieval real.'}
+                            </p>
+                          </div>
+                          <Badge variant={expertRuntime ? 'default' : 'secondary'}>
+                            {expertRuntime?.runtimeStatus || 'DETERMINISTIC_FALLBACK'}
+                          </Badge>
+                        </div>
+                        {expertRuntime ? (
+                          <>
+                            <dl className="mt-4 grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4">
+                              <div className="rounded-lg border bg-white p-3">
+                                <dt className="font-semibold text-slate-500">AI/LLM</dt>
+                                <dd>Skip Cloud · reasoning</dd>
+                              </div>
+                              <div className="rounded-lg border bg-white p-3">
+                                <dt className="font-semibold text-slate-500">Memória recuperada</dt>
+                                <dd>{expertRuntime.trust.expertCitations.length} fragmento(s)</dd>
+                              </div>
+                              <div className="rounded-lg border bg-white p-3">
+                                <dt className="font-semibold text-slate-500">Crítico</dt>
+                                <dd>{expertRuntime.critic.status}</dd>
+                              </div>
+                              <div className="rounded-lg border bg-white p-3">
+                                <dt className="font-semibold text-slate-500">Fidelidade factual</dt>
+                                <dd>{expertRuntime.critic.factualFidelity}%</dd>
+                              </div>
+                            </dl>
+                            {expertRuntime.attentionCards.length > 0 && (
+                              <div className="mt-4">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                  Atenção Clínica · decisões humanas
+                                </p>
+                                <div className="mt-2 grid gap-2 lg:grid-cols-2">
+                                  {expertRuntime.attentionCards.map((card) => (
+                                    <div
+                                      key={card.cardId}
+                                      className="rounded-lg border bg-white p-3 text-xs"
+                                    >
+                                      <p className="font-semibold text-slate-900">{card.problem}</p>
+                                      <p className="mt-1 text-slate-600">{card.whyItMatters}</p>
+                                      <p className="mt-2">
+                                        <strong>Proposta:</strong> {card.proposal}
+                                      </p>
+                                      <p>
+                                        <strong>Ação:</strong> {card.action}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            <details className="mt-4 rounded-lg border bg-white">
+                              <summary className="cursor-pointer p-3 text-xs font-semibold">
+                                Modo auditor · provenance e memória
+                              </summary>
+                              <div className="space-y-2 border-t p-3 text-xs">
+                                <p>
+                                  <strong>Evidence Manifest:</strong>{' '}
+                                  {expertRuntime.trust.evidenceManifestId}
+                                </p>
+                                <p>
+                                  <strong>Source SHA-256:</strong> {expertRuntime.trust.sourceHash}
+                                </p>
+                                <p>
+                                  <strong>Output SHA-256:</strong> {expertRuntime.trust.outputHash}
+                                </p>
+                                <p>
+                                  <strong>Prompt:</strong> {expertRuntime.trust.promptVersion}
+                                </p>
+                                <p>
+                                  <strong>Fontes recuperadas:</strong>{' '}
+                                  {expertRuntime.trust.expertCitations
+                                    .map((citation) => `[${citation.n}] ${citation.source_id}`)
+                                    .join(', ') || 'nenhuma'}
+                                </p>
+                              </div>
+                            </details>
+                          </>
+                        ) : (
+                          <p className="mt-3 text-xs text-amber-700">
+                            {expertRuntimeError ||
+                              'O runtime real ainda não foi executado nesta versão.'}
+                          </p>
+                        )}
+                      </div>
                       <dl className="grid gap-3 text-xs sm:grid-cols-2">
+                        {' '}
                         <div className="rounded-lg border bg-white p-3">
                           <dt className="font-semibold text-slate-500">Fingerprint do input</dt>
                           <dd className="mt-1 break-all font-mono text-slate-800">
@@ -631,6 +881,10 @@ export default function QuickReport() {
                       <div className="flex flex-wrap gap-2">
                         <Button
                           type="button"
+                          disabled={Boolean(
+                            expertRuntime &&
+                            expertRuntime.runtimeStatus !== 'READY_FOR_HUMAN_REVIEW',
+                          )}
                           onClick={() => {
                             setHumanReviewDecision('APPROVED')
                             toast.success('Preview aprovado para persistência pelo profissional.')
@@ -651,6 +905,17 @@ export default function QuickReport() {
                           Rejeitar e revisar
                         </Button>
                       </div>
+                      {commitResult ? (
+                        <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-xs text-emerald-900">
+                          <p className="font-semibold">
+                            Clinical Commit concluído — versão {commitResult.version}
+                          </p>
+                          <p className="mt-1 break-all font-mono">
+                            {commitResult.reportFingerprint}
+                          </p>
+                          <p className="mt-1">Audit event: {commitResult.auditEventId}</p>
+                        </div>
+                      ) : null}
                     </CardContent>
                   </Card>
 
@@ -728,23 +993,37 @@ export default function QuickReport() {
             </div>
           </div>
 
-          <DialogFooter className="p-4 border-t shrink-0 bg-slate-50">
-            <Button type="button" variant="outline" onClick={resetDialog} disabled={saving}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleCreateReport}
-              disabled={
-                saving ||
-                !form.paciente_id ||
-                !form.titulo.trim() ||
-                !generatedReport ||
-                humanReviewDecision !== 'APPROVED' ||
-                (generatedReport.reportMarkdown.length > 50000 && !useTruncated)
-              }
-            >
-              {saving ? 'Salvando...' : 'Salvar no Prontuário'}
-            </Button>
+          <DialogFooter className="flex-col gap-3 border-t bg-slate-50 p-4 sm:flex-col">
+            {!commitResult && commitReadiness.blockers.length > 0 ? (
+              <div className="w-full rounded-lg border bg-white p-3">
+                <p className="text-xs font-semibold text-slate-700">
+                  Requisitos para salvar no prontuário
+                </p>
+                <ul className="mt-2 grid gap-1 text-xs text-slate-600 sm:grid-cols-2">
+                  {commitReadiness.blockers.map((blocker) => (
+                    <li key={blocker} className="flex items-start gap-2">
+                      <Circle className="mt-1 h-2 w-2 shrink-0 fill-amber-400 text-amber-400" />
+                      {blocker}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            <div className="flex w-full justify-end gap-2">
+              <Button type="button" variant="outline" onClick={resetDialog} disabled={saving}>
+                {commitResult ? 'Concluir' : 'Cancelar'}
+              </Button>
+              <Button
+                onClick={handleCreateReport}
+                disabled={saving || generating || !commitReadiness.ready || Boolean(commitResult)}
+              >
+                {saving
+                  ? 'Executando Clinical Commit...'
+                  : commitResult
+                    ? 'Commit canônico concluído'
+                    : 'Salvar no Prontuário'}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

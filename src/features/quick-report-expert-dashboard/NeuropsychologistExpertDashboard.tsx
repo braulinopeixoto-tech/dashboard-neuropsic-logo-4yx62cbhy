@@ -33,8 +33,9 @@ const capabilities = [
   {
     icon: BrainCircuit,
     label: 'Runtime real',
-    value: 'Determinístico local',
-    detail: 'Não representa LLM live nem retrieval vetorial real.',
+    value: 'Skip Cloud Expert + RAG',
+    detail:
+      'LLM reasoning, memória governada e crítico independente; fallback local é identificado.',
   },
 ] as const
 
