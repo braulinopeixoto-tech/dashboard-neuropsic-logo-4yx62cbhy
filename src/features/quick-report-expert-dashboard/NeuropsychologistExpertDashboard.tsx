@@ -33,9 +33,9 @@ const capabilities = [
   {
     icon: BrainCircuit,
     label: 'Runtime real',
-    value: 'Skip Cloud Expert + RAG',
+    value: 'Agentes configurados',
     detail:
-      'LLM reasoning, memória governada e crítico independente; fallback local é identificado.',
+      'LLM/RAG aguardam provisionamento do AI Gateway; fallback local permanece identificado.',
   },
 ] as const
 
